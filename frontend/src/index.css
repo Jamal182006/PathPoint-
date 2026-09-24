@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 selection:bg-brand-500 selection:text-white;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+}
+
+@keyframes auth-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -12px, 0) scale(1.03); }
+}
+
+@keyframes auth-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes auth-pop {
+  from { opacity: 0; transform: scale(0.86) rotate(-4deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+.auth-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(99, 102, 241, 0.13), transparent 28%),
+    radial-gradient(circle at 88% 82%, rgba(14, 165, 233, 0.11), transparent 30%),
+    #f8fafc;
+}
+
+.auth-page::before,
+.auth-page::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 18rem;
+  height: 18rem;
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: auth-drift 9s ease-in-out infinite;
+}
+
+.auth-page::before { top: 8%; left: -9rem; }
+.auth-page::after { right: -9rem; bottom: 8%; animation-delay: -4s; }
+
+.auth-brand { animation: auth-rise 600ms ease-out both; }
+.auth-brand-mark { animation: auth-pop 700ms 100ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.auth-card { animation: auth-rise 700ms 180ms ease-out both; }
+.auth-card form > div { animation: auth-rise 500ms ease-out both; }
+.auth-card form > div:nth-child(2) { animation-delay: 70ms; }
+.auth-card form > div:nth-child(3) { animation-delay: 140ms; }
+.auth-card form > div:nth-child(4) { animation-delay: 210ms; }
+.auth-card form > div:nth-child(5) { animation-delay: 280ms; }
+.auth-card form > div:nth-child(6) { animation-delay: 350ms; }
+
+.auth-input {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.auth-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.11);
+}
+
+.auth-submit {
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 22px rgba(79, 70, 229, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-page::before,
+  .auth-page::after,
+  .auth-brand,
+  .auth-brand-mark,
+  .auth-card,
+  .auth-card form > div {
+    animation: none;
+  }
+
+  .auth-input,
+  .auth-submit {
+    transition: none;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
