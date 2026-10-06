@@ -46,6 +46,10 @@ export const Navbar = ({ onOpenBrowseModal }) => {
     { label: 'Analytics', path: '/analytics', icon: BarChart3 },
   ];
 
+  const providerNavLinks = [
+    { label: 'Business listing', path: '/provider', icon: Building2 },
+  ];
+
   const adminNavLinks = [
     { label: 'Cohort KPIs', path: '/admin', icon: BarChart3, exact: true },
     { label: 'Seeker Directory', path: '/admin/users', icon: Users },
@@ -53,7 +57,7 @@ export const Navbar = ({ onOpenBrowseModal }) => {
     { label: 'Seeker View', path: '/dashboard', icon: LayoutDashboard },
   ];
 
-  const navLinks = isAdmin ? adminNavLinks : candidateNavLinks;
+  const navLinks = isAdmin ? adminNavLinks : user?.role === 'provider' ? providerNavLinks : candidateNavLinks;
 
   const isActive = (link) => {
     if (link.exact) {
@@ -79,7 +83,7 @@ export const Navbar = ({ onOpenBrowseModal }) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo & Brand */}
             <div className="flex items-center gap-8">
-              <Link to={isAdmin ? '/admin' : '/dashboard'} className="flex items-center gap-2.5 group">
+              <Link to={isAdmin ? '/admin' : user?.role === 'provider' ? '/provider' : '/dashboard'} className="flex items-center gap-2.5 group">
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105 ${
                     isAdmin
@@ -132,7 +136,7 @@ export const Navbar = ({ onOpenBrowseModal }) => {
             {/* Right Header Actions */}
             <div className="hidden md:flex items-center gap-3">
               {/* Company browser button */}
-              {onOpenBrowseModal && (
+              {onOpenBrowseModal && user?.role !== 'provider' && (
                 <button
                   onClick={onOpenBrowseModal}
                   className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm shadow-indigo-200 transition active:scale-95"
@@ -220,7 +224,7 @@ export const Navbar = ({ onOpenBrowseModal }) => {
 
             {/* Mobile menu button */}
             <div className="flex md:hidden items-center gap-2">
-              {onOpenBrowseModal && (
+              {onOpenBrowseModal && user?.role !== 'provider' && (
                 <button
                   onClick={onOpenBrowseModal}
                   className="p-2 rounded-lg bg-indigo-600 text-white"

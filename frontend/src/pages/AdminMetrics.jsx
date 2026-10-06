@@ -45,6 +45,11 @@ export const AdminMetrics = () => {
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Anonymized, platform-wide cohort metrics to evaluate job seeker outcomes and guidance impact.
         </p>
+        <nav className="mt-4 flex flex-wrap gap-2 text-xs">
+          <Link to="/admin/users" className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50">Seeker Directory</Link>
+          <Link to="/admin/providers" className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 font-semibold text-indigo-700">Provider Verification</Link>
+          <Link to="/admin/system" className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50">System Health</Link>
+        </nav>
       </div>
 
       {/* Aggregate KPI Grid */}

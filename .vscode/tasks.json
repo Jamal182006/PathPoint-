@@ -1,0 +1,102 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Validate current SMTP credentials",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"check:smtp"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Retest SMTP from backend env",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"check:smtp"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check backend SMTP authentication",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"check:smtp"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Find backend listener for restart",
+			"type": "shell",
+			"command": "netstat",
+			"args": [
+				"-ano"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Confirm API PID",
+			"type": "shell",
+			"command": "tasklist",
+			"args": [
+				"/FI",
+				"PID eq 16000"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Stop current PathPoint backend",
+			"type": "shell",
+			"command": "taskkill",
+			"args": [
+				"/PID",
+				"16000",
+				"/T",
+				"/F"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Restart backend from original env",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"dev"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Confirm restarted backend health",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

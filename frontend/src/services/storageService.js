@@ -1,5 +1,3 @@
-import { INITIAL_USERS, INITIAL_APPLICATIONS } from '../mock/initialData';
-
 const STORAGE_KEYS = {
   APPLICATIONS: 'pathpoint_applications',
   USERS: 'pathpoint_users',
@@ -8,31 +6,16 @@ const STORAGE_KEYS = {
 
 const APPLICATION_STATUSES = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
 
-// Initialize localStorage if empty
-const ensureInitialized = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.APPLICATIONS)) {
-    localStorage.setItem(
-      STORAGE_KEYS.APPLICATIONS,
-      JSON.stringify(INITIAL_APPLICATIONS)
-    );
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID)) {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, 'user-alex');
-  }
-};
+const ensureInitialized = () => {};
 
 export const storageService = {
-  // Reset all data back to clean demo state
+  // Remove browser-only data; Atlas is the only source of persisted records.
+  clearLocalData: () => {
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+  },
+
   resetToDemoData: () => {
-    localStorage.setItem(
-      STORAGE_KEYS.APPLICATIONS,
-      JSON.stringify(INITIAL_APPLICATIONS)
-    );
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, 'user-alex');
+    storageService.clearLocalData();
     window.location.reload();
   },
 
@@ -40,18 +23,18 @@ export const storageService = {
   getUsers: () => {
     ensureInitialized();
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS)) || INITIAL_USERS;
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS)) || [];
     } catch {
-      return INITIAL_USERS;
+      return [];
     }
   },
 
   getCurrentUser: () => {
     ensureInitialized();
     const users = storageService.getUsers();
-    const currentId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID) || 'user-alex';
+    const currentId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_ID);
     const found = users.find((u) => u.id === currentId);
-    return found || users[0];
+    return found || null;
   },
 
   setCurrentUser: (userId) => {
@@ -125,7 +108,7 @@ export const storageService = {
     try {
       apps = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPLICATIONS)) || [];
     } catch {
-      apps = INITIAL_APPLICATIONS;
+      apps = [];
     }
 
     let userApps = apps.filter((a) => a.userId === userId);

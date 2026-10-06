@@ -1,6 +1,7 @@
 import authApi from '../api/authApi';
 import applicationsApi from '../api/applicationsApi';
 import adminApi from '../api/adminApi';
+import providersApi from '../api/providersApi';
 import systemApi from '../api/systemApi';
 import { storageService } from './storageService';
 
@@ -27,12 +28,27 @@ const persistAuthSession = (user, token, rememberMe = true) => {
     localStorage.setItem('pathpoint_user', JSON.stringify(user));
     sessionStorage.removeItem('pathpoint_token');
     sessionStorage.removeItem('pathpoint_user');
+    localStorage.setItem('pathpoint_token_expires_at', String(Date.now() + 30 * 24 * 60 * 60 * 1000));
   } else {
     sessionStorage.setItem('pathpoint_token', token);
     sessionStorage.setItem('pathpoint_user', JSON.stringify(user));
     localStorage.removeItem('pathpoint_token');
     localStorage.removeItem('pathpoint_user');
+    localStorage.removeItem('pathpoint_token_expires_at');
   }
+};
+
+const getTrustedDeviceToken = () => {
+  let deviceToken = localStorage.getItem('pathpoint_trusted_device');
+  if (!deviceToken) {
+    deviceToken = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem('pathpoint_trusted_device', deviceToken);
+  }
+  return deviceToken;
+};
+
+const persistTrustedDevice = (token) => {
+  if (token) localStorage.setItem('pathpoint_trusted_device', token);
 };
 
 export const apiAdapter = {
@@ -50,7 +66,7 @@ export const apiAdapter = {
     }
 
     try {
-      const res = await authApi.login({ email, password });
+      const res = await authApi.login({ email, password, rememberMe, deviceToken: getTrustedDeviceToken() });
       if (res.data?.success && res.data.token) {
         persistAuthSession(res.data.user, res.data.token, rememberMe);
         return { user: res.data.user, token: res.data.token, source: 'backend' };
@@ -66,14 +82,71 @@ export const apiAdapter = {
     }
   },
 
-  register: async ({ name, email, password, role = 'user', careerTrack = 'General' }, rememberMe = true) => {
+  requestLoginCode: async (email, password, rememberMe = true) => {
+    const online = await checkBackendStatus(true);
+    if (!online) {
+      throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
+    }
+
+    try {
+      const res = await authApi.requestLoginCode({ email, password, rememberMe, deviceToken: getTrustedDeviceToken() });
+      if (res.data?.success) {
+        persistTrustedDevice(res.data.trustedDeviceToken);
+        if (res.data.token && res.data.user) {
+          persistAuthSession(res.data.user, res.data.token, rememberMe);
+          return {
+            ...res.data,
+            user: res.data.user,
+            token: res.data.token,
+            source: 'backend',
+          };
+        }
+        return {
+          ...res.data,
+          rememberMe,
+          source: 'backend',
+        };
+      }
+      throw new Error(res.data?.message || 'Unable to send login verification code');
+    } catch (err) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      throw new Error('Unable to reach the authentication server. Please try again.');
+    }
+  },
+
+  verifyLoginCode: async (email, password, code, rememberMe = true) => {
+    const online = await checkBackendStatus(true);
+    if (!online) {
+      throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
+    }
+
+    try {
+      const deviceToken = getTrustedDeviceToken();
+      const res = await authApi.verifyLoginCode({ email, password, code, rememberMe, deviceToken });
+      if (res.data?.success && res.data.token) {
+        persistTrustedDevice(res.data.trustedDeviceToken || deviceToken);
+        persistAuthSession(res.data.user, res.data.token, rememberMe);
+        return { user: res.data.user, token: res.data.token, source: 'backend' };
+      }
+      throw new Error(res.data?.message || 'Login verification failed');
+    } catch (err) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      throw new Error('Unable to verify the login code. Please try again.');
+    }
+  },
+
+  register: async ({ name, email, password, role = 'user', careerTrack = 'General', businessProfile, businessDocument }, rememberMe = true) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The server is unavailable. Start the backend and connect MongoDB before creating an account.');
     }
 
     try {
-      const res = await authApi.register({ name, email, password, role, careerTrack });
+      const res = await authApi.register({ name, email, password, role, careerTrack, businessProfile, businessDocument });
       if (res.data?.success && res.data.token) {
         persistAuthSession(res.data.user, res.data.token, rememberMe);
         return { user: res.data.user, token: res.data.token, source: 'backend' };
@@ -116,22 +189,24 @@ export const apiAdapter = {
   },
 
   forgotPassword: async (email) => {
-    const online = await checkBackendStatus();
-    if (online) {
-      try {
-        const res = await authApi.forgotPassword(email);
-        return res.data;
-      } catch (err) {
-        if (err.response?.data?.message) {
-          throw new Error(err.response.data.message);
-        }
-      }
+    const online = await checkBackendStatus(true);
+    if (!online) {
+      throw new Error('The backend is unavailable. Please try again later.');
     }
-    return storageService.forgotPassword(email);
+
+    try {
+      const res = await authApi.forgotPassword(email);
+      return res.data;
+    } catch (err) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      throw new Error('Unable to send the password reset code.');
+    }
   },
 
   verifyResetCode: async (email, code) => {
-    const online = await checkBackendStatus();
+    const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The backend is unavailable. Please try again later.');
     }
@@ -148,7 +223,7 @@ export const apiAdapter = {
   },
 
   resetPassword: async (email, code, newPassword) => {
-    const online = await checkBackendStatus();
+    const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The backend is unavailable. Please try again later.');
     }
@@ -336,6 +411,39 @@ export const apiAdapter = {
     return storageService.getAdminUsers(params);
   },
 
+  getAdminProviders: async (params = {}) => {
+    const res = await adminApi.getUsers({ ...params, role: 'provider' });
+    return res.data?.success ? res.data.data : [];
+  },
+
+  getProviderVerificationDocument: async (providerId) => {
+    const res = await adminApi.getProviderVerificationDocument(providerId);
+    return res.data;
+  },
+
+  reviewProviderVerification: async (providerId, status, rejectionReason = '') => {
+    const res = await adminApi.reviewProviderVerification(providerId, status, rejectionReason);
+    return res.data;
+  },
+
+  submitProviderVerificationDocument: async (file) => {
+    if (!file || file.size > 5 * 1024 * 1024) {
+      throw new Error('Choose a verification document that is 5 MB or smaller.');
+    }
+    const data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      reader.onerror = () => reject(new Error('Unable to read the selected document.'));
+      reader.readAsDataURL(file);
+    });
+    const res = await providersApi.submitVerificationDocument({
+      fileName: file.name,
+      mimeType: file.type,
+      data,
+    });
+    return res.data?.data;
+  },
+
   updateUserStatus: async (userId, status) => {
     const online = await checkBackendStatus();
     if (online) {
@@ -364,6 +472,32 @@ export const apiAdapter = {
       }
     }
     return storageService.getUserApplications(userId);
+  },
+
+  getProviders: async () => {
+    const online = await checkBackendStatus();
+    if (!online) return [];
+
+    try {
+      const res = await providersApi.getAll();
+      return res.data?.success ? res.data.data : [];
+    } catch (err) {
+      console.warn('[Adapter] Provider directory request failed:', err.message);
+      return [];
+    }
+  },
+
+  updateBusinessProfile: async (businessProfile) => {
+    const online = await checkBackendStatus();
+    if (!online) throw new Error('The server is unavailable. Connect to the backend to update your listing.');
+
+    try {
+      const res = await providersApi.updateMine(businessProfile);
+      if (res.data?.success) return { ...res.data.data, verification: res.data.verification };
+      throw new Error(res.data?.message || 'Failed to update business profile');
+    } catch (err) {
+      throw new Error(err.response?.data?.message || err.message || 'Failed to update business profile');
+    }
   },
 };
 

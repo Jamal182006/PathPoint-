@@ -97,6 +97,12 @@ export const AdminSystem = () => {
             Seeker Directory
           </Link>
           <Link
+            to="/admin/providers"
+            className="px-3.5 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition"
+          >
+            Provider Verification
+          </Link>
+          <Link
             to="/admin/system"
             className="px-3.5 py-1.5 rounded-lg font-semibold bg-white text-indigo-700 shadow-sm"
           >

@@ -1,7 +1,23 @@
 import mongoose from 'mongoose';
+import Application from '../models/Application.js';
 import User from '../models/User.js';
 
-let memoryServer = null;
+const ensureCollections = async () => {
+  const models = [User, Application];
+  const existingCollections = new Set(
+    (await mongoose.connection.db.listCollections({}, { nameOnly: true }).toArray())
+      .map(({ name }) => name)
+  );
+
+  for (const model of models) {
+    if (!existingCollections.has(model.collection.collectionName)) {
+      await model.createCollection();
+    }
+  }
+
+  await Promise.all(models.map((model) => model.createIndexes()));
+  console.log('[MongoDB] Required collections and indexes are ready: users, applications');
+};
 
 const ensureDefaultAdmin = async () => {
   try {
@@ -28,14 +44,14 @@ const ensureDefaultAdmin = async () => {
 };
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/pathpoint';
-  const isProduction = process.env.NODE_ENV === 'production';
-  const allowMemoryFallback =
-    process.env.MONGODB_ALLOW_MEMORY_FALLBACK === 'true' ||
-    !isProduction;
+  const uri = process.env.MONGODB_URI;
 
-  if (isProduction && !process.env.MONGODB_URI) {
-    throw new Error('MONGODB_URI must be configured for production. Use your MongoDB Atlas connection string.');
+  if (!uri) {
+    throw new Error('MONGODB_URI must be configured with a MongoDB Atlas connection string.');
+  }
+
+  if (!/^mongodb(?:\+srv)?:\/\/.*mongodb\.net/i.test(uri)) {
+    throw new Error('Only MongoDB Atlas connections are supported. Use a mongodb.net connection string.');
   }
 
   const maskedUri = uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+@/, '$1****@');
@@ -48,37 +64,11 @@ export const connectDB = async () => {
     });
 
     console.log(`[MongoDB] Connected successfully to database: ${mongoose.connection.name}`);
+    await ensureCollections();
     await ensureDefaultAdmin();
   } catch (err) {
-    console.warn(`[MongoDB] Standard connection to ${maskedUri} failed: ${err.message}`);
-
-    if (!allowMemoryFallback) {
-      throw err;
-    }
-
-    // Keep local development convenient when MongoDB is not installed or running.
-    try {
-      console.log('[MongoDB] Attempting in-memory MongoDB server for instant zero-config usage...');
-      const { MongoMemoryServer } = await import('mongodb-memory-server');
-      memoryServer = await MongoMemoryServer.create({
-        instance: { dbName: 'pathpoint' },
-      });
-      const memoryUri = memoryServer.getUri();
-      await mongoose.connect(memoryUri);
-      console.log(`[MongoDB] In-memory MongoDB running and connected at: ${memoryUri}`);
-      await ensureDefaultAdmin();
-    } catch (fallbackErr) {
-      console.error('[MongoDB] In-memory fallback failed or not installed:', fallbackErr.message);
-      console.error('\n' + '='.repeat(60));
-      console.error('[MongoDB Setup Guidance]');
-      console.error('Local MongoDB is not running on port 27017.');
-      console.error('To connect your database:');
-      console.error('1. Start your local MongoDB service (mongod), OR');
-      console.error('2. Paste your free MongoDB Atlas cloud URI into pathpoint-backend/.env:');
-      console.error('   MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/pathpoint');
-      console.error('='.repeat(60) + '\n');
-      throw fallbackErr;
-    }
+    console.error(`[MongoDB] Atlas connection to ${maskedUri} failed: ${err.message}`);
+    throw err;
   }
 
   return mongoose.connection;

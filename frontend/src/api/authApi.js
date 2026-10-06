@@ -4,6 +4,10 @@ export const authApi = {
   // Candidate / User Login
   login: (credentials) => apiClient.post('/auth/login', credentials),
 
+  // Email verification code step before login completion
+  requestLoginCode: (credentials) => apiClient.post('/auth/request-login-code', credentials),
+  verifyLoginCode: (payload) => apiClient.post('/auth/verify-login-code', payload),
+
   // Candidate Registration
   register: (userData) => apiClient.post('/auth/register', userData),
 

@@ -1,43 +1,21 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import User from '../models/User.js';
+import { parseBusinessDocument } from '../utils/businessVerification.js';
+import { sendLoginCodeEmail, sendPasswordResetCodeEmail } from '../utils/emailService.js';
+import {
+  getLoginKey,
+  getLockout,
+  recordFailedLogin,
+  resetLoginAttempts,
+} from '../utils/loginLockout.js';
 
-const loginAttempts = new Map();
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_MS = 60 * 1000;
+const MAX_PASSWORD_LENGTH = 12;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const namePattern = /^[a-zA-Z][a-zA-Z .'-]*$/;
 
-const getLoginKey = (req, email) => `${req.ip}:${email.toLowerCase().trim()}`;
-
-const getLockout = (key) => {
-  const attempt = loginAttempts.get(key);
-  if (!attempt) return null;
-
-  if (attempt.lockedUntil && attempt.lockedUntil > Date.now()) {
-    return Math.ceil((attempt.lockedUntil - Date.now()) / 1000);
-  }
-
-  if (attempt.lockedUntil && attempt.lockedUntil <= Date.now()) {
-    loginAttempts.delete(key);
-  }
-
-  return null;
-};
-
-const recordFailedLogin = (key) => {
-  const attempt = loginAttempts.get(key) || { count: 0 };
-  attempt.count += 1;
-
-  if (attempt.count >= MAX_LOGIN_ATTEMPTS) {
-    attempt.lockedUntil = Date.now() + LOCKOUT_MS;
-  }
-
-  loginAttempts.set(key, attempt);
-  return attempt.lockedUntil ? Math.ceil((attempt.lockedUntil - Date.now()) / 1000) : null;
-};
-
 // Helper to sign JWT
-const generateToken = (user) => {
+const generateToken = (user, rememberMe = false) => {
   return jwt.sign(
     {
       id: user.id || user._id,
@@ -45,9 +23,30 @@ const generateToken = (user) => {
     },
     process.env.JWT_SECRET || '***REMOVED***',
     {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: rememberMe ? '30d' : (process.env.JWT_EXPIRES_IN || '7d'),
     }
   );
+};
+
+const generateVerificationCode = () => String(Math.floor(100000 + Math.random() * 900000));
+const hashDeviceToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const trustedDeviceExpiry = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+const isTrustedDevice = (user, deviceToken) => {
+  if (!deviceToken || !Array.isArray(user.trustedDevices)) return false;
+  const now = Date.now();
+  return user.trustedDevices.some(
+    (device) => device.tokenHash === hashDeviceToken(deviceToken) && new Date(device.expiresAt).getTime() > now
+  );
+};
+
+const rememberDevice = async (user, deviceToken) => {
+  if (!deviceToken) return;
+  const tokenHash = hashDeviceToken(deviceToken);
+  user.trustedDevices = (user.trustedDevices || [])
+    .filter((device) => new Date(device.expiresAt).getTime() > Date.now() && device.tokenHash !== tokenHash)
+    .concat({ tokenHash, expiresAt: trustedDeviceExpiry() })
+    .slice(-5);
 };
 
 // @desc    Register a new user / candidate
@@ -55,9 +54,24 @@ const generateToken = (user) => {
 // @access  Public
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role = 'user', careerTrack = 'General' } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role = 'user',
+      careerTrack = 'General',
+      businessProfile = {},
+      businessDocument,
+    } = req.body;
     const normalizedName = name?.trim();
     const normalizedEmail = email?.toLowerCase().trim();
+
+    if (!['user', 'provider'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account type must be user or provider',
+      });
+    }
 
     if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({
@@ -94,11 +108,38 @@ export const register = async (req, res) => {
       });
     }
 
+    if (password.length > MAX_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Password cannot exceed ${MAX_PASSWORD_LENGTH} characters`,
+      });
+    }
+
     if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       return res.status(400).json({
         success: false,
         message: 'Password must include an uppercase letter, lowercase letter, and number',
       });
+    }
+
+    if (role === 'provider' && (!businessProfile.companyName?.trim() || !businessProfile.industry?.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Providers must provide a business name and industry',
+      });
+    }
+
+    let businessVerification;
+    if (role === 'provider') {
+      try {
+        businessVerification = {
+          ...parseBusinessDocument(businessDocument),
+          status: 'pending',
+          submittedAt: new Date(),
+        };
+      } catch (error) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
     }
 
     // Treat the full name as the username and prevent case-insensitive duplicates.
@@ -122,8 +163,10 @@ export const register = async (req, res) => {
       name: normalizedName,
       email: normalizedEmail,
       password,
-      role: role === 'admin' ? 'admin' : 'user',
+      role,
       careerTrack: careerTrack || 'General',
+      businessProfile: role === 'provider' ? businessProfile : undefined,
+      businessVerification,
     });
 
     const token = generateToken(user);
@@ -147,6 +190,8 @@ export const register = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 export const login = async (req, res) => {
+  return requestLoginCode(req, res);
+  /*
   try {
     const { email, password } = req.body;
     const normalizedEmail = email?.toLowerCase().trim();
@@ -246,6 +291,7 @@ export const login = async (req, res) => {
       message: error.message || 'Server error during login',
     });
   }
+  */
 };
 
 // @desc    Authenticate administrator or counselor
@@ -254,17 +300,36 @@ export const login = async (req, res) => {
 export const adminLogin = async (req, res) => {
   try {
     const { email, password, securityCode } = req.body;
+    const normalizedEmail = String(email || '').toLowerCase().trim();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide administrator email and password',
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password');
+    const loginKey = getLoginKey(req.ip, normalizedEmail);
+    const lockedSeconds = getLockout(loginKey);
+    if (lockedSeconds) {
+      return res.status(429).json({
+        success: false,
+        message: `Too many failed attempts. Try again in ${lockedSeconds} seconds.`,
+        lockoutSeconds: lockedSeconds,
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
     if (!user) {
+      const failedAttempts = recordFailedLogin(loginKey);
+      if (failedAttempts) {
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed attempts. Try again in ${failedAttempts} seconds.`,
+          lockoutSeconds: failedAttempts,
+        });
+      }
       return res.status(401).json({
         success: false,
         message: 'Invalid administrator credentials',
@@ -273,11 +338,21 @@ export const adminLogin = async (req, res) => {
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
+      const failedAttempts = recordFailedLogin(loginKey);
+      if (failedAttempts) {
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed attempts. Try again in ${failedAttempts} seconds.`,
+          lockoutSeconds: failedAttempts,
+        });
+      }
       return res.status(401).json({
         success: false,
         message: 'Invalid administrator credentials',
       });
     }
+
+    resetLoginAttempts(loginKey);
 
     // Strict role check: candidates cannot log into counselor suite
     if (user.role !== 'admin') {
@@ -304,6 +379,236 @@ export const adminLogin = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || 'Server error during admin login',
+    });
+  }
+};
+
+// @desc    Request an email verification code before completing login
+// @route   POST /api/auth/request-login-code
+// @access  Public
+export const requestLoginCode = async (req, res) => {
+  try {
+    const { email, password, rememberMe = false, deviceToken } = req.body;
+    const normalizedEmail = String(email || '').toLowerCase().trim();
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide your email and password',
+      });
+    }
+
+    const loginKey = getLoginKey(req.ip, normalizedEmail);
+    const lockedSeconds = getLockout(loginKey);
+    if (lockedSeconds) {
+      return res.status(429).json({
+        success: false,
+        message: `Too many failed attempts. Try again in ${lockedSeconds} seconds.`,
+        lockoutSeconds: lockedSeconds,
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    if (!user) {
+      const failedAttempts = recordFailedLogin(loginKey);
+      if (failedAttempts) {
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed attempts. Try again in ${failedAttempts} seconds.`,
+          lockoutSeconds: failedAttempts,
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      const failedAttempts = recordFailedLogin(loginKey);
+      if (failedAttempts) {
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed attempts. Try again in ${failedAttempts} seconds.`,
+          lockoutSeconds: failedAttempts,
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    resetLoginAttempts(loginKey);
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account suspended. Please contact support.',
+      });
+    }
+
+    if (user.role === 'admin') {
+      user.lastActiveAt = new Date();
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        requiresCode: false,
+        message: 'Administrator login successful.',
+        token: generateToken(user, rememberMe),
+        user: user.toJSON(),
+      });
+    }
+
+    if (isTrustedDevice(user, deviceToken)) {
+      user.lastActiveAt = new Date();
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(200).json({
+        success: true,
+        requiresCode: false,
+        trustedDevice: true,
+        message: 'Trusted device recognized. Login successful.',
+        token: generateToken(user, rememberMe),
+        user: user.toJSON(),
+      });
+    }
+
+    const code = generateVerificationCode();
+    const emailResult = await sendLoginCodeEmail(normalizedEmail, code);
+    user.loginCode = code;
+    user.loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      requiresCode: true,
+      message: emailResult.consoleOnly
+        ? `Console-only delivery is active. Enter the code shown in the backend console.`
+        : `A 6-digit verification code was sent to ${normalizedEmail}. Enter it to continue signing in.`,
+    });
+  } catch (error) {
+    console.error('[Auth Error - Request Login Code]:', error);
+    return res.status(503).json({
+      success: false,
+      message: error.message || 'Server error while sending login code',
+    });
+  }
+};
+
+// @desc    Verify the emailed login code and complete sign-in
+// @route   POST /api/auth/verify-login-code
+// @access  Public
+export const verifyLoginCode = async (req, res) => {
+  try {
+    const { email, password, code, rememberMe = false, deviceToken } = req.body;
+    const normalizedEmail = String(email || '').toLowerCase().trim();
+
+    if (!normalizedEmail || !password || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, password, and verification code are required',
+      });
+    }
+
+    const loginKey = getLoginKey(req.ip, normalizedEmail);
+    const lockedSeconds = getLockout(loginKey);
+    if (lockedSeconds) {
+      return res.status(429).json({
+        success: false,
+        message: `Too many failed attempts. Try again in ${lockedSeconds} seconds.`,
+        lockoutSeconds: lockedSeconds,
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    if (!user) {
+      const failedAttempts = recordFailedLogin(loginKey);
+      if (failedAttempts) {
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed attempts. Try again in ${failedAttempts} seconds.`,
+          lockoutSeconds: failedAttempts,
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      const failedAttempts = recordFailedLogin(loginKey);
+      if (failedAttempts) {
+        return res.status(429).json({
+          success: false,
+          message: `Too many failed attempts. Try again in ${failedAttempts} seconds.`,
+          lockoutSeconds: failedAttempts,
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
+      });
+    }
+
+    resetLoginAttempts(loginKey);
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account suspended. Please contact support.',
+      });
+    }
+
+    if (!user.loginCode || !user.loginCodeExpiresAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'No verification code is active for this account. Please request a new one.',
+      });
+    }
+
+    if (user.loginCode !== String(code).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'The verification code is incorrect.',
+      });
+    }
+
+    if (new Date(user.loginCodeExpiresAt).getTime() < Date.now()) {
+      user.loginCode = null;
+      user.loginCodeExpiresAt = null;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(400).json({
+        success: false,
+        message: 'This verification code has expired. Please request a new one.',
+      });
+    }
+
+    user.loginCode = null;
+    user.loginCodeExpiresAt = null;
+    user.lastActiveAt = new Date();
+    await rememberDevice(user, deviceToken);
+    await user.save({ validateBeforeSave: false });
+
+    const token = generateToken(user, rememberMe);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      trustedDeviceToken: deviceToken || undefined,
+      user: user.toJSON(),
+    });
+  } catch (error) {
+    console.error('[Auth Error - Verify Login Code]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while verifying login code',
     });
   }
 };
@@ -349,23 +654,23 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    const resetCode = String(Math.floor(100000 + Math.random() * 900000));
+    const resetCode = String(crypto.randomInt(100000, 1000000));
+    const delivery = await sendPasswordResetCodeEmail(normalizedEmail, resetCode);
+
     user.resetCode = resetCode;
     user.resetCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    console.log(`[Password Reset] Code for ${normalizedEmail}: ${resetCode}`);
-
     return res.status(200).json({
       success: true,
       message: `A 6-digit verification code has been sent to ${normalizedEmail}.`,
-      code: process.env.NODE_ENV !== 'production' ? resetCode : undefined,
+      ...(delivery.consoleOnly && process.env.NODE_ENV !== 'production' ? { code: resetCode } : {}),
     });
   } catch (error) {
     console.error('[Auth Error - Forgot Password]:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error processing password reset request',
+      message: error.message || 'Unable to send the password reset email. Please try again.',
     });
   }
 };
@@ -444,6 +749,13 @@ export const resetPassword = async (req, res) => {
       });
     }
 
+    if (String(newPassword).length > MAX_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `New password cannot exceed ${MAX_PASSWORD_LENGTH} characters`,
+      });
+    }
+
     const user = await User.findOne({ email: String(email).toLowerCase().trim() });
     if (!user || !user.resetCode) {
       return res.status(400).json({
@@ -506,6 +818,13 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'New password must be at least 6 characters long',
+      });
+    }
+
+    if (newPassword.length > MAX_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `New password cannot exceed ${MAX_PASSWORD_LENGTH} characters`,
       });
     }
 

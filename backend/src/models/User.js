@@ -1,6 +1,36 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+const businessProfileSchema = new mongoose.Schema(
+  {
+    companyName: { type: String, trim: true, maxlength: 120 },
+    industry: { type: String, trim: true, maxlength: 100 },
+    location: { type: String, trim: true, maxlength: 120 },
+    description: { type: String, trim: true, maxlength: 1000 },
+    website: { type: String, trim: true, maxlength: 200 },
+  },
+  { _id: false }
+);
+
+const businessVerificationSchema = new mongoose.Schema(
+  {
+    status: {
+      type: String,
+      enum: ['not_submitted', 'pending', 'approved', 'rejected'],
+      default: 'not_submitted',
+    },
+    documentName: { type: String, trim: true, maxlength: 255 },
+    documentMimeType: { type: String, enum: ['application/pdf', 'image/jpeg', 'image/png'] },
+    documentSize: { type: Number, min: 1, max: 5 * 1024 * 1024 },
+    documentData: { type: Buffer, select: false },
+    submittedAt: { type: Date },
+    reviewedAt: { type: Date },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    rejectionReason: { type: String, trim: true, maxlength: 500, default: '' },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -24,12 +54,21 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide a password'],
       minlength: [6, 'Password must be at least 6 characters long'],
+      maxlength: [12, 'Password cannot exceed 12 characters'],
       select: false, // Do not return password by default in queries
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'provider', 'admin'],
       default: 'user',
+    },
+    businessProfile: {
+      type: businessProfileSchema,
+      default: undefined,
+    },
+    businessVerification: {
+      type: businessVerificationSchema,
+      default: undefined,
     },
     careerTrack: {
       type: String,
@@ -54,6 +93,30 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    loginCode: {
+      type: String,
+      default: null,
+    },
+    loginCodeExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    trustedDevices: [
+      {
+        tokenHash: {
+          type: String,
+          required: true,
+        },
+        expiresAt: {
+          type: Date,
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     lastActiveAt: {
       type: Date,
       default: Date.now,
@@ -86,6 +149,8 @@ userSchema.set('toJSON', {
     delete ret._id;
     delete ret.__v;
     delete ret.password;
+    delete ret.trustedDevices;
+    if (ret.businessVerification) delete ret.businessVerification.documentData;
     return ret;
   },
 });

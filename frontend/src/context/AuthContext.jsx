@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      storageService.clearLocalData();
       const storedUser =
         localStorage.getItem('pathpoint_user') ||
         sessionStorage.getItem('pathpoint_user');
@@ -55,8 +56,11 @@ export const AuthProvider = ({ children }) => {
       const storedToken =
         localStorage.getItem('pathpoint_token') ||
         sessionStorage.getItem('pathpoint_token');
+      const storedExpiry = Number(localStorage.getItem('pathpoint_token_expires_at'));
 
-      if (storedToken) {
+      if (storedToken && storedExpiry && storedExpiry <= Date.now()) {
+        logout();
+      } else if (storedToken) {
         try {
           const userData = await apiAdapter.getMe();
           if (userData) {
@@ -103,6 +107,22 @@ export const AuthProvider = ({ children }) => {
   // Standard Candidate / User Login
   const login = async (email, password = '', rememberMe = true) => {
     const result = await apiAdapter.login(email, password, rememberMe);
+    setUser(result.user);
+    setToken(result.token);
+    return result;
+  };
+
+  const requestLoginCode = async (email, password = '', rememberMe = true) => {
+    const result = await apiAdapter.requestLoginCode(email, password, rememberMe);
+    if (result.token && result.user) {
+      setUser(result.user);
+      setToken(result.token);
+    }
+    return result;
+  };
+
+  const verifyLoginCode = async (email, password = '', code = '', rememberMe = true) => {
+    const result = await apiAdapter.verifyLoginCode(email, password, code, rememberMe);
     setUser(result.user);
     setToken(result.token);
     return result;
@@ -155,6 +175,7 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('pathpoint_token');
     localStorage.removeItem('pathpoint_user');
     sessionStorage.removeItem('pathpoint_user');
+    localStorage.removeItem('pathpoint_token_expires_at');
     setToken(null);
     setUser(null);
   };
@@ -197,6 +218,8 @@ export const AuthProvider = ({ children }) => {
         recheckBackend,
         switchUser,
         login,
+        requestLoginCode,
+        verifyLoginCode,
         register,
         forgotPassword,
         verifyResetCode,

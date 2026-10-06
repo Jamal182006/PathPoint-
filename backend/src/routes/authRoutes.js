@@ -4,6 +4,8 @@ import {
   login,
   adminLogin,
   getMe,
+  requestLoginCode,
+  verifyLoginCode,
   forgotPassword,
   verifyResetCode,
   resetPassword,
@@ -15,6 +17,8 @@ const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
+router.post('/request-login-code', requestLoginCode);
+router.post('/verify-login-code', verifyLoginCode);
 router.post('/admin/login', adminLogin);
 router.get('/me', protect, getMe);
 router.post('/forgot-password', forgotPassword);

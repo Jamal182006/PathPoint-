@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from './Toast';
 import { Mail, KeyRound, CheckCircle2, AlertCircle, Loader2, X } from 'lucide-react';
@@ -15,6 +15,18 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
   const [phase, setPhase] = useState('email');
   const [resultMessage, setResultMessage] = useState('');
   const [devCode, setDevCode] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setEmail(defaultEmail);
+      setVerificationCode('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPhase('email');
+      setResultMessage('');
+      setDevCode('');
+    }
+  }, [isOpen, defaultEmail]);
 
   if (!isOpen) return null;
 
@@ -253,6 +265,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
               <input
                 type="password"
                 required
+                maxLength={12}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 6 characters"
@@ -267,6 +280,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
               <input
                 type="password"
                 required
+                maxLength={12}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your new password"

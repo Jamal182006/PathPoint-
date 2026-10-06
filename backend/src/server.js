@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import morgan from 'morgan';
 import connectDB from './config/db.js';
 import healthRoutes from './routes/healthRoutes.js';
@@ -8,9 +10,12 @@ import authRoutes from './routes/authRoutes.js';
 import applicationRoutes from './routes/applicationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
+import providerRoutes from './routes/providerRoutes.js';
 
-// Load environment variables
-dotenv.config();
+// Load the backend environment regardless of the process working directory.
+dotenv.config({
+  path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env'),
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -42,7 +47,7 @@ app.use(
 );
 
 // Body parsers
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging in development
@@ -55,6 +60,7 @@ app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/providers', providerRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Root greeting / health check shortcut

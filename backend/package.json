@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "seed": "node src/utils/seedData.js"
+    "seed": "node src/utils/seedData.js",
+    "check:smtp": "node src/utils/checkSmtp.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -16,7 +17,8 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "nodemailer": "^10.0.10"
   },
   "devDependencies": {
     "mongodb-memory-server": "^10.1.3"

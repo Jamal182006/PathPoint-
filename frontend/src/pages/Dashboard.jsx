@@ -40,6 +40,7 @@ export const Dashboard = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [applications, setApplications] = useState([]);
+  const [providerCompanies, setProviderCompanies] = useState([]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +76,32 @@ export const Dashboard = ({
   useEffect(() => {
     loadApplications();
   }, [loadApplications]);
+
+  useEffect(() => {
+    if (!browseModalOpen) return undefined;
+
+    let isCurrent = true;
+    apiAdapter.getProviders().then((providers) => {
+      if (isCurrent) {
+        setProviderCompanies(providers.map((provider) => ({
+          id: `provider-${provider.id}`,
+          name: provider.companyName,
+          industry: provider.industry,
+          location: provider.location || 'Location not listed',
+          description: provider.description || '',
+          salaryRange: 'Not listed',
+          contactPerson: provider.ownerName,
+          roles: [],
+          website: provider.website,
+          isProviderListing: true,
+        })));
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [browseModalOpen]);
 
   const handleViewChange = (view) => {
     if (view === 'list') {
@@ -118,10 +145,11 @@ export const Dashboard = ({
   };
 
   const filteredCompanies = useMemo(() => {
-    if (!companySearch.trim()) return COMPANY_DIRECTORY;
+    const companies = [...COMPANY_DIRECTORY, ...providerCompanies];
+    if (!companySearch.trim()) return companies;
 
     const q = companySearch.toLowerCase();
-    return COMPANY_DIRECTORY.filter((company) => {
+    return companies.filter((company) => {
       return (
         company.name.toLowerCase().includes(q) ||
         company.industry.toLowerCase().includes(q) ||
@@ -129,7 +157,7 @@ export const Dashboard = ({
         company.location.toLowerCase().includes(q)
       );
     });
-  }, [companySearch]);
+  }, [companySearch, providerCompanies]);
 
   // Filtered applications
   const filteredApps = useMemo(() => {
@@ -379,6 +407,9 @@ export const Dashboard = ({
                       {role}
                     </button>
                   ))}
+                  {company.isProviderListing && company.roles.length === 0 && (
+                    <span className="text-[10px] text-slate-500">Business listing</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -432,41 +463,55 @@ export const Dashboard = ({
               <div className="mt-4 grid sm:grid-cols-2 gap-3 text-xs text-slate-600">
                 <div className="rounded-xl bg-white border border-slate-200 p-3">
                   <div className="text-slate-500 mb-1">Salary range</div>
-                  <div className="font-semibold text-slate-800">{selectedCompany.salaryRange}</div>
+                  <div className="font-semibold text-slate-800">{selectedCompany.salaryRange || 'Not listed'}</div>
                 </div>
                 <div className="rounded-xl bg-white border border-slate-200 p-3">
                   <div className="text-slate-500 mb-1">Contact</div>
-                  <div className="font-semibold text-slate-800">{selectedCompany.contactPerson}</div>
+                  <div className="font-semibold text-slate-800">{selectedCompany.contactPerson || 'Not listed'}</div>
                 </div>
               </div>
+              {selectedCompany.website && (
+                <a
+                  href={selectedCompany.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-xs font-semibold text-indigo-700 hover:underline"
+                >
+                  Visit business website
+                </a>
+              )}
             </div>
 
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Available roles</div>
-              <div className="flex flex-wrap gap-2">
-                {selectedCompany.roles.map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => openApplicationForm(selectedCompany.name, role)}
-                    className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-indigo-200 hover:text-indigo-700 transition"
-                  >
-                    {role}
-                  </button>
-                ))}
+            {selectedCompany.roles.length > 0 && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Available roles</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCompany.roles.map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => openApplicationForm(selectedCompany.name, role)}
+                      className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-indigo-200 hover:text-indigo-700 transition"
+                    >
+                      {role}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => openApplicationForm(selectedCompany.name, selectedCompany.roles[0])}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-sm"
-              >
-                Start application
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            {selectedCompany.roles.length > 0 && (
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => openApplicationForm(selectedCompany.name, selectedCompany.roles[0])}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-sm"
+                >
+                  Start application
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

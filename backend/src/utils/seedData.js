@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import User from '../models/User.js';
 import Application from '../models/Application.js';
 import connectDB from '../config/db.js';
 
-dotenv.config();
+dotenv.config({
+  path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env'),
+});
 
 const seed = async () => {
   try {

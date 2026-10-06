@@ -17,7 +17,10 @@ import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import AdminMetrics from './pages/AdminMetrics';
 import AdminUsers from './pages/AdminUsers';
+import AdminProviders from './pages/AdminProviders';
 import AdminSystem from './pages/AdminSystem';
+import PublicDashboard from './pages/PublicDashboard';
+import ProviderDashboard from './pages/ProviderDashboard';
 
 const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
   const { isAuthenticated, settings } = useAuth();
@@ -105,7 +108,7 @@ const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
 };
 
 const PublicAuthRoute = ({ children }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -117,10 +120,27 @@ const PublicAuthRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />;
+    return <Navigate to={isAdmin ? '/admin' : user?.role === 'provider' ? '/provider' : '/dashboard'} replace />;
   }
 
   return children;
+};
+
+const HomeRoute = ({ dashboardProps }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <p className="mt-4 text-sm text-slate-500 font-medium">Restoring your session...</p>
+      </div>
+    );
+  }
+
+  return isAuthenticated
+    ? (user?.role === 'provider' ? <ProviderDashboard /> : <Dashboard {...dashboardProps} />)
+    : <PublicDashboard />;
 };
 
 export const App = () => {
@@ -145,17 +165,21 @@ export const App = () => {
 
               {/* Protected Candidate Application Routes */}
               <Route
-                path="/"
+                path="/provider"
                 element={
-                  <ProtectedRoute>
-                    <Dashboard
-                      isAddModalOpen={isAddModalOpen}
-                      setIsAddModalOpen={setIsAddModalOpen}
-                      browseModalOpen={isBrowseModalOpen}
-                      setBrowseModalOpen={setIsBrowseModalOpen}
-                    />
+                  <ProtectedRoute providerOnly>
+                    <ProviderDashboard />
                   </ProtectedRoute>
                 }
+              />
+              <Route
+                path="/"
+                element={<HomeRoute dashboardProps={{
+                  isAddModalOpen,
+                  setIsAddModalOpen,
+                  browseModalOpen: isBrowseModalOpen,
+                  setBrowseModalOpen: setIsBrowseModalOpen,
+                }} />}
               />
               <Route
                 path="/dashboard"
@@ -217,6 +241,14 @@ export const App = () => {
                 element={
                   <ProtectedRoute adminOnly={true}>
                     <AdminUsers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/providers"
+                element={
+                  <ProtectedRoute adminOnly={true}>
+                    <AdminProviders />
                   </ProtectedRoute>
                 }
               />

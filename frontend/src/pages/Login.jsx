@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import ForgotPasswordModal from '../components/common/ForgotPasswordModal';
 import BackendStatusModal from '../components/common/BackendStatusModal';
+import LoginVerificationModal from '../components/common/LoginVerificationModal';
 import {
   Compass,
   Mail,
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const Login = () => {
-  const { login, backendOnline } = useAuth();
+  const { login, requestLoginCode, verifyLoginCode, backendOnline } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,9 +27,13 @@ export const Login = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [loginCodeRequired, setLoginCodeRequired] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [registrationNotice, setRegistrationNotice] = useState(false);
 
   // Modals
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
@@ -39,7 +44,12 @@ export const Login = () => {
     if (params.get('session_expired')) {
       setSessionExpired(true);
     }
-  }, [location]);
+
+    if (location.state?.registered === true) {
+      setRegistrationNotice(true);
+      navigate(location.pathname + location.search, { replace: true, state: null });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     if (lockoutSeconds <= 0) return undefined;
@@ -80,24 +90,76 @@ export const Login = () => {
     setErrorMessage('');
 
     try {
-      const result = await login(normalizedEmail, password, rememberMe);
+      if (loginCodeRequired) {
+        const result = await verifyLoginCode(normalizedEmail, password, verificationCode.trim(), rememberMe);
+        toast(result.source === 'backend' ? 'Connected to live backend! Signed in.' : 'Signed in successfully!', 'success');
+        const from = location.state?.from?.pathname || (result.user?.role === 'provider' ? '/provider' : '/dashboard');
+        navigate(from, { replace: true });
+        return;
+      }
+
+      const result = await requestLoginCode(normalizedEmail, password, rememberMe);
+      if (result.token) {
+        toast(result.user?.role === 'admin' ? 'Administrator signed in successfully.' : 'Signed in successfully.', 'success');
+        const defaultPath = result.user?.role === 'admin'
+          ? '/admin'
+          : result.user?.role === 'provider'
+            ? '/provider'
+            : '/dashboard';
+        const from = location.state?.from?.pathname || defaultPath;
+        navigate(from, { replace: true });
+        return;
+      }
+
+      if (result.requiresCode) {
+        setLoginCodeRequired(true);
+        setVerificationCode('');
+        toast('A 6-digit verification code was sent to your email.', 'success');
+        return;
+      }
+
+      const loginResult = await login(normalizedEmail, password, rememberMe);
       toast(
-        result.source === 'backend'
+        loginResult.source === 'backend'
           ? 'Connected to live backend! Signed in.'
           : 'Signed in successfully!',
         'success'
       );
-      const from = location.state?.from?.pathname || '/dashboard';
+      const from = location.state?.from?.pathname || (loginResult.user?.role === 'provider' ? '/provider' : '/dashboard');
       navigate(from, { replace: true });
     } catch (err) {
       if (err.lockoutSeconds) {
         setLockoutSeconds(err.lockoutSeconds);
       }
+      setRegistrationNotice(false);
       const msg = err.message || 'Invalid email or password.';
       setErrorMessage(msg);
       toast(msg, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetCodeChallenge = () => {
+    setLoginCodeRequired(false);
+    setVerificationCode('');
+    setErrorMessage('');
+  };
+
+  const handleResendCode = async () => {
+    setResendLoading(true);
+    setErrorMessage('');
+    try {
+      await requestLoginCode(email.trim().toLowerCase(), password, rememberMe);
+      setVerificationCode('');
+      toast('A new verification code was sent to your email.', 'success');
+    } catch (err) {
+      const msg = err.message || 'Unable to resend the verification code.';
+      setErrorMessage(msg);
+      toast(msg, 'error');
+      throw err;
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -133,11 +195,23 @@ export const Login = () => {
             </div>
           )}
 
-          {location.state?.registered && (
+          {registrationNotice && (
             <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
               Your account was created successfully. Sign in to open your dashboard.
             </div>
           )}
+
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">
+              Your career workspace
+            </p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+              Welcome back
+            </h1>
+            <p className="mt-1.5 text-sm leading-6 text-slate-500">
+              Pick up where you left off and keep your next opportunity moving.
+            </p>
+          </div>
 
           <form className="space-y-4" onSubmit={handleSubmit} autoComplete="off">
             {/* Email */}
@@ -155,7 +229,7 @@ export const Login = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="student@example.com"
+                  placeholder="email@example.com"
                   className="auth-input w-full pl-9 pr-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                 />
               </div>
@@ -215,14 +289,14 @@ export const Login = () => {
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={loading || lockoutSeconds > 0}
+                disabled={loading || loginCodeRequired || lockoutSeconds > 0}
                 className="auth-submit w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-md shadow-indigo-200 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-60 cursor-pointer"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    <span>{lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : 'Sign In'}</span>
+                    <span>{lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : 'Send Code & Sign In'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -241,8 +315,7 @@ export const Login = () => {
             </Link>
           </div>
         </div>
-
-        </div>
+      </div>
 
       {/* Modals */}
       <ForgotPasswordModal
@@ -253,6 +326,18 @@ export const Login = () => {
       <BackendStatusModal
         isOpen={backendModalOpen}
         onClose={() => setBackendModalOpen(false)}
+      />
+      <LoginVerificationModal
+        isOpen={loginCodeRequired}
+        email={email.trim().toLowerCase()}
+        code={verificationCode}
+        loading={loading}
+        resendLoading={resendLoading}
+        errorMessage={errorMessage}
+        onCodeChange={setVerificationCode}
+        onSubmit={handleSubmit}
+        onResend={handleResendCode}
+        onClose={resetCodeChallenge}
       />
     </div>
   );

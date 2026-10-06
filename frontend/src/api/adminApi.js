@@ -6,6 +6,10 @@ export const adminApi = {
 
   // Seeker Directory / User Management
   getUsers: (params) => apiClient.get('/admin/users', { params }),
+  getProviderVerificationDocument: (id) =>
+    apiClient.get(`/admin/providers/${id}/verification-document`, { responseType: 'blob' }),
+  reviewProviderVerification: (id, status, rejectionReason) =>
+    apiClient.patch(`/admin/providers/${id}/verification`, { status, rejectionReason }),
 
   // Update user status (active / suspended)
   updateUserStatus: (id, status) =>

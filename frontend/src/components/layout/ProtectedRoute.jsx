@@ -3,8 +3,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AccessDenied from '../../pages/AccessDenied';
 
-export const ProtectedRoute = ({ children, adminOnly = false }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+export const ProtectedRoute = ({ children, adminOnly = false, providerOnly = false }) => {
+  const { isAuthenticated, isAdmin, user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -24,6 +24,14 @@ export const ProtectedRoute = ({ children, adminOnly = false }) => {
   // Signed in, but route requires admin role and user is not admin
   if (adminOnly && !isAdmin) {
     return <AccessDenied />;
+  }
+
+  if (providerOnly && user?.role !== 'provider') {
+    return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  }
+
+  if (!providerOnly && !adminOnly && user?.role === 'provider') {
+    return <Navigate to="/provider" replace />;
   }
 
   return children;

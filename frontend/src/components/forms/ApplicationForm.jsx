@@ -97,7 +97,10 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
         savedApp = storageService.updateApplication(initialData._id, formData);
         toast('Application updated successfully', 'success');
       } else {
-        savedApp = storageService.createApplication(user?.id || 'user-alex', formData);
+        if (!user?.id) {
+          throw new Error('You must be signed in to create an application.');
+        }
+        savedApp = storageService.createApplication(user.id, formData);
         toast('Application created successfully', 'success');
       }
 

@@ -1,6 +1,7 @@
 # PathPoint
 
-PathPoint is a full-stack job application tracker with a React frontend and an Express + MongoDB backend.
+PathPoint is a full-stack job application tracker with a React frontend and an Express + MongoDB backend.Nice
+
 
 This project is split into two folders:
 
@@ -19,7 +20,7 @@ Before running the project, make sure you have:
 
 ## MongoDB database setup
 
-The backend uses Mongoose and the database name is `pathpoint`. MongoDB creates this database and its collections automatically on the first write, including creation of the default admin account.
+The backend uses Mongoose and the database name is `pathpoint`. On startup, the backend creates the `users` and `applications` collections and applies their model indexes. MongoDB creates the database itself when those collections are initialized. The default admin account is also created if it does not already exist.
 
 ### MongoDB Atlas
 
@@ -69,12 +70,16 @@ The backend will start on:
 - http://localhost:5000
 - API health check: http://localhost:5000/api/health
 
-Create `backend/.env` using `backend/.env.example` as a template:
+Configure `backend/.env` with the MongoDB connection string and SMTP settings supplied by your database and email providers:
 
 ```env
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/pathpoint?retryWrites=true&w=majority
 MONGODB_ALLOW_MEMORY_FALLBACK=false
 ```
+
+The backend environment file is server-only and contains database and SMTP settings. The frontend uses a separate `frontend/.env` containing only `VITE_API_URL`; `frontend/.env.example` is only its template. For Gmail or Google Workspace, use an authorized app password and the SMTP settings enabled by the organization.
+
+To test backend SMTP authentication without sending an email or displaying credentials, run `npm --prefix backend run check:smtp` after configuring `backend/.env`.
 
 ## 3) Install frontend dependencies
 

@@ -252,6 +252,7 @@ export const Profile = () => {
             </label>
             <input
               type="password"
+              maxLength={12}
               value={passwordForm.currentPassword}
               onChange={(e) =>
                 setPasswordForm({ ...passwordForm, currentPassword: e.target.value })
@@ -267,6 +268,7 @@ export const Profile = () => {
             </label>
             <input
               type="password"
+              maxLength={12}
               value={passwordForm.newPassword}
               onChange={(e) =>
                 setPasswordForm({ ...passwordForm, newPassword: e.target.value })
@@ -282,6 +284,7 @@ export const Profile = () => {
             </label>
             <input
               type="password"
+              maxLength={12}
               value={passwordForm.confirmNewPassword}
               onChange={(e) =>
                 setPasswordForm({ ...passwordForm, confirmNewPassword: e.target.value })
