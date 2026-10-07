@@ -1,1 +1,5 @@
 node_modules
+backend/private-uploads/
+.env
+.env.*
+!.env.example

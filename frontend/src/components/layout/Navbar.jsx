@@ -8,9 +8,10 @@ import {
   Calendar,
   BarChart3,
   ShieldAlert,
-  Users,
   Server,
   Building2,
+  BriefcaseBusiness,
+  FileText,
   Menu,
   X,
   LogOut,
@@ -18,7 +19,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-export const Navbar = ({ onOpenBrowseModal }) => {
+export const Navbar = () => {
   const { user, isAdmin, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,22 +43,23 @@ export const Navbar = ({ onOpenBrowseModal }) => {
   // Adaptive nav links based on role
   const candidateNavLinks = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { label: 'Jobs', path: '/jobs', icon: BriefcaseBusiness },
+    { label: 'Applications', path: '/my-job-applications', icon: FileText },
+    { label: 'Work log', path: '/work-log', icon: Calendar },
+    { label: 'Company apps', path: '/my-company-applications', icon: Building2 },
     { label: 'Interviews', path: '/interviews', icon: Calendar },
     { label: 'Analytics', path: '/analytics', icon: BarChart3 },
   ];
 
-  const providerNavLinks = [
+  const providerNavLinks = user?.businessVerification?.status === 'approved' ? [
+    { label: 'Companies', path: '/provider/companies', icon: Building2 },
+    { label: 'Job listings', path: '/provider/jobs', icon: BriefcaseBusiness },
     { label: 'Business listing', path: '/provider', icon: Building2 },
+  ] : [
+    { label: 'Business verification', path: '/provider', icon: ShieldAlert },
   ];
 
-  const adminNavLinks = [
-    { label: 'Cohort KPIs', path: '/admin', icon: BarChart3, exact: true },
-    { label: 'Seeker Directory', path: '/admin/users', icon: Users },
-    { label: 'System Health', path: '/admin/system', icon: Server },
-    { label: 'Seeker View', path: '/dashboard', icon: LayoutDashboard },
-  ];
-
-  const navLinks = isAdmin ? adminNavLinks : user?.role === 'provider' ? providerNavLinks : candidateNavLinks;
+  const navLinks = isAdmin ? [] : user?.role === 'provider' ? providerNavLinks : candidateNavLinks;
 
   const isActive = (link) => {
     if (link.exact) {
@@ -111,7 +113,7 @@ export const Navbar = ({ onOpenBrowseModal }) => {
               </Link>
 
               {/* Desktop Navigation Links */}
-              <nav className="hidden md:flex items-center space-x-1">
+              <nav className="hidden md:flex items-center gap-0.5">
                 {navLinks.map((link) => {
                   const Icon = link.icon;
                   const active = isActive(link);
@@ -119,7 +121,7 @@ export const Navbar = ({ onOpenBrowseModal }) => {
                     <Link
                       key={link.path + link.label}
                       to={link.path}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                      className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
                         active
                           ? 'bg-indigo-50 text-indigo-700'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -135,17 +137,6 @@ export const Navbar = ({ onOpenBrowseModal }) => {
 
             {/* Right Header Actions */}
             <div className="hidden md:flex items-center gap-3">
-              {/* Company browser button */}
-              {onOpenBrowseModal && user?.role !== 'provider' && (
-                <button
-                  onClick={onOpenBrowseModal}
-                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm shadow-indigo-200 transition active:scale-95"
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Browse Companies</span>
-                </button>
-              )}
-
               {/* User Avatar Dropdown */}
               <div className="relative pl-2 border-l border-slate-200" ref={dropdownRef}>
                 <button
@@ -224,15 +215,6 @@ export const Navbar = ({ onOpenBrowseModal }) => {
 
             {/* Mobile menu button */}
             <div className="flex md:hidden items-center gap-2">
-              {onOpenBrowseModal && user?.role !== 'provider' && (
-                <button
-                  onClick={onOpenBrowseModal}
-                  className="p-2 rounded-lg bg-indigo-600 text-white"
-                  title="Browse Companies"
-                >
-                  <Building2 className="w-4 h-4" />
-                </button>
-              )}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 rounded-lg text-slate-600 hover:bg-slate-100"

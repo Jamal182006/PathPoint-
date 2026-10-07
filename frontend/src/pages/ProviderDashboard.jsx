@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { apiAdapter } from '../services/apiAdapter';
@@ -23,6 +24,8 @@ export const ProviderDashboard = () => {
   const [verification, setVerification] = useState(user?.businessVerification || { status: 'not_submitted' });
   const [verificationFile, setVerificationFile] = useState(null);
   const [uploadingDocument, setUploadingDocument] = useState(false);
+  const requiresDocumentUpload = verification.status !== 'approved'
+    && (!verification.documentName || verification.status === 'rejected');
 
   const submitVerificationDocument = async () => {
     if (!verificationFile) return;
@@ -74,8 +77,11 @@ export const ProviderDashboard = () => {
               : 'border-amber-200 bg-amber-50 text-amber-800'
         }`}>
           <span className={`h-2 w-2 rounded-full ${verification.status === 'approved' ? 'bg-emerald-500' : verification.status === 'rejected' ? 'bg-rose-500' : 'bg-amber-500'}`} />
-          {verification.status === 'approved' ? 'Verified and published' : verification.status === 'rejected' ? 'Verification rejected' : 'Verification pending'}
+          {verification.status === 'approved' ? 'Verified and published' : verification.status === 'rejected' ? 'Verification rejected' : !verification.documentName ? 'Document required' : 'Verification pending'}
         </div>
+        {verification.status === 'approved'
+          ? <Link to="/provider/companies" className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">Company dashboard</Link>
+          : <span className="rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-500">Company tools unlock after verification</span>}
       </div>
 
       {verification.status !== 'approved' && (
@@ -83,15 +89,17 @@ export const ProviderDashboard = () => {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-bold text-slate-900">
-                {verification.status === 'rejected' ? 'Update your verification documents' : 'Business verification is under review'}
+                {verification.status === 'rejected' ? 'Update your verification documents' : !verification.documentName ? 'Submit a verification document' : 'Business verification is under review'}
               </h2>
               <p className="mt-1 text-xs leading-5 text-slate-600">
                 {verification.status === 'rejected'
                   ? verification.rejectionReason || 'Submit an updated business registration, license, or ownership record.'
-                  : 'Your business will appear in the directory after an administrator verifies your documents.'}
+                  : !verification.documentName
+                    ? 'Upload a business registration, license, or official ownership record to begin review.'
+                    : 'Your business will appear in the directory after an administrator verifies your documents.'}
               </p>
             </div>
-            {verification.status === 'rejected' && (
+            {requiresDocumentUpload && (
               <div className="flex flex-wrap items-center gap-2">
                 <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
                   <FileText className="h-4 w-4 text-indigo-700" />
@@ -110,7 +118,7 @@ export const ProviderDashboard = () => {
                   className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800 disabled:opacity-50"
                 >
                   {uploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Resubmit
+                  {verification.status === 'rejected' ? 'Resubmit' : 'Submit document'}
                 </button>
               </div>
             )}

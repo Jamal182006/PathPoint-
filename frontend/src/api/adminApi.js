@@ -10,6 +10,17 @@ export const adminApi = {
     apiClient.get(`/admin/providers/${id}/verification-document`, { responseType: 'blob' }),
   reviewProviderVerification: (id, status, rejectionReason) =>
     apiClient.patch(`/admin/providers/${id}/verification`, { status, rejectionReason }),
+  getCompanies: (params) => apiClient.get('/admin/companies', { params }),
+  reviewCompany: (id, status, rejectionReason) =>
+    apiClient.patch(`/admin/companies/${id}/review`, { status, rejectionReason }),
+  archiveCompany: (id) => apiClient.delete(`/admin/companies/${id}`),
+  getJobs: (params) => apiClient.get('/admin/jobs', { params }),
+  getApplications: (params) => apiClient.get('/admin/applications', { params }),
+  deleteApplication: (type, id) => apiClient.delete(`/admin/applications/${type}/${id}`),
+  reviewJob: (id, reviewStatus, reviewReason) =>
+    apiClient.patch(`/admin/jobs/${id}/review`, { reviewStatus, reviewReason }),
+  archiveJob: (id) => apiClient.delete(`/admin/jobs/${id}`),
+  archiveUser: (id, archived) => apiClient.patch(`/admin/users/${id}/archive`, { archived }),
 
   // Update user status (active / suspended)
   updateUserStatus: (id, status) =>

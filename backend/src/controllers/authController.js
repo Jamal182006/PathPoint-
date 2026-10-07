@@ -10,7 +10,7 @@ import {
   resetLoginAttempts,
 } from '../utils/loginLockout.js';
 
-const MAX_PASSWORD_LENGTH = 12;
+const MAX_PASSWORD_LENGTH = 72;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const namePattern = /^[a-zA-Z][a-zA-Z .'-]*$/;
 
@@ -21,7 +21,7 @@ const generateToken = (user, rememberMe = false) => {
       id: user.id || user._id,
       role: user.role,
     },
-    process.env.JWT_SECRET || '***REMOVED***',
+    process.env.JWT_SECRET,
     {
       expiresIn: rememberMe ? '30d' : (process.env.JWT_EXPIRES_IN || '7d'),
     }
@@ -57,6 +57,8 @@ export const register = async (req, res) => {
     const {
       name,
       email,
+      phone = '',
+      address = '',
       password,
       role = 'user',
       careerTrack = 'General',
@@ -108,7 +110,7 @@ export const register = async (req, res) => {
       });
     }
 
-    if (password.length > MAX_PASSWORD_LENGTH) {
+    if (Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_LENGTH) {
       return res.status(400).json({
         success: false,
         message: `Password cannot exceed ${MAX_PASSWORD_LENGTH} characters`,
@@ -162,6 +164,8 @@ export const register = async (req, res) => {
     const user = await User.create({
       name: normalizedName,
       email: normalizedEmail,
+      phone: String(phone).trim().slice(0, 40),
+      address: String(address).trim().slice(0, 300),
       password,
       role,
       careerTrack: careerTrack || 'General',
@@ -631,6 +635,24 @@ export const getMe = async (req, res) => {
   }
 };
 
+export const updateMyProfile = async (req, res) => {
+  try {
+    const { name, phone = '', address = '' } = req.body;
+    const normalizedName = String(name ?? req.user.name).trim();
+    if (normalizedName.length < 2 || normalizedName.length > 100 || !namePattern.test(normalizedName)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid full name' });
+    }
+    req.user.name = normalizedName;
+    req.user.phone = String(phone).trim().slice(0, 40);
+    req.user.address = String(address).trim().slice(0, 300);
+    await req.user.save();
+    return res.status(200).json({ success: true, message: 'Profile updated', user: req.user.toJSON() });
+  } catch (error) {
+    console.error('[Auth Error - Update Profile]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update profile' });
+  }
+};
+
 // @desc    Request a password reset code for a registered email
 // @route   POST /api/auth/forgot-password
 // @access  Public
@@ -749,7 +771,7 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    if (String(newPassword).length > MAX_PASSWORD_LENGTH) {
+    if (Buffer.byteLength(String(newPassword), 'utf8') > MAX_PASSWORD_LENGTH) {
       return res.status(400).json({
         success: false,
         message: `New password cannot exceed ${MAX_PASSWORD_LENGTH} characters`,
@@ -821,7 +843,7 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length > MAX_PASSWORD_LENGTH) {
+    if (Buffer.byteLength(newPassword, 'utf8') > MAX_PASSWORD_LENGTH) {
       return res.status(400).json({
         success: false,
         message: `New password cannot exceed ${MAX_PASSWORD_LENGTH} characters`,

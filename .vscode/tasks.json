@@ -97,6 +97,770 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Check backend health",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check mail provider DNS",
+			"type": "shell",
+			"command": "nslookup",
+			"args": [
+				"-type=MX",
+				"phinmaed.com"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Retest SMTP authentication",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"check:smtp"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check backend health now",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run backend SMTP check",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"check:smtp"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check SMTP with updated credentials",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"check:smtp"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Locate backend for SMTP reload",
+			"type": "shell",
+			"command": "netstat",
+			"args": [
+				"-ano"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start backend with verified SMTP env",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"dev"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify backend after SMTP reload",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check new company controller",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/controllers/companyController.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company models and routes",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/models/Company.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company application model",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/models/CompanyApplication.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Install upload validation dependencies",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"install",
+				"--prefix",
+				"backend",
+				"multer",
+				"file-type"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company application controller syntax",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/controllers/companyApplicationController.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check upload middleware syntax",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/utils/companyUpload.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company route and db changes",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/routes/companyRoutes.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check anchored upload path",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/utils/companyUpload.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check mongo model registration",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/config/db.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company/admin routes",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/routes/adminRoutes.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check provider route syntax",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/routes/providerRoutes.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company route syntax",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/routes/companyRoutes.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Build provider company UI",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Build applicant company flow",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Build admin company review UI",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run backend feature tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check migration script syntax",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/utils/migrateCompanyProfiles.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run company feature regression tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Rerun backend company tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Migrate legacy provider company profiles",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"migrate:companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Recheck migration idempotency",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"migrate:companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final frontend production build",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check company directory endpoint",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run security-focused company tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final backend test suite",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final backend health check",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check final patch whitespace",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"diff",
+				"--check"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check live company route",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Confirm frontend running",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sSI",
+				"http://localhost:5173/"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Confirm backend running",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final whitespace check",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"diff",
+				"--check"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start PathPoint frontend",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"dev",
+				"--",
+				"--host",
+				"0.0.0.0"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify Vite server response",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sSI",
+				"http://localhost:5173/"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run full backend feature suite",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Rerun full backend feature suite",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final expanded backend tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final expanded frontend build",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Create new Mongo collections and indexes",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"migrate:companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check repaired job controller",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"--check",
+				"backend/src/controllers/jobController.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Rerun backend integration tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate job capacity and work rules",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Validate all ownership and workflow tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Run final backend test suite",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final production build expanded app",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final verify backend health",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/health"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify job route response",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/jobs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Reconcile company migration and indexes",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"migrate:companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify frontend server",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sSI",
+				"http://localhost:5173/"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify work-log auth boundary",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"-o",
+				"NUL",
+				"-w",
+				"%{http_code}",
+				"http://localhost:5000/api/work-logs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Verify admin auth boundary",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"-o",
+				"NUL",
+				"-w",
+				"%{http_code}",
+				"http://localhost:5000/api/admin/jobs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check work-log auth protection",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/work-logs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check admin job auth protection",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-sS",
+				"http://localhost:5000/api/admin/jobs"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final full backend tests",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"test"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Final full frontend build",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Ensure database collections",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"--prefix",
+				"backend",
+				"run",
+				"migrate:companies"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { storageService } from '../services/storageService';
+import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import StatusBadge from '../components/common/StatusBadge';
@@ -39,58 +39,65 @@ export const ApplicationDetail = () => {
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
   const [newInterviewDate, setNewInterviewDate] = useState('');
 
-  const loadApplication = useCallback(() => {
-    const app = storageService.getApplicationById(id);
-    if (!app) {
-      toast('Application not found', 'error');
+  const loadApplication = useCallback(async () => {
+    try {
+      const app = await apiAdapter.getApplicationById(id);
+      if (!app) {
+        toast('Application not found', 'error');
+        navigate('/dashboard');
+        return;
+      }
+      setApplication(app);
+    } catch (error) {
+      toast(error.message || 'Unable to load application.', 'error');
       navigate('/dashboard');
-      return;
     }
-    setApplication(app);
   }, [id, navigate, toast]);
 
   useEffect(() => {
     loadApplication();
   }, [loadApplication]);
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     if (!application || application.status === newStatus) return;
-    const updated = storageService.updateStatus(id, newStatus);
-    if (updated) {
+    try {
+      const updated = await apiAdapter.updateStatus(id, newStatus);
       setApplication(updated);
       toast(`Status updated to ${newStatus}`, 'success');
-    }
+    } catch (error) { toast(error.message || 'Unable to update status.', 'error'); }
   };
 
-  const handleAddInterviewDate = () => {
+  const handleAddInterviewDate = async () => {
     if (!newInterviewDate) return;
     const updatedDates = [...(application.interviewDates || []), newInterviewDate].sort();
-    const updated = storageService.updateApplication(id, { interviewDates: updatedDates });
-    if (updated) {
+    try {
+      const updated = await apiAdapter.updateApplication(id, { interviewDates: updatedDates });
       setApplication(updated);
       setNewInterviewDate('');
       toast('Interview date scheduled', 'success');
-    }
+    } catch (error) { toast(error.message || 'Unable to schedule interview.', 'error'); }
   };
 
-  const handleRemoveInterviewDate = (dateToRemove) => {
+  const handleRemoveInterviewDate = async (dateToRemove) => {
     const updatedDates = (application.interviewDates || []).filter(
       (d) => new Date(d).toISOString() !== new Date(dateToRemove).toISOString()
     );
-    const updated = storageService.updateApplication(id, { interviewDates: updatedDates });
-    if (updated) {
+    try {
+      const updated = await apiAdapter.updateApplication(id, { interviewDates: updatedDates });
       setApplication(updated);
       toast('Interview date removed', 'success');
-    }
+    } catch (error) { toast(error.message || 'Unable to remove interview date.', 'error'); }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm(`Delete application for ${application?.role} at ${application?.company}?`)) {
       return;
     }
-    storageService.deleteApplication(id);
-    toast('Application deleted', 'success');
-    navigate('/dashboard');
+    try {
+      await apiAdapter.deleteApplication(id);
+      toast('Application deleted', 'success');
+      navigate('/dashboard');
+    } catch (error) { toast(error.message || 'Unable to delete application.', 'error'); }
   };
 
   if (!application) return null;

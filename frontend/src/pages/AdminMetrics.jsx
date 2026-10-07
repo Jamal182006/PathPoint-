@@ -8,30 +8,60 @@ import {
   Award,
   TrendingUp,
   Lock,
+  Building2,
+  UserCheck,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
 export const AdminMetrics = () => {
   const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
+    let active = true;
     const fetchMetrics = async () => {
-      const data = await apiAdapter.getAdminMetrics();
-      setMetrics(data);
+      setLoading(true);
+      setError('');
+      try {
+        const data = await apiAdapter.getAdminMetrics();
+        if (active) setMetrics(data);
+      } catch (loadError) {
+        if (active) setError(loadError.message || 'Unable to load platform metrics.');
+      } finally {
+        if (active) setLoading(false);
+      }
     };
     fetchMetrics();
-  }, []);
+    return () => { active = false; };
+  }, [reload]);
 
+  if (loading) return <div className="flex items-center justify-center gap-2 py-20 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading platform overview…</div>;
+  if (error) return <div className="mx-auto max-w-3xl py-16 text-center"><p role="alert" className="text-sm text-rose-700">{error}</p><button type="button" onClick={() => setReload((value) => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"><RefreshCw className="h-4 w-4" /> Try again</button></div>;
   if (!metrics) return null;
 
   const {
     totalUsers = 0,
     totalApplications = 0,
+    totalProviders = 0,
+    pendingVerifications = 0,
+    totalCompanies = 0,
+    totalCompanyApplications = 0,
+    totalJobListings = 0,
+    activeJobListings = 0,
+    pendingJobReviews = 0,
+    totalJobApplications = 0,
+    totalWorkLogs = 0,
+    totalWorkLogEarnings = 0,
     usersWithOfferCount = 0,
     avgApplicationsPerUser = 0,
     avgApplicationsBeforeOffer = 0,
     platformInterviewRate = 0,
     platformOfferRate = 0,
     statusCounts = {},
+    recentActivity = [],
   } = metrics;
 
   return (
@@ -45,11 +75,6 @@ export const AdminMetrics = () => {
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
           Anonymized, platform-wide cohort metrics to evaluate job seeker outcomes and guidance impact.
         </p>
-        <nav className="mt-4 flex flex-wrap gap-2 text-xs">
-          <Link to="/admin/users" className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50">Seeker Directory</Link>
-          <Link to="/admin/providers" className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 font-semibold text-indigo-700">Provider Verification</Link>
-          <Link to="/admin/system" className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-600 hover:bg-slate-50">System Health</Link>
-        </nav>
       </div>
 
       {/* Aggregate KPI Grid */}
@@ -116,6 +141,27 @@ export const AdminMetrics = () => {
           </div>
         </div>
       </div>
+
+      <section aria-label="Company marketplace metrics" className="grid gap-4 border-y border-slate-200 py-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Providers</p><p className="mt-1 text-2xl font-extrabold text-slate-900">{totalProviders}</p></div>
+        <Link to="/admin/providers" className="group rounded-xl p-2 -m-2 transition hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><p className="text-xs font-semibold uppercase tracking-wider text-slate-500 group-hover:text-amber-800">Pending verifications</p><p className="mt-1 flex items-center gap-2 text-2xl font-extrabold text-amber-700"><UserCheck className="h-5 w-5" />{pendingVerifications}</p><span className="text-xs font-medium text-amber-800 underline decoration-transparent group-hover:decoration-current">Review queue</span></Link>
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Companies</p><p className="mt-1 flex items-center gap-2 text-2xl font-extrabold text-slate-900"><Building2 className="h-5 w-5 text-indigo-700" />{totalCompanies}</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Company applications</p><p className="mt-1 text-2xl font-extrabold text-slate-900">{totalCompanyApplications}</p></div>
+      </section>
+      <section aria-label="Job and local work metrics" className="grid gap-4 border-b border-slate-200 pb-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Active listings</p><p className="mt-1 text-2xl font-extrabold text-slate-900">{activeJobListings}</p><p className="text-xs text-slate-500">{totalJobListings} total listings</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pending job review</p><p className="mt-1 text-2xl font-extrabold text-amber-700">{pendingJobReviews}</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Job applications</p><p className="mt-1 text-2xl font-extrabold text-slate-900">{totalJobApplications}</p></div>
+        <div><p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Local work logs / paid earnings</p><p className="mt-1 text-2xl font-extrabold text-slate-900">{totalWorkLogs} / {totalWorkLogEarnings.toLocaleString()}</p></div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="recent-activity-title">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <h2 id="recent-activity-title" className="text-sm font-bold text-slate-900">Recent activity</h2>
+          <span className="text-xs text-slate-500">Latest database updates</span>
+        </div>
+        {recentActivity.length ? <ul className="divide-y divide-slate-100">{recentActivity.map((item, index) => <li key={`${item.href}-${item.occurredAt}-${index}`} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"><Link to={item.href} className="font-medium text-slate-700 hover:text-indigo-700 hover:underline">{item.label}</Link><time className="text-xs text-slate-500" dateTime={item.occurredAt}>{new Date(item.occurredAt).toLocaleString()}</time></li>)}</ul> : <p className="py-6 text-sm text-slate-500">There is no recent activity yet.</p>}
+      </section>
 
       {/* Conversion Rates & Pipeline Distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

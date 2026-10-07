@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
 import {
@@ -93,12 +92,6 @@ export const AdminProviders = () => {
           </h1>
           <p className="mt-1 text-sm text-slate-500">Review company ownership documents before publishing business listings.</p>
         </div>
-        <nav className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs">
-          <Link to="/admin" className="rounded-md px-3 py-2 font-medium text-slate-600 hover:text-slate-900">Cohort KPIs</Link>
-          <Link to="/admin/users" className="rounded-md px-3 py-2 font-medium text-slate-600 hover:text-slate-900">Seeker Directory</Link>
-          <Link to="/admin/providers" className="rounded-md bg-white px-3 py-2 font-semibold text-indigo-700 shadow-sm">Provider Verification</Link>
-          <Link to="/admin/system" className="rounded-md px-3 py-2 font-medium text-slate-600 hover:text-slate-900">System Health</Link>
-        </nav>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
@@ -141,6 +134,7 @@ export const AdminProviders = () => {
               <tr><td colSpan="5" className="px-5 py-14 text-center text-slate-500"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>
             ) : providers.length ? providers.map((provider) => {
               const verification = provider.businessVerification || {};
+              const hasDocument = Boolean(verification.documentName);
               return (
                 <tr key={provider.id} className="align-top hover:bg-slate-50/60">
                   <td className="px-5 py-4">
@@ -149,15 +143,15 @@ export const AdminProviders = () => {
                     <div className="mt-1 text-slate-500">{provider.businessProfile?.industry || 'Industry not listed'}{provider.businessProfile?.location ? ` · ${provider.businessProfile.location}` : ''}</div>
                   </td>
                   <td className="px-4 py-4">
-                    <button
+                    {hasDocument ? <button
                       type="button"
                       onClick={() => handleDocumentPreview(provider)}
                       disabled={busyProvider === provider.id}
                       className="inline-flex max-w-56 items-center gap-2 text-left font-semibold text-indigo-700 hover:underline disabled:opacity-50"
                     >
                       {busyProvider === provider.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4 shrink-0" />}
-                      <span className="truncate">{verification.documentName || 'View document'}</span>
-                    </button>
+                      <span className="truncate">{verification.documentName}</span>
+                    </button> : <span className="text-[11px] text-amber-700">Awaiting provider document</span>}
                     {verification.documentSize && <div className="mt-1 text-[11px] text-slate-500">{(verification.documentSize / 1024 / 1024).toFixed(2)} MB</div>}
                   </td>
                   <td className="px-4 py-4 text-slate-600">
@@ -175,7 +169,8 @@ export const AdminProviders = () => {
                         <button
                           type="button"
                           onClick={() => reviewProvider(provider, 'approved')}
-                          disabled={busyProvider === provider.id}
+                          disabled={!hasDocument || busyProvider === provider.id}
+                          title={!hasDocument ? 'Provider must submit a document before approval' : 'Approve provider'}
                           className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-2 font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
                         ><Check className="h-3.5 w-3.5" /> Approve</button>
                         <button

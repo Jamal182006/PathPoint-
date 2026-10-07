@@ -13,6 +13,7 @@ export const authApi = {
 
   // Get current user profile by token
   getMe: () => apiClient.get('/auth/me'),
+  updateProfile: (payload) => apiClient.put('/auth/profile', payload),
 
   // Password reset request
   forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),

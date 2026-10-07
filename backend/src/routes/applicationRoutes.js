@@ -8,11 +8,11 @@ import {
   deleteApplication,
   uploadResume,
 } from '../controllers/applicationController.js';
-import { protect } from '../middleware/auth.js';
+import { applicantOnly, protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.use(protect); // Protect all application endpoints
+router.use(protect, applicantOnly); // Personal job-tracker data is applicant-only.
 
 router.route('/')
   .get(getApplications)

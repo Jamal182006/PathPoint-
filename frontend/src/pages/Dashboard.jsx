@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
-import { storageService } from '../services/storageService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import KanbanBoard from '../components/kanban/KanbanBoard';
@@ -11,7 +10,6 @@ import ApplicationForm from '../components/forms/ApplicationForm';
 import GoalTracker from '../components/dashboard/GoalTracker';
 import ExportImportModal from '../components/common/ExportImportModal';
 import ShortcutsModal from '../components/common/ShortcutsModal';
-import { COMPANY_DIRECTORY } from '../mock/companyDirectory';
 import {
   LayoutGrid,
   List,
@@ -35,6 +33,7 @@ export const Dashboard = ({
   setBrowseModalOpen: setBrowseModalOpenProp,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const currentView = searchParams.get('view') === 'list' ? 'list' : 'board';
 
   const { user } = useAuth();
@@ -81,20 +80,26 @@ export const Dashboard = ({
     if (!browseModalOpen) return undefined;
 
     let isCurrent = true;
-    apiAdapter.getProviders().then((providers) => {
+    apiAdapter.getJobs().then((jobs) => {
       if (isCurrent) {
-        setProviderCompanies(providers.map((provider) => ({
-          id: `provider-${provider.id}`,
-          name: provider.companyName,
-          industry: provider.industry,
-          location: provider.location || 'Location not listed',
-          description: provider.description || '',
-          salaryRange: 'Not listed',
-          contactPerson: provider.ownerName,
+        setProviderCompanies(jobs.map((job) => ({
+          id: job._id,
+          name: job.title,
+          industry: job.companyId?.name || 'Company',
+          location: job.location || job.companyId?.location || 'Location not listed',
+          description: job.description || '',
+          salaryRange: job.salaryMin == null ? 'Not listed' : `${job.salaryMin}${job.salaryMax != null && job.salaryMax !== job.salaryMin ? `-${job.salaryMax}` : ''} / ${job.salaryPayPeriod}`,
+          contactPerson: job.interviewerName || '',
           roles: [],
-          website: provider.website,
+          website: '',
+          logo: job.companyId?.logo,
           isProviderListing: true,
         })));
+      }
+    }).catch((error) => {
+      if (isCurrent) {
+        setProviderCompanies([]);
+        toast(error.message || 'Unable to load approved job listings.', 'error');
       }
     });
 
@@ -111,21 +116,29 @@ export const Dashboard = ({
     }
   };
 
-  const handleStatusChange = (appId, newStatus) => {
-    const updated = storageService.updateStatus(appId, newStatus);
+  const handleStatusChange = async (appId, newStatus) => {
+    try {
+    const updated = await apiAdapter.updateStatus(appId, newStatus);
     if (updated) {
       setApplications((prev) =>
         prev.map((app) => (app._id === appId ? updated : app))
       );
       toast(`Status moved to "${newStatus}"`, 'success', 2000);
     }
+    } catch (error) {
+      toast(error.message || 'Unable to update application status.', 'error');
+    }
   };
 
-  const handleDelete = (appId) => {
+  const handleDelete = async (appId) => {
     if (!window.confirm('Are you sure you want to delete this application?')) return;
-    storageService.deleteApplication(appId);
-    setApplications((prev) => prev.filter((app) => app._id !== appId));
-    toast('Application deleted', 'success');
+    try {
+      await apiAdapter.deleteApplication(appId);
+      setApplications((prev) => prev.filter((app) => app._id !== appId));
+      toast('Application deleted', 'success');
+    } catch (error) {
+      toast(error.message || 'Unable to delete application.', 'error');
+    }
   };
 
   const handleFormSuccess = () => {
@@ -145,7 +158,7 @@ export const Dashboard = ({
   };
 
   const filteredCompanies = useMemo(() => {
-    const companies = [...COMPANY_DIRECTORY, ...providerCompanies];
+    const companies = providerCompanies;
     if (!companySearch.trim()) return companies;
 
     const q = companySearch.toLowerCase();
@@ -344,13 +357,13 @@ export const Dashboard = ({
       <Modal
         isOpen={browseModalOpen}
         onClose={() => setBrowseModalOpen(false)}
-        title="Browse Companies"
+        title="Browse Jobs"
         maxWidth="max-w-5xl"
       >
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">Explore companies, review open roles, and start an application.</p>
+          <p className="text-sm text-slate-500">Explore admin-approved openings from verified companies.</p>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-            {filteredCompanies.length} companies
+            {filteredCompanies.length} open jobs
           </span>
         </div>
 
@@ -360,7 +373,7 @@ export const Dashboard = ({
             type="text"
             value={companySearch}
             onChange={(e) => setCompanySearch(e.target.value)}
-            placeholder="Search companies, industries, or roles"
+            placeholder="Search jobs, companies, or locations"
             className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             autoFocus
           />
@@ -369,8 +382,8 @@ export const Dashboard = ({
         {filteredCompanies.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
             <Building2 className="mx-auto mb-3 h-7 w-7 text-slate-400" />
-            <p className="text-sm font-semibold text-slate-800">No companies found</p>
-            <p className="mt-1 text-xs text-slate-500">Try a different company, industry, location, or role.</p>
+            <p className="text-sm font-semibold text-slate-800">No open jobs found</p>
+            <p className="mt-1 text-xs text-slate-500">Try a different job, company, or location.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -383,7 +396,7 @@ export const Dashboard = ({
                   </div>
                   <button
                     type="button"
-                    onClick={() => setSelectedCompany(company)}
+                    onClick={() => navigate(`/jobs/${company.id}`)}
                     className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700"
                   >
                     View
@@ -407,9 +420,7 @@ export const Dashboard = ({
                       {role}
                     </button>
                   ))}
-                  {company.isProviderListing && company.roles.length === 0 && (
-                    <span className="text-[10px] text-slate-500">Business listing</span>
-                  )}
+                  <span className="text-[10px] text-slate-500">Open position</span>
                 </div>
               </div>
             ))}

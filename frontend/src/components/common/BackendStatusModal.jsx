@@ -49,7 +49,7 @@ export const BackendStatusModal = ({ isOpen, onClose }) => {
     toast(
       online
         ? 'Connected to new backend API!'
-        : 'API URL saved. Backend currently offline (running in client fallback mode).',
+        : 'API URL saved. The backend is currently unavailable; database-backed features are paused.',
       online ? 'success' : 'info'
     );
     onClose();
@@ -95,12 +95,12 @@ export const BackendStatusModal = ({ isOpen, onClose }) => {
             />
             <div>
               <div className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                <span>{backendOnline ? 'Backend Live & Synchronized' : 'Client Standalone / Mock Mode'}</span>
+                <span>{backendOnline ? 'Backend connected' : 'Backend unavailable'}</span>
               </div>
               <p className="text-[11px] text-slate-500">
                 {backendOnline
-                  ? 'Active JWT bearer requests streaming to live REST backend'
-                  : 'Backend server not detected on port 5000; all features are operating in seamless offline mock mode.'}
+                  ? 'Authenticated requests use the configured REST API and database.'
+                  : 'Database-backed features are unavailable until the API reconnects. Your data is not saved offline.'}
               </p>
             </div>
           </div>

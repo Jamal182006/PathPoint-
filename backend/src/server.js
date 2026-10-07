@@ -11,11 +11,18 @@ import applicationRoutes from './routes/applicationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import providerRoutes from './routes/providerRoutes.js';
+import companyRoutes from './routes/companyRoutes.js';
+import jobRoutes from './routes/jobRoutes.js';
+import workLogRoutes from './routes/workLogRoutes.js';
 
 // Load the backend environment regardless of the process working directory.
 dotenv.config({
   path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env'),
 });
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be configured with at least 32 characters before the API can start.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,8 +30,10 @@ const PORT = process.env.PORT || 5000;
 // CORS setup
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
   'http://127.0.0.1:3000',
 ];
 if (process.env.CLIENT_URL) {
@@ -38,7 +47,7 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Dev-friendly permissive CORS
+      return callback(new Error('Origin is not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -61,6 +70,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/providers', providerRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/work-logs', workLogRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Root greeting / health check shortcut

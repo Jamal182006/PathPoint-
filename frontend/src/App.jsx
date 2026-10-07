@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './components/common/Toast';
@@ -6,21 +6,37 @@ import Navbar from './components/layout/Navbar';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ShortcutsModal from './components/common/ShortcutsModal';
 
-// Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
-import AccessDenied from './pages/AccessDenied';
-import Dashboard from './pages/Dashboard';
-import ApplicationDetail from './pages/ApplicationDetail';
-import InterviewScheduler from './pages/InterviewScheduler';
-import Analytics from './pages/Analytics';
-import Profile from './pages/Profile';
-import AdminMetrics from './pages/AdminMetrics';
-import AdminUsers from './pages/AdminUsers';
-import AdminProviders from './pages/AdminProviders';
-import AdminSystem from './pages/AdminSystem';
-import PublicDashboard from './pages/PublicDashboard';
-import ProviderDashboard from './pages/ProviderDashboard';
+import AdminLayout from './components/layout/AdminLayout';
+
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const AccessDenied = lazy(() => import('./pages/AccessDenied'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
+const InterviewScheduler = lazy(() => import('./pages/InterviewScheduler'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Profile = lazy(() => import('./pages/Profile'));
+const AdminMetrics = lazy(() => import('./pages/AdminMetrics'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminProviders = lazy(() => import('./pages/AdminProviders'));
+const AdminSystem = lazy(() => import('./pages/AdminSystem'));
+const PublicDashboard = lazy(() => import('./pages/PublicDashboard'));
+const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
+const ProviderCompanies = lazy(() => import('./pages/ProviderCompanies'));
+const ProviderCompanyForm = lazy(() => import('./pages/ProviderCompanyForm'));
+const ProviderCompanyDetail = lazy(() => import('./pages/ProviderCompanyDetail'));
+const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
+const CompanyApplications = lazy(() => import('./pages/CompanyApplications'));
+const AdminCompanies = lazy(() => import('./pages/AdminCompanies'));
+const ProviderJobs = lazy(() => import('./pages/ProviderJobs'));
+const ProviderJobForm = lazy(() => import('./pages/ProviderJobForm'));
+const ProviderJobApplicants = lazy(() => import('./pages/ProviderJobApplicants'));
+const ApplicantJobs = lazy(() => import('./pages/ApplicantJobs'));
+const JobDetail = lazy(() => import('./pages/JobDetail'));
+const MyJobApplications = lazy(() => import('./pages/MyJobApplications'));
+const WorkLogDashboard = lazy(() => import('./pages/WorkLogDashboard'));
+const AdminJobs = lazy(() => import('./pages/AdminJobs'));
+const AdminApplications = lazy(() => import('./pages/AdminApplications'));
 
 const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
   const { isAuthenticated, settings } = useAuth();
@@ -101,7 +117,7 @@ const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
       style={appStyle}
       className={`min-h-screen flex flex-col ${settings?.theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${settings?.compactMode ? 'text-[15px]' : ''}`}
     >
-      {isAuthenticated && <Navbar onOpenBrowseModal={openBrowseModal} />}
+      {isAuthenticated && <Navbar />}
       <main className="flex-1 pb-12">{children}</main>
     </div>
   );
@@ -127,7 +143,7 @@ const PublicAuthRoute = ({ children }) => {
 };
 
 const HomeRoute = ({ dashboardProps }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -138,7 +154,9 @@ const HomeRoute = ({ dashboardProps }) => {
     );
   }
 
-  return isAuthenticated
+  return isAdmin
+    ? <Navigate to="/admin" replace />
+    : isAuthenticated
     ? (user?.role === 'provider' ? <ProviderDashboard /> : <Dashboard {...dashboardProps} />)
     : <PublicDashboard />;
 };
@@ -156,6 +174,7 @@ export const App = () => {
             onOpenBrowseModal={() => setIsBrowseModalOpen(true)}
             onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
           >
+            <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">Loading page…</div>}>
             <Routes>
               {/* Public Auth Routes */}
               <Route path="/login" element={<PublicAuthRoute><Login /></PublicAuthRoute>} />
@@ -172,6 +191,26 @@ export const App = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/provider/companies"
+                element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderCompanies /></ProtectedRoute>}
+              />
+              <Route
+                path="/provider/companies/new"
+                element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderCompanyForm /></ProtectedRoute>}
+              />
+              <Route
+                path="/provider/companies/:companyId/edit"
+                element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderCompanyForm /></ProtectedRoute>}
+              />
+              <Route
+                path="/provider/companies/:companyId"
+                element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderCompanyDetail /></ProtectedRoute>}
+              />
+              <Route path="/provider/jobs" element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderJobs /></ProtectedRoute>} />
+              <Route path="/provider/jobs/new" element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderJobForm /></ProtectedRoute>} />
+              <Route path="/provider/jobs/:jobId/edit" element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderJobForm /></ProtectedRoute>} />
+              <Route path="/provider/jobs/:jobId/applicants" element={<ProtectedRoute providerOnly providerApprovalRequired><ProviderJobApplicants /></ProtectedRoute>} />
               <Route
                 path="/"
                 element={<HomeRoute dashboardProps={{
@@ -203,6 +242,18 @@ export const App = () => {
                 }
               />
               <Route
+                path="/companies/:companyId"
+                element={<ProtectedRoute><CompanyDetail /></ProtectedRoute>}
+              />
+              <Route
+                path="/my-company-applications"
+                element={<ProtectedRoute><CompanyApplications /></ProtectedRoute>}
+              />
+              <Route path="/jobs" element={<ProtectedRoute applicantOnly><ApplicantJobs /></ProtectedRoute>} />
+              <Route path="/jobs/:jobId" element={<ProtectedRoute applicantOnly><JobDetail /></ProtectedRoute>} />
+              <Route path="/my-job-applications" element={<ProtectedRoute applicantOnly><MyJobApplications /></ProtectedRoute>} />
+              <Route path="/work-log" element={<ProtectedRoute applicantOnly><WorkLogDashboard /></ProtectedRoute>} />
+              <Route
                 path="/interviews"
                 element={
                   <ProtectedRoute>
@@ -232,7 +283,7 @@ export const App = () => {
                 path="/admin"
                 element={
                   <ProtectedRoute adminOnly={true}>
-                    <AdminMetrics />
+                    <AdminLayout><AdminMetrics /></AdminLayout>
                   </ProtectedRoute>
                 }
               />
@@ -240,7 +291,7 @@ export const App = () => {
                 path="/admin/users"
                 element={
                   <ProtectedRoute adminOnly={true}>
-                    <AdminUsers />
+                    <AdminLayout><AdminUsers /></AdminLayout>
                   </ProtectedRoute>
                 }
               />
@@ -248,15 +299,21 @@ export const App = () => {
                 path="/admin/providers"
                 element={
                   <ProtectedRoute adminOnly={true}>
-                    <AdminProviders />
+                    <AdminLayout><AdminProviders /></AdminLayout>
                   </ProtectedRoute>
                 }
               />
               <Route
+                path="/admin/companies"
+                element={<ProtectedRoute adminOnly><AdminLayout><AdminCompanies /></AdminLayout></ProtectedRoute>}
+              />
+              <Route path="/admin/jobs" element={<ProtectedRoute adminOnly><AdminLayout><AdminJobs /></AdminLayout></ProtectedRoute>} />
+              <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
+              <Route
                 path="/admin/system"
                 element={
                   <ProtectedRoute adminOnly={true}>
-                    <AdminSystem />
+                    <AdminLayout><AdminSystem /></AdminLayout>
                   </ProtectedRoute>
                 }
               />
@@ -264,6 +321,7 @@ export const App = () => {
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            </Suspense>
           </AppLayout>
 
           <ShortcutsModal

@@ -39,6 +39,8 @@ export const Login = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [backendModalOpen, setBackendModalOpen] = useState(false);
 
+  const getRoleHome = (role) => role === 'admin' ? '/admin' : role === 'provider' ? '/provider' : '/dashboard';
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('session_expired')) {
@@ -93,7 +95,7 @@ export const Login = () => {
       if (loginCodeRequired) {
         const result = await verifyLoginCode(normalizedEmail, password, verificationCode.trim(), rememberMe);
         toast(result.source === 'backend' ? 'Connected to live backend! Signed in.' : 'Signed in successfully!', 'success');
-        const from = location.state?.from?.pathname || (result.user?.role === 'provider' ? '/provider' : '/dashboard');
+        const from = location.state?.from?.pathname || getRoleHome(result.user?.role);
         navigate(from, { replace: true });
         return;
       }
@@ -125,7 +127,7 @@ export const Login = () => {
           : 'Signed in successfully!',
         'success'
       );
-      const from = location.state?.from?.pathname || (loginResult.user?.role === 'provider' ? '/provider' : '/dashboard');
+      const from = location.state?.from?.pathname || getRoleHome(loginResult.user?.role);
       navigate(from, { replace: true });
     } catch (err) {
       if (err.lockoutSeconds) {

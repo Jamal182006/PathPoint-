@@ -1,9 +1,14 @@
 import mongoose from 'mongoose';
 import Application from '../models/Application.js';
+import Company from '../models/Company.js';
+import CompanyApplication from '../models/CompanyApplication.js';
+import JobListing from '../models/JobListing.js';
+import JobApplication from '../models/JobApplication.js';
+import WorkLog from '../models/WorkLog.js';
 import User from '../models/User.js';
 
 const ensureCollections = async () => {
-  const models = [User, Application];
+  const models = [User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog];
   const existingCollections = new Set(
     (await mongoose.connection.db.listCollections({}, { nameOnly: true }).toArray())
       .map(({ name }) => name)
@@ -16,31 +21,25 @@ const ensureCollections = async () => {
   }
 
   await Promise.all(models.map((model) => model.createIndexes()));
-  console.log('[MongoDB] Required collections and indexes are ready: users, applications');
+  console.log('[MongoDB] Required collections and indexes are ready:', models.map((model) => model.collection.collectionName).join(', '));
 };
 
 const ensureDefaultAdmin = async () => {
-  try {
-    const adminEmail = 'admin@example.com';
-    const existingAdmin = await User.findOne({ email: adminEmail.toLowerCase() });
+  const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) return;
 
-    if (existingAdmin) {
-      return;
-    }
+  const existingAdmin = await User.findOne({ email: adminEmail });
+  if (existingAdmin) return;
 
-    await User.create({
-      name: 'Dr. Sarah Lin',
-      email: adminEmail,
-      password: 'admin123',
-      role: 'admin',
-      title: 'Director of Career Services',
-      status: 'active',
-    });
-
-    console.log('[MongoDB] Default admin account created: admin@example.com / admin123');
-  } catch (error) {
-    console.warn('[MongoDB] Unable to ensure default admin account:', error.message);
-  }
+  await User.create({
+    name: process.env.BOOTSTRAP_ADMIN_NAME?.trim() || 'PathPoint Administrator',
+    email: adminEmail,
+    password: adminPassword,
+    role: 'admin',
+    status: 'active',
+  });
+  console.log(`[MongoDB] Bootstrap administrator created: ${adminEmail}`);
 };
 
 export const connectDB = async () => {
@@ -50,8 +49,8 @@ export const connectDB = async () => {
     throw new Error('MONGODB_URI must be configured with a MongoDB Atlas connection string.');
   }
 
-  if (!/^mongodb(?:\+srv)?:\/\/.*mongodb\.net/i.test(uri)) {
-    throw new Error('Only MongoDB Atlas connections are supported. Use a mongodb.net connection string.');
+  if (!/^mongodb(?:\+srv)?:\/\//i.test(uri)) {
+    throw new Error('Invalid MONGODB_URI. Use a mongodb:// or mongodb+srv:// connection string.');
   }
 
   const maskedUri = uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+@/, '$1****@');

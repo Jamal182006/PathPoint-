@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import AccessDenied from '../../pages/AccessDenied';
+const AccessDenied = lazy(() => import('../../pages/AccessDenied'));
 
-export const ProtectedRoute = ({ children, adminOnly = false, providerOnly = false }) => {
+export const ProtectedRoute = ({ children, adminOnly = false, providerOnly = false, providerApprovalRequired = false, applicantOnly = false }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
   const location = useLocation();
 
@@ -23,15 +23,24 @@ export const ProtectedRoute = ({ children, adminOnly = false, providerOnly = fal
 
   // Signed in, but route requires admin role and user is not admin
   if (adminOnly && !isAdmin) {
-    return <AccessDenied />;
+    return <Suspense fallback={<div className="p-8 text-center text-sm text-slate-500">Loading…</div>}><AccessDenied /></Suspense>;
   }
 
   if (providerOnly && user?.role !== 'provider') {
     return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
-  if (!providerOnly && !adminOnly && user?.role === 'provider') {
+  if (providerApprovalRequired && user?.businessVerification?.status !== 'approved') {
     return <Navigate to="/provider" replace />;
+  }
+
+  if (applicantOnly && user?.role !== 'user') {
+    return <Navigate to={user?.role === 'admin' ? '/admin' : '/provider'} replace />;
+  }
+
+  if (!providerOnly && !adminOnly && location.pathname !== '/profile') {
+    if (user?.role === 'provider') return <Navigate to="/provider" replace />;
+    if (user?.role === 'admin') return <Navigate to="/admin" replace />;
   }
 
   return children;

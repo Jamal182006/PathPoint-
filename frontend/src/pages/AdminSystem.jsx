@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { systemApi } from '../api/systemApi';
@@ -40,7 +39,7 @@ export const AdminSystem = () => {
       if (result.online) {
         toast(`Backend online (${result.latency} ms)`, 'success');
       } else {
-        toast('Backend offline or unreachable. Using offline mock mode.', 'info');
+        toast('Backend offline or unreachable. Database-backed features are unavailable.', 'info');
       }
     } catch (err) {
       setPingData({ online: false, error: err.message });
@@ -83,32 +82,6 @@ export const AdminSystem = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-          <Link
-            to="/admin"
-            className="px-3.5 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition"
-          >
-            Cohort KPIs
-          </Link>
-          <Link
-            to="/admin/users"
-            className="px-3.5 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition"
-          >
-            Seeker Directory
-          </Link>
-          <Link
-            to="/admin/providers"
-            className="px-3.5 py-1.5 rounded-lg font-medium text-slate-600 hover:text-slate-900 transition"
-          >
-            Provider Verification
-          </Link>
-          <Link
-            to="/admin/system"
-            className="px-3.5 py-1.5 rounded-lg font-semibold bg-white text-indigo-700 shadow-sm"
-          >
-            System Health
-          </Link>
-        </div>
       </div>
 
       {/* Grid: Server Health + API Configuration */}

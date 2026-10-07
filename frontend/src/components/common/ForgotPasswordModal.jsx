@@ -265,7 +265,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
               <input
                 type="password"
                 required
-                maxLength={12}
+                maxLength={72}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 6 characters"
@@ -280,7 +280,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
               <input
                 type="password"
                 required
-                maxLength={12}
+                maxLength={72}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your new password"

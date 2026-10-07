@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { storageService } from '../services/storageService';
+import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import OfferComparison from '../components/analytics/OfferComparison';
 import {
@@ -22,6 +22,8 @@ import {
   Briefcase,
   Award,
   Sparkles,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -36,16 +38,37 @@ export const Analytics = () => {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
-    if (user?.id) {
-      const summary = storageService.getAnalyticsSummary(user.id);
-      setData(summary);
-      const apps = storageService.getApplications(user.id);
-      setApplications(apps);
-    }
-  }, [user?.id]);
+    let active = true;
+    const load = async () => {
+      if (!user?.id) return;
+      setLoading(true);
+      setError('');
+      try {
+        const [summary, apps] = await Promise.all([
+          apiAdapter.getAnalyticsSummary(user.id),
+          apiAdapter.getApplications(user.id),
+        ]);
+        if (active) {
+          setData(summary);
+          setApplications(apps);
+        }
+      } catch (loadError) {
+        if (active) setError(loadError.message || 'Unable to load analytics.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, [user?.id, reload]);
 
+  if (loading) return <div className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-4 py-20 text-sm text-slate-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading your analytics…</div>;
+  if (error) return <div className="mx-auto max-w-3xl px-4 py-16 text-center"><p role="alert" className="text-sm text-rose-700">{error}</p><button type="button" onClick={() => setReload((value) => value + 1)} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"><RefreshCw className="h-4 w-4" /> Try again</button></div>;
   if (!data) return null;
 
   const {
@@ -55,9 +78,9 @@ export const Analytics = () => {
     offeredCount = 0,
     interviewRate = 0,
     offerRate = 0,
-    avgDaysToFirstStatusChange = 0,
-    statusData = [],
-    funnelData = [],
+    avgDaysToFirstStatusChange = data.avgResponseDays || 0,
+    statusData = Object.entries(data.statusCounts || {}).map(([name, value]) => ({ name, value })),
+    funnelData = ['Saved', 'Applied', 'Interviewing', 'Offered'].map((stage) => ({ stage, count: data.statusCounts?.[stage] || 0 })),
   } = data;
 
   return (

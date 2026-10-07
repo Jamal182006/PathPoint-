@@ -12,6 +12,7 @@ export const getProviderDirectory = async (req, res) => {
     const providers = await User.find({
       role: 'provider',
       status: 'active',
+      isArchived: { $ne: true },
       'businessVerification.status': 'approved',
       'businessProfile.companyName': { $exists: true, $ne: '' },
     })

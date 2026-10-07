@@ -30,6 +30,8 @@ export const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
+    address: '',
     role: '',
     careerTrack: 'Software Engineering',
     businessProfile: {
@@ -178,6 +180,8 @@ export const Register = () => {
       const result = await register({
         name: normalizedName,
         email: normalizedEmail,
+        phone: formData.phone,
+        address: formData.address,
         password: formData.password,
         role: formData.role,
         careerTrack: formData.careerTrack,
@@ -342,6 +346,17 @@ export const Register = () => {
             </div>
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Phone (optional)
+              <input name="phone" type="tel" maxLength={40} value={formData.phone} onChange={handleChange} className="auth-input mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </label>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Address (optional)
+              <input name="address" maxLength={300} value={formData.address} onChange={handleChange} className="auth-input mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            </label>
+          </div>
+
           {/* Target Career Track (Applicants only) */}
           {formData.role === 'user' && <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -488,7 +503,7 @@ export const Register = () => {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="off"
                 required
-                maxLength={12}
+                maxLength={72}
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
@@ -547,7 +562,7 @@ export const Register = () => {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="off"
                 required
-                maxLength={12}
+                maxLength={72}
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}

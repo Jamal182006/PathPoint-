@@ -24,6 +24,7 @@ export const Profile = () => {
     settings,
     updateSettings,
     changePassword,
+    updateMyProfile,
   } = useAuth();
   const { toast } = useToast();
 
@@ -35,6 +36,22 @@ export const Profile = () => {
     confirmNewPassword: '',
   });
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: user?.name || '', phone: user?.phone || '', address: user?.address || '' });
+  const [savingContact, setSavingContact] = useState(false);
+
+  const handleContactSubmit = async (event) => {
+    event.preventDefault();
+    setSavingContact(true);
+    try {
+      const updated = await updateMyProfile(contactForm);
+      setContactForm({ name: updated.name, phone: updated.phone || '', address: updated.address || '' });
+      toast('Profile information updated.', 'success');
+    } catch (error) {
+      toast(error.message || 'Unable to update profile information.', 'error');
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   const savePreference = (key, value) => {
     updateSettings({ [key]: value });
@@ -146,6 +163,19 @@ export const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Website Customization */}
+      <section className="border-y border-slate-200 py-6">
+        <h2 className="text-base font-bold text-slate-900">Personal information</h2>
+        <p className="mt-1 text-xs text-slate-500">This information can be prefilled on job applications.</p>
+        <form onSubmit={handleContactSubmit} className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-slate-700">Full name<input required maxLength={100} value={contactForm.name} onChange={(event) => setContactForm({ ...contactForm, name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+          <label className="text-xs font-semibold text-slate-700">Email<input readOnly value={user?.email || ''} className="mt-1 block w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal" /></label>
+          <label className="text-xs font-semibold text-slate-700">Phone<input type="tel" maxLength={40} value={contactForm.phone} onChange={(event) => setContactForm({ ...contactForm, phone: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+          <label className="text-xs font-semibold text-slate-700">Address<input maxLength={300} value={contactForm.address} onChange={(event) => setContactForm({ ...contactForm, address: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+          <div className="sm:col-span-2"><button disabled={savingContact} className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{savingContact ? 'Saving…' : 'Save personal information'}</button></div>
+        </form>
+      </section>
 
       {/* Website Customization */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">

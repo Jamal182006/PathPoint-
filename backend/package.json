@@ -8,16 +8,20 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/utils/seedData.js",
-    "check:smtp": "node src/utils/checkSmtp.js"
+    "test": "node --test src/utils/loginLockout.test.js src/controllers/companyFlow.test.js",
+    "check:smtp": "node src/utils/checkSmtp.js",
+    "migrate:companies": "node src/utils/migrateCompanyProfiles.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "file-type": "^22.1.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.3",
     "morgan": "^1.10.0",
+    "multer": "^2.4.0",
     "nodemailer": "^10.0.10"
   },
   "devDependencies": {

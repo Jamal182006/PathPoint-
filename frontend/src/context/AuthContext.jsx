@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiAdapter, checkBackendStatus } from '../services/apiAdapter';
-import { storageService } from '../services/storageService';
 import { getBaseURL, setBaseURL } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -23,7 +22,6 @@ export const AuthProvider = ({ children }) => {
     );
   });
   const [loading, setLoading] = useState(true);
-  const [allUsers, setAllUsers] = useState([]);
   const [backendOnline, setBackendOnline] = useState(false);
   const [apiUrl, setApiUrlState] = useState(() => getBaseURL());
   const [settings, setSettings] = useState(() => {
@@ -41,18 +39,11 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      storageService.clearLocalData();
-      const storedUser =
-        localStorage.getItem('pathpoint_user') ||
-        sessionStorage.getItem('pathpoint_user');
       // 1. Check live backend health
       const online = await checkBackendStatus(true);
       setBackendOnline(online);
 
-      // 2. Load cached users list for directory
-      setAllUsers(storageService.getUsers());
-
-      // 3. Authenticate active token if present
+      // Authenticate an active token with the backend; cached profile data is never authoritative.
       const storedToken =
         localStorage.getItem('pathpoint_token') ||
         sessionStorage.getItem('pathpoint_token');
@@ -69,20 +60,8 @@ export const AuthProvider = ({ children }) => {
           } else {
             logout();
           }
-        } catch (error) {
-          // Keep the remembered session during temporary API outages.
-          if (error.response?.status === 401) {
-            logout();
-          } else if (storedUser) {
-            try {
-              setUser(JSON.parse(storedUser));
-              setToken(storedToken);
-            } catch {
-              logout();
-            }
-          } else {
-            logout();
-          }
+        } catch {
+          logout();
         }
       } else {
         // Enforce authentic state: No automatic demo login
@@ -133,22 +112,13 @@ export const AuthProvider = ({ children }) => {
     const result = await apiAdapter.register(userData, rememberMe);
     setUser(result.user);
     setToken(result.token);
-    setAllUsers(storageService.getUsers());
     return result;
   };
 
-  // Switch demo user (accessible in development/testing mode)
-  const switchUser = (userId) => {
-    storageService.setCurrentUser(userId);
-    const users = storageService.getUsers();
-    const found = users.find((u) => u.id === userId);
-    if (found) {
-      setUser(found);
-      const mockToken = `mock-jwt-token-${found.id}-${Date.now()}`;
-      localStorage.setItem('pathpoint_token', mockToken);
-      localStorage.setItem('pathpoint_user', JSON.stringify(found));
-      setToken(mockToken);
-    }
+  const updateMyProfile = async (profileData) => {
+    const updated = await apiAdapter.updateMyProfile(profileData);
+    setUser(updated);
+    return updated;
   };
 
   // Password Recovery
@@ -180,11 +150,6 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // Reset demo datasets
-  const resetAllData = () => {
-    storageService.resetToDemoData();
-  };
-
   // Recheck backend health
   const recheckBackend = async () => {
     const online = await checkBackendStatus(true);
@@ -208,7 +173,6 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         token,
-        allUsers,
         loading,
         backendOnline,
         apiUrl,
@@ -216,17 +180,16 @@ export const AuthProvider = ({ children }) => {
         updateSettings,
         updateApiUrl,
         recheckBackend,
-        switchUser,
         login,
         requestLoginCode,
         verifyLoginCode,
         register,
+        updateMyProfile,
         forgotPassword,
         verifyResetCode,
         resetPassword,
         changePassword,
         logout,
-        resetAllData,
         isAuthenticated: !!user,
         isAdmin: user?.role === 'admin',
       }}

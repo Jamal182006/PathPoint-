@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { storageService } from '../../services/storageService';
+import { apiAdapter } from '../../services/apiAdapter';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Plus, Trash2, Calendar, FileText, DollarSign, Building, Briefcase, User, Loader2 } from 'lucide-react';
@@ -86,7 +86,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
@@ -94,19 +94,19 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
     try {
       let savedApp;
       if (initialData?._id) {
-        savedApp = storageService.updateApplication(initialData._id, formData);
+        savedApp = await apiAdapter.updateApplication(initialData._id || initialData.id, formData);
         toast('Application updated successfully', 'success');
       } else {
         if (!user?.id) {
           throw new Error('You must be signed in to create an application.');
         }
-        savedApp = storageService.createApplication(user.id, formData);
+        savedApp = await apiAdapter.createApplication(user.id, formData);
         toast('Application created successfully', 'success');
       }
 
       if (onSuccess) onSuccess(savedApp);
     } catch (err) {
-      toast('Failed to save application', 'error');
+      toast(err.message || 'Failed to save application', 'error');
     } finally {
       setSubmitting(false);
     }

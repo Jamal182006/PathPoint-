@@ -4,6 +4,7 @@ import {
   login,
   adminLogin,
   getMe,
+  updateMyProfile,
   requestLoginCode,
   verifyLoginCode,
   forgotPassword,
@@ -21,6 +22,7 @@ router.post('/request-login-code', requestLoginCode);
 router.post('/verify-login-code', verifyLoginCode);
 router.post('/admin/login', adminLogin);
 router.get('/me', protect, getMe);
+router.put('/profile', protect, updateMyProfile);
 router.post('/forgot-password', forgotPassword);
 router.post('/verify-reset-code', verifyResetCode);
 router.post('/reset-password', resetPassword);

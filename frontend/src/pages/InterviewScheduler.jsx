@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { storageService } from '../services/storageService';
+import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/common/StatusBadge';
 import MonthCalendar from '../components/calendar/MonthCalendar';
@@ -18,17 +18,32 @@ import {
 export const InterviewScheduler = () => {
   const { user } = useAuth();
   const [applications, setApplications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
   const [viewMode, setViewMode] = useState('calendar'); // 'calendar' | 'list'
 
   useEffect(() => {
-    if (user?.id) {
-      const apps = storageService.getApplications(user.id);
-      setApplications(apps);
-    }
-  }, [user?.id]);
+    let active = true;
+    const load = async () => {
+      if (!user?.id) return;
+      setLoading(true);
+      setError('');
+      try {
+        const apps = await apiAdapter.getApplications(user.id);
+        if (active) setApplications(apps);
+      } catch (loadError) {
+        if (active) setError(loadError.message || 'Unable to load your interviews.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, [user?.id, reload]);
 
-  const now = new Date();
-  const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const now = useMemo(() => new Date(), []);
+  const next7Days = useMemo(() => new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), [now]);
 
   const allInterviews = useMemo(() => {
     const list = [];
@@ -106,6 +121,9 @@ export const InterviewScheduler = () => {
           </Link>
         </div>
       </div>
+
+      {loading && <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">Loading interviews…</div>}
+      {error && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{error}</span><button type="button" onClick={() => setReload((value) => value + 1)} className="font-semibold underline">Try again</button></div>}
 
       {/* Urgent 7-Day Interview Alert Section */}
       {urgentInterviews.length > 0 && (

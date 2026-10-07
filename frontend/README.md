@@ -1,8 +1,8 @@
 # PathPoint — Frontend & Full Backend-Ready Architecture
 
-**PathPoint** is a production-grade, backend-ready Job Application Progress & Interview Tracker built with **React 18 (Vite), Tailwind CSS, Recharts, Axios, and @hello-pangea/dnd**.
+**PathPoint** is a React and Express job platform backed by MongoDB, built with **React 18 (Vite), Tailwind CSS, Recharts, Axios, and @hello-pangea/dnd**.
 
-It features dual-portal authentication (**Candidate Login & Signup** vs. **Dedicated Administrative Suite Login**), strict role-based access control, cohort analytics, student directory management, and an enterprise-grade API client layer ready to connect to any backend (Express, FastAPI, Django, Spring Boot, Go).
+It has role-based authentication, an applicant pipeline, provider company and job tools, admin review queues, and a REST API backed by MongoDB.
 
 ---
 
@@ -12,9 +12,7 @@ It features dual-portal authentication (**Candidate Login & Signup** vs. **Dedic
 - **Candidate Login (`/login`):**
   - Email and password authentication with visibility toggle.
   - "Remember Me" persistent session option.
-  - Interactive "Forgot Password" recovery modal with simulated reset link.
-  - Direct portal gateway link to the Administrative Suite.
-  - 1-Click Candidate Demo profiles (`Alex Morgan` & `Jordan Hayes`).
+  - Password reset by email verification code through the backend.
 - **Candidate Registration (`/register`):**
   - Full Name, Email, Target Career Track selection, Password confirmation.
   - Real-time password strength checklist (length, case, numbers/symbols).
@@ -33,11 +31,9 @@ It features dual-portal authentication (**Candidate Login & Signup** vs. **Dedic
 ---
 
 ### 2. 🛡️ Dedicated Administrative & Counselor Suite
-- **Dedicated Admin Login (`/admin/login`):**
-  - Distinct high-security cyber-slate design with Shield branding.
-  - Counselor ID / Admin email, master password, and 2FA passcode field.
-  - **Strict Role Enforcement:** Candidate credentials submitted to this portal are rejected with an explicit security refusal banner (`Access Denied: Administrative privileges required`).
-  - 1-Click Counselor Demo button (`Dr. Sarah Lin` • `admin@example.com` / `admin123`).
+- **Role-based Login (`/login`):**
+  - The shared login redirects users to the dashboard for their role.
+  - Admin-only routes are protected by a server role check and a frontend route guard.
 - **Cohort Conversion Analytics (`/admin`):**
   - Platform-wide aggregate metrics (total seekers, applications per seeker, offer rates, status breakdown).
 - **Job Seeker Directory & User Management (`/admin/users`):**
@@ -45,6 +41,8 @@ It features dual-portal authentication (**Candidate Login & Signup** vs. **Dedic
   - Review candidate portfolio drawer (Counselor Advisory View).
   - Account status toggling (Activate / Suspend student account).
   - One-click CSV roster export.
+- **Application Oversight (`/admin/applications`):**
+  - Search, filter, and review tracker, company, and job applications; admins can remove a submission and its private files.
 - **Backend Health & Diagnostics Hub (`/admin/system`):**
   - Live HTTP ping test against `/api/health` with roundtrip millisecond latency monitor.
   - Dynamic API Base URL switcher (switch between local `http://localhost:5000/api` or remote production URLs directly from the UI).
@@ -63,7 +61,7 @@ The frontend is 100% prepared for instant backend hookup:
   - `src/api/applicationsApi.js`: Applications CRUD, status updates, resume uploads.
   - `src/api/adminApi.js`: Cohort benchmarks, candidate directory, status updates, portfolio inspection.
   - `src/api/systemApi.js`: Health pings, latency diagnostics, endpoint test runners.
-- **Dual-Mode Adapter (`src/services/apiAdapter.js`):** Automatically detects if a backend is running on port 5000. If offline, gracefully falls back to rich client-side mock storage so the frontend never crashes and remains fully testable.
+- **API Adapter (`src/services/apiAdapter.js`):** Uses the Express API and MongoDB for authenticated application data. If the backend is unavailable, data pages show an error and retry action instead of creating local-only records.
 - **API Specification:** Read [`BACKEND_SPECIFICATION.md`](./BACKEND_SPECIFICATION.md) for full endpoint contracts, JSON schemas, and Mongoose database definitions.
 
 ---
@@ -89,13 +87,9 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## 🔑 Demo Accounts
+## Local test accounts
 
-| Role | Email | Password | Access Level |
-|---|---|---|---|
-| **Student / Candidate** | `user@example.com` | `password123` | Candidate Portal (`/login`) |
-| **Student / Candidate** | `jordan@example.com` | `password123` | Candidate Portal (`/login`) |
-| **Counselor / Admin** | `admin@example.com` | `admin123` | Admin Portal (`/admin/login`) |
+Configure unique account credentials in `backend/.env` and run `npm --prefix backend run seed`. The seed is idempotent and does not clear existing database records.
 
 ---
 

@@ -59,6 +59,12 @@ const parseMultipartForm = (req) => new Promise((resolve, reject) => {
   req.on('error', reject);
 });
 
+const normalizeInterviewDates = (dates = []) => (Array.isArray(dates) ? dates : []).map((entry) => {
+  if (entry && typeof entry === 'object' && entry.date) return entry;
+  return { date: entry, round: 'General Interview', interviewer: '' };
+});
+const applicationStatuses = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
+
 // @desc    Get all applications for logged in user
 // @route   GET /api/applications
 // @access  Protected
@@ -142,11 +148,14 @@ export const createApplication = async (req, res) => {
       interviewDates = [],
     } = req.body;
 
-    if (!company || !role) {
+    if (typeof company !== 'string' || !company.trim() || typeof role !== 'string' || !role.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Company name and role are required',
       });
+    }
+    if (!applicationStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: `Status must be one of: ${applicationStatuses.join(', ')}` });
     }
 
     const application = await Application.create({
@@ -161,7 +170,7 @@ export const createApplication = async (req, res) => {
       contactPerson,
       resumeVersion,
       resumeUrl,
-      interviewDates,
+      interviewDates: normalizeInterviewDates(interviewDates),
     });
 
     return res.status(201).json({
@@ -170,6 +179,9 @@ export const createApplication = async (req, res) => {
       data: application,
     });
   } catch (error) {
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error('[Application Error - create]:', error);
     return res.status(500).json({
       success: false,
@@ -195,15 +207,33 @@ export const updateApplication = async (req, res) => {
       });
     }
 
-    // Check if status changed to append to statusHistory
-    if (req.body.status && req.body.status !== application.status) {
+    const editableFields = [
+      'company',
+      'role',
+      'salaryRange',
+      'dateApplied',
+      'status',
+      'jobDescriptionNotes',
+      'contactPerson',
+      'resumeVersion',
+      'resumeUrl',
+      'interviewDates',
+    ];
+    const updates = Object.fromEntries(editableFields
+      .filter((field) => req.body[field] !== undefined)
+      .map((field) => [field, req.body[field]]));
+
+    if (updates.status && updates.status !== application.status) {
       application.statusHistory.push({
-        status: req.body.status,
+        status: updates.status,
         changedAt: new Date(),
       });
     }
 
-    Object.assign(application, req.body);
+    Object.assign(application, {
+      ...updates,
+      ...(req.body.interviewDates !== undefined ? { interviewDates: normalizeInterviewDates(req.body.interviewDates) } : {}),
+    });
     await application.save();
 
     return res.status(200).json({
@@ -212,6 +242,9 @@ export const updateApplication = async (req, res) => {
       data: application,
     });
   } catch (error) {
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error('[Application Error - update]:', error);
     return res.status(500).json({
       success: false,
@@ -226,12 +259,10 @@ export const updateApplication = async (req, res) => {
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const validStatuses = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
-
-    if (!validStatuses.includes(status)) {
+    if (!applicationStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Status must be one of: ${validStatuses.join(', ')}`,
+        message: `Status must be one of: ${applicationStatuses.join(', ')}`,
       });
     }
 
@@ -245,6 +276,10 @@ export const updateApplicationStatus = async (req, res) => {
         success: false,
         message: 'Application not found',
       });
+    }
+
+    if (application.status === status) {
+      return res.status(200).json({ success: true, message: 'Application status is unchanged', data: application });
     }
 
     application.status = status;
@@ -261,6 +296,9 @@ export const updateApplicationStatus = async (req, res) => {
       data: application,
     });
   } catch (error) {
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     console.error('[Application Error - updateStatus]:', error);
     return res.status(500).json({
       success: false,

@@ -1,10 +1,10 @@
 import express from 'express';
 import Application from '../models/Application.js';
-import { protect } from '../middleware/auth.js';
+import { applicantOnly, protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protect, applicantOnly);
 
 const computeSummary = (applications = []) => {
   const statusCounts = {

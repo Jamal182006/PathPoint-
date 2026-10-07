@@ -50,11 +50,17 @@ const userSchema = new mongoose.Schema(
         'Please provide a valid email address',
       ],
     },
+    phone: { type: String, trim: true, maxlength: 40, default: '' },
+    address: { type: String, trim: true, maxlength: 300, default: '' },
     password: {
       type: String,
       required: [true, 'Please provide a password'],
       minlength: [6, 'Password must be at least 6 characters long'],
-      maxlength: [12, 'Password cannot exceed 12 characters'],
+      maxlength: [72, 'Password cannot exceed 72 characters'],
+      validate: {
+        validator: (value) => Buffer.byteLength(value, 'utf8') <= 72,
+        message: 'Password cannot exceed 72 UTF-8 bytes',
+      },
       select: false, // Do not return password by default in queries
     },
     role: {
@@ -85,6 +91,7 @@ const userSchema = new mongoose.Schema(
       enum: ['active', 'suspended'],
       default: 'active',
     },
+    isArchived: { type: Boolean, default: false, index: true },
     resetCode: {
       type: String,
       default: null,
@@ -126,6 +133,8 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+userSchema.index({ 'businessVerification.status': 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
