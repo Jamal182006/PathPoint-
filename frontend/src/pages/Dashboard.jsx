@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
@@ -7,9 +7,9 @@ import KanbanBoard from '../components/kanban/KanbanBoard';
 import ApplicationTable from '../components/list/ApplicationTable';
 import Modal from '../components/common/Modal';
 import ApplicationForm from '../components/forms/ApplicationForm';
-import GoalTracker from '../components/dashboard/GoalTracker';
 import ExportImportModal from '../components/common/ExportImportModal';
 import ShortcutsModal from '../components/common/ShortcutsModal';
+import TrackedItemsWidget from '../components/dashboard/TrackedItemsWidget';
 import {
   LayoutGrid,
   List,
@@ -22,43 +22,30 @@ import {
   Bookmark,
   Download,
   HelpCircle,
-  Building2,
-  ArrowRight,
 } from 'lucide-react';
 
 export const Dashboard = ({
   isAddModalOpen,
   setIsAddModalOpen,
-  browseModalOpen: browseModalOpenProp,
-  setBrowseModalOpen: setBrowseModalOpenProp,
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const currentView = searchParams.get('view') === 'list' ? 'list' : 'board';
 
   const { user } = useAuth();
   const { toast } = useToast();
   const [applications, setApplications] = useState([]);
-  const [providerCompanies, setProviderCompanies] = useState([]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [companySearch, setCompanySearch] = useState('');
-  const [selectedCompany, setSelectedCompany] = useState(null);
-  const [prefillCompany, setPrefillCompany] = useState('');
-  const [prefillRole, setPrefillRole] = useState('');
 
   // Modals
   const [localModalOpen, setLocalModalOpen] = useState(false);
-  const [localBrowseModalOpen, setLocalBrowseModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
 
   const modalOpen = isAddModalOpen !== undefined ? isAddModalOpen : localModalOpen;
   const setModalOpen = setIsAddModalOpen !== undefined ? setIsAddModalOpen : setLocalModalOpen;
-  const browseModalOpen = browseModalOpenProp !== undefined ? browseModalOpenProp : localBrowseModalOpen;
-  const setBrowseModalOpen = setBrowseModalOpenProp || setLocalBrowseModalOpen;
 
   const loadApplications = useCallback(async () => {
     if (!user?.id) return;
@@ -75,38 +62,6 @@ export const Dashboard = ({
   useEffect(() => {
     loadApplications();
   }, [loadApplications]);
-
-  useEffect(() => {
-    if (!browseModalOpen) return undefined;
-
-    let isCurrent = true;
-    apiAdapter.getJobs().then((jobs) => {
-      if (isCurrent) {
-        setProviderCompanies(jobs.map((job) => ({
-          id: job._id,
-          name: job.title,
-          industry: job.companyId?.name || 'Company',
-          location: job.location || job.companyId?.location || 'Location not listed',
-          description: job.description || '',
-          salaryRange: job.salaryMin == null ? 'Not listed' : `${job.salaryMin}${job.salaryMax != null && job.salaryMax !== job.salaryMin ? `-${job.salaryMax}` : ''} / ${job.salaryPayPeriod}`,
-          contactPerson: job.interviewerName || '',
-          roles: [],
-          website: '',
-          logo: job.companyId?.logo,
-          isProviderListing: true,
-        })));
-      }
-    }).catch((error) => {
-      if (isCurrent) {
-        setProviderCompanies([]);
-        toast(error.message || 'Unable to load approved job listings.', 'error');
-      }
-    });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [browseModalOpen]);
 
   const handleViewChange = (view) => {
     if (view === 'list') {
@@ -143,34 +98,8 @@ export const Dashboard = ({
 
   const handleFormSuccess = () => {
     setModalOpen(false);
-    setSelectedCompany(null);
-    setPrefillCompany('');
-    setPrefillRole('');
     loadApplications();
   };
-
-  const openApplicationForm = (companyName, roleName = '') => {
-    setPrefillCompany(companyName || '');
-    setPrefillRole(roleName || '');
-    setBrowseModalOpen(false);
-    setSelectedCompany(null);
-    setModalOpen(true);
-  };
-
-  const filteredCompanies = useMemo(() => {
-    const companies = providerCompanies;
-    if (!companySearch.trim()) return companies;
-
-    const q = companySearch.toLowerCase();
-    return companies.filter((company) => {
-      return (
-        company.name.toLowerCase().includes(q) ||
-        company.industry.toLowerCase().includes(q) ||
-        company.roles.some((role) => role.toLowerCase().includes(q)) ||
-        company.location.toLowerCase().includes(q)
-      );
-    });
-  }, [companySearch, providerCompanies]);
 
   // Filtered applications
   const filteredApps = useMemo(() => {
@@ -200,9 +129,6 @@ export const Dashboard = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Weekly Goal Tracker & Research Telemetry */}
-      <GoalTracker applications={applications} />
-
       {/* Metrics Header Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
@@ -246,6 +172,8 @@ export const Dashboard = ({
         </div>
       </div>
 
+      <TrackedItemsWidget />
+
       {/* Action and Filter Controls Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex flex-1 items-center gap-2">
@@ -253,6 +181,7 @@ export const Dashboard = ({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               id="dashboard-search-input"
+              data-global-search
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -354,177 +283,16 @@ export const Dashboard = ({
         />
       )}
 
-      <Modal
-        isOpen={browseModalOpen}
-        onClose={() => setBrowseModalOpen(false)}
-        title="Browse Jobs"
-        maxWidth="max-w-5xl"
-      >
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">Explore admin-approved openings from verified companies.</p>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-            {filteredCompanies.length} open jobs
-          </span>
-        </div>
-
-        <div className="relative mb-5 max-w-md">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <input
-            type="text"
-            value={companySearch}
-            onChange={(e) => setCompanySearch(e.target.value)}
-            placeholder="Search jobs, companies, or locations"
-            className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            autoFocus
-          />
-        </div>
-
-        {filteredCompanies.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
-            <Building2 className="mx-auto mb-3 h-7 w-7 text-slate-400" />
-            <p className="text-sm font-semibold text-slate-800">No open jobs found</p>
-            <p className="mt-1 text-xs text-slate-500">Try a different job, company, or location.</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {filteredCompanies.map((company) => (
-              <div key={company.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h4 className="text-base font-bold text-slate-900">{company.name}</h4>
-                    <p className="mt-1 text-[11px] font-medium text-indigo-700">{company.industry}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/jobs/${company.id}`)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700"
-                  >
-                    View
-                    <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-
-                <p className="mt-3 line-clamp-2 text-xs text-slate-600">{company.description}</p>
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
-                  <span><span className="text-slate-500">Location:</span> {company.location}</span>
-                  <span><span className="text-slate-500">Comp:</span> {company.salaryRange}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {company.roles.slice(0, 3).map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => openApplicationForm(company.name, role)}
-                      className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700"
-                    >
-                      {role}
-                    </button>
-                  ))}
-                  <span className="text-[10px] text-slate-500">Open position</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Modal>
-
       {/* Add Application Modal */}
       <Modal
         isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setPrefillCompany('');
-          setPrefillRole('');
-        }}
+        onClose={() => setModalOpen(false)}
         title="Log New Job Application"
       >
         <ApplicationForm
-          defaultCompany={prefillCompany}
-          defaultRole={prefillRole}
           onSuccess={handleFormSuccess}
-          onCancel={() => {
-            setModalOpen(false);
-            setPrefillCompany('');
-            setPrefillRole('');
-          }}
+          onCancel={() => setModalOpen(false)}
         />
-      </Modal>
-
-      <Modal
-        isOpen={Boolean(selectedCompany)}
-        onClose={() => setSelectedCompany(null)}
-        title={selectedCompany?.name || 'Company Details'}
-        maxWidth="max-w-xl"
-      >
-        {selectedCompany && (
-          <div className="space-y-5">
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-lg font-bold text-slate-900">{selectedCompany.name}</h4>
-                  <p className="text-xs text-slate-500">{selectedCompany.industry}</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700 text-[10px] font-semibold">
-                  {selectedCompany.location}
-                </span>
-              </div>
-
-              <p className="mt-3 text-sm text-slate-600">{selectedCompany.description}</p>
-
-              <div className="mt-4 grid sm:grid-cols-2 gap-3 text-xs text-slate-600">
-                <div className="rounded-xl bg-white border border-slate-200 p-3">
-                  <div className="text-slate-500 mb-1">Salary range</div>
-                  <div className="font-semibold text-slate-800">{selectedCompany.salaryRange || 'Not listed'}</div>
-                </div>
-                <div className="rounded-xl bg-white border border-slate-200 p-3">
-                  <div className="text-slate-500 mb-1">Contact</div>
-                  <div className="font-semibold text-slate-800">{selectedCompany.contactPerson || 'Not listed'}</div>
-                </div>
-              </div>
-              {selectedCompany.website && (
-                <a
-                  href={selectedCompany.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex text-xs font-semibold text-indigo-700 hover:underline"
-                >
-                  Visit business website
-                </a>
-              )}
-            </div>
-
-            {selectedCompany.roles.length > 0 && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Available roles</div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCompany.roles.map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => openApplicationForm(selectedCompany.name, role)}
-                      className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:border-indigo-200 hover:text-indigo-700 transition"
-                    >
-                      {role}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedCompany.roles.length > 0 && (
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => openApplicationForm(selectedCompany.name, selectedCompany.roles[0])}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-sm"
-                >
-                  Start application
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </Modal>
 
       {/* Export & Import Modal */}

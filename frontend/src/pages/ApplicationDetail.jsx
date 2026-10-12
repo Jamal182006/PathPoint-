@@ -242,22 +242,6 @@ export const ApplicationDetail = () => {
                 </div>
               </div>
 
-              {/* Job Description & Notes */}
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <h3 className="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-indigo-600" />
-                  <span>Job Description & Role Notes</span>
-                </h3>
-                {application.jobDescriptionNotes ? (
-                  <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                    {application.jobDescriptionNotes}
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">
-                    No notes recorded yet. Click "Edit Details" to add keywords or interview requirements.
-                  </p>
-                )}
-              </div>
             </div>
 
             {/* Status History Timeline */}

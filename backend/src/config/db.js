@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import Application from '../models/Application.js';
 import Company from '../models/Company.js';
 import CompanyApplication from '../models/CompanyApplication.js';
@@ -6,9 +7,14 @@ import JobListing from '../models/JobListing.js';
 import JobApplication from '../models/JobApplication.js';
 import WorkLog from '../models/WorkLog.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
+import ActivityLog from '../models/ActivityLog.js';
+import PinnedItem from '../models/PinnedItem.js';
+
+let memoryServer = null;
 
 const ensureCollections = async () => {
-  const models = [User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog];
+  const models = [User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog, Notification, ActivityLog, PinnedItem];
   const existingCollections = new Set(
     (await mongoose.connection.db.listCollections({}, { nameOnly: true }).toArray())
       .map(({ name }) => name)
@@ -27,13 +33,34 @@ const ensureCollections = async () => {
 const ensureDefaultAdmin = async () => {
   const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  const adminName = process.env.BOOTSTRAP_ADMIN_NAME?.trim() || 'PathPoint Administrator';
+  const adminUsername = process.env.BOOTSTRAP_ADMIN_USERNAME || 'pathpoint_admin';
   if (!adminEmail || !adminPassword) return;
 
-  const existingAdmin = await User.findOne({ email: adminEmail });
-  if (existingAdmin) return;
+  const existingAdmin = await User.findOne({ email: adminEmail }).select('+password');
+  if (existingAdmin) {
+    const needsRefresh =
+      existingAdmin.name !== adminName ||
+      existingAdmin.username !== adminUsername ||
+      existingAdmin.role !== 'admin' ||
+      existingAdmin.status !== 'active';
+
+    const passwordMatches = existingAdmin.password ? await existingAdmin.matchPassword(adminPassword) : false;
+    if (needsRefresh || !passwordMatches) {
+      existingAdmin.name = adminName;
+      existingAdmin.username = adminUsername;
+      existingAdmin.role = 'admin';
+      existingAdmin.status = 'active';
+      existingAdmin.password = adminPassword;
+      await existingAdmin.save();
+      console.log(`[MongoDB] Bootstrap administrator refreshed: ${adminEmail}`);
+    }
+    return;
+  }
 
   await User.create({
-    name: process.env.BOOTSTRAP_ADMIN_NAME?.trim() || 'PathPoint Administrator',
+    name: adminName,
+    username: adminUsername,
     email: adminEmail,
     password: adminPassword,
     role: 'admin',
@@ -43,34 +70,50 @@ const ensureDefaultAdmin = async () => {
 };
 
 export const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+  const fallbackEnabled = String(process.env.MONGODB_ALLOW_MEMORY_FALLBACK || '').toLowerCase() === 'true';
+  const configuredUri = process.env.MONGODB_URI;
 
-  if (!uri) {
-    throw new Error('MONGODB_URI must be configured with a MongoDB Atlas connection string.');
-  }
+  const tryConnect = async (uri, label) => {
+    if (!/^mongodb(?:\+srv)?:\/\//i.test(uri)) {
+      throw new Error('Invalid MongoDB URI. Use a mongodb:// or mongodb+srv:// connection string.');
+    }
 
-  if (!/^mongodb(?:\+srv)?:\/\//i.test(uri)) {
-    throw new Error('Invalid MONGODB_URI. Use a mongodb:// or mongodb+srv:// connection string.');
-  }
-
-  const maskedUri = uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+@/, '$1****@');
-
-  try {
+    const maskedUri = uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+@/, '$1****@');
     console.log(`[MongoDB] Connecting to: ${maskedUri}`);
-
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 3000,
+      serverSelectionTimeoutMS: 10000,
     });
-
-    console.log(`[MongoDB] Connected successfully to database: ${mongoose.connection.name}`);
+    console.log(`[MongoDB] Connected successfully to database: ${mongoose.connection.name} (${label})`);
     await ensureCollections();
     await ensureDefaultAdmin();
+    return mongoose.connection;
+  };
+
+  try {
+    if (!configuredUri) {
+      if (!fallbackEnabled) {
+        throw new Error('MONGODB_URI must be configured with a MongoDB connection string.');
+      }
+      memoryServer = await MongoMemoryServer.create();
+      process.env.MONGODB_URI = memoryServer.getUri();
+      return await tryConnect(process.env.MONGODB_URI, 'memory-server fallback');
+    }
+
+    try {
+      return await tryConnect(configuredUri, 'configured uri');
+    } catch (err) {
+      if (!fallbackEnabled) {
+        throw err;
+      }
+      console.warn(`[MongoDB] Configured connection failed (${err.message}). Falling back to in-memory MongoDB.`);
+      memoryServer = await MongoMemoryServer.create();
+      process.env.MONGODB_URI = memoryServer.getUri();
+      return await tryConnect(process.env.MONGODB_URI, 'memory-server fallback');
+    }
   } catch (err) {
-    console.error(`[MongoDB] Atlas connection to ${maskedUri} failed: ${err.message}`);
+    console.error(`[MongoDB] Connection failed: ${err.message}`);
     throw err;
   }
-
-  return mongoose.connection;
 };
 
 export const getDBStatus = () => {

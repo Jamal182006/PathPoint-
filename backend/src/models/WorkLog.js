@@ -4,6 +4,7 @@ const workLogSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 160 },
+    category: { type: String, enum: ['general', 'cleaning', 'delivery', 'repair', 'care', 'other'], default: 'general', index: true },
     clientName: { type: String, trim: true, maxlength: 160, default: '' },
     location: { type: String, trim: true, maxlength: 200, default: '' },
     startedAt: { type: Date, required: true },

@@ -6,12 +6,11 @@ export const ShortcutsModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const shortcuts = [
-    { key: 'N', description: 'Log a new job application' },
-    { key: '/', description: 'Focus company/role search field' },
+    { key: 'N', description: 'Open job listings' },
+    { key: '/', description: 'Focus the current search field' },
     { key: 'B', description: 'Switch to Kanban Status Board view' },
     { key: 'L', description: 'Switch to Tabular List view' },
     { key: 'C', description: 'Open Interview Scheduler & Calendar' },
-    { key: 'A', description: 'Open Analytics & Conversion Dashboard' },
     { key: '?', description: 'Open this keyboard shortcuts cheat sheet' },
     { key: 'Esc', description: 'Close any active modal or pop-up' },
   ];

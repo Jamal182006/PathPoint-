@@ -10,11 +10,14 @@ export const jobsApi = {
   updateStatus: (id, status) => apiClient.patch(`/jobs/provider/listings/${id}/status`, { status }),
   archive: (id) => apiClient.delete(`/jobs/provider/listings/${id}`),
   getApplicants: (id) => apiClient.get(`/jobs/provider/listings/${id}/applications`),
+  getApplicationDraft: (id) => apiClient.get(`/jobs/${id}/applications/draft`),
+  saveApplicationDraft: (id, formData) => apiClient.put(`/jobs/${id}/applications/draft`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   apply: (id, formData, onUploadProgress) => apiClient.post(`/jobs/${id}/applications`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, onUploadProgress }),
   getMyApplications: () => apiClient.get('/jobs/applications/mine'),
   getMyApplication: (id) => apiClient.get(`/jobs/applications/${id}`),
   updateApplication: (id, payload) => apiClient.patch(`/jobs/applications/${id}/status`, payload),
   getApplicationFile: (applicationId, responseId, inline = false) => apiClient.get(`/jobs/applications/${applicationId}/responses/${responseId}/file`, { params: inline ? { inline: 'true' } : undefined, responseType: 'blob' }),
+  getApplicationResume: (applicationId, inline = false) => apiClient.get(`/jobs/applications/${applicationId}/resume`, { params: inline ? { inline: 'true' } : undefined, responseType: 'blob' }),
 };
 
 export default jobsApi;

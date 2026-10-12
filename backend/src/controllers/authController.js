@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { fileTypeFromBuffer } from 'file-type';
 import User from '../models/User.js';
 import { parseBusinessDocument } from '../utils/businessVerification.js';
 import { sendLoginCodeEmail, sendPasswordResetCodeEmail } from '../utils/emailService.js';
@@ -13,6 +14,115 @@ import {
 const MAX_PASSWORD_LENGTH = 72;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const namePattern = /^[a-zA-Z][a-zA-Z .'-]*$/;
+const usernamePattern = /^[a-z0-9_]{3,20}$/;
+const normalizeIdentifier = (value) => String(value || '').trim().toLowerCase();
+const profileInputError = (message) => Object.assign(new Error(message), { statusCode: 400 });
+const findUserByIdentifier = (value) => {
+  const identifier = normalizeIdentifier(value);
+  return identifier.includes('@')
+    ? User.findOne({ email: identifier })
+    : User.findOne({ username: identifier });
+};
+const calculateAge = (value, now = new Date()) => {
+  const date = new Date(value);
+  let age = now.getFullYear() - date.getFullYear();
+  if (now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate())) age -= 1;
+  return age;
+};
+const passwordMeetsRules = (password) => password.length >= 8
+  && /[A-Z]/.test(password)
+  && /[a-z]/.test(password)
+  && /[0-9]/.test(password);
+
+const sanitizeTextField = (value, { maxLength = 2000, fallback = '' } = {}) => {
+  if (value === undefined || value === null) return fallback;
+  const clean = String(value)
+    .replace(/\0/g, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[\u0000-\u001F\u007F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return clean.slice(0, maxLength) || fallback;
+};
+
+const normalizeProfileInfo = (source = {}) => ({
+  headline: sanitizeTextField(source.headline, { maxLength: 160, fallback: '' }),
+  bio: sanitizeTextField(source.bio, { maxLength: 2000, fallback: '' }),
+  targetRoles: Array.isArray(source.targetRoles)
+    ? source.targetRoles.map((item) => sanitizeTextField(item, { maxLength: 80, fallback: '' })).filter(Boolean).slice(0, 10)
+    : [],
+  desiredSalary: {
+    min: Number.isFinite(Number(source?.desiredSalary?.min)) ? Number(source.desiredSalary.min) : 0,
+    max: Number.isFinite(Number(source?.desiredSalary?.max)) ? Number(source.desiredSalary.max) : 0,
+    currency: sanitizeTextField(source?.desiredSalary?.currency, { maxLength: 12, fallback: 'USD' }),
+  },
+  workPreference: ['Remote', 'Hybrid', 'On-site', 'Flexible', ''].includes(source?.workPreference)
+    ? source.workPreference
+    : '',
+});
+
+const normalizeCustomization = (source = {}) => ({
+  themePreset: ['light', 'dark', 'minimal', 'dark_modern', 'creative_tech'].includes(source?.themePreset)
+    ? source.themePreset
+    : 'light',
+  accentColor: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(source?.accentColor || ''))
+    ? String(source.accentColor)
+    : '#4F46E5',
+  compactMode: !!source?.compactMode,
+  notifications: source?.notifications !== false,
+  showWelcomeBanner: source?.showWelcomeBanner !== false,
+  avatarUrl: sanitizeTextField(source?.avatarUrl, { maxLength: 500, fallback: '' }),
+  bannerUrl: sanitizeTextField(source?.bannerUrl, { maxLength: 500, fallback: '' }),
+  profileTitle: sanitizeTextField(source?.profileTitle, { maxLength: 120, fallback: '' }),
+  layoutBlocks: Array.isArray(source?.layoutBlocks)
+    ? source.layoutBlocks
+        .map((block) => ({
+          id: sanitizeTextField(block?.id, { maxLength: 80, fallback: 'custom' }),
+          order: Number.isFinite(Number(block?.order)) ? Number(block.order) : 0,
+          visible: Boolean(block?.visible),
+        }))
+        .slice(0, 20)
+    : [
+        { id: 'summary', order: 0, visible: true },
+        { id: 'skills', order: 1, visible: true },
+        { id: 'resumes', order: 2, visible: true },
+      ],
+});
+
+const normalizePrivacySettings = (source = {}) => ({
+  profileVisibility: ['private', 'counselors_only', 'public'].includes(source?.profileVisibility)
+    ? source.profileVisibility
+    : 'private',
+  shareResumeToPublic: !!source?.shareResumeToPublic,
+});
+
+const serializeProfileCustomization = (user) => ({
+  id: user.id || String(user._id),
+  name: user.name,
+  email: user.email,
+  role: user.role,
+  username: user.username,
+  avatar: user.avatar || '',
+  profileInfo: normalizeProfileInfo(user.profileInfo || {}),
+  customization: normalizeCustomization(user.customization || {}),
+  privacySettings: normalizePrivacySettings(user.privacySettings || {}),
+});
+
+export const checkUsernameAvailability = async (req, res) => {
+  const username = normalizeIdentifier(req.query.username);
+  if (!usernamePattern.test(username)) {
+    return res.status(400).json({ success: false, available: false, message: 'Use 3–20 letters, numbers, or underscores.' });
+  }
+  try {
+    const exists = await User.exists({ username });
+    return res.status(200).json({ success: true, available: !exists });
+  } catch (error) {
+    console.error('[Auth Error - Username Availability]:', error.message);
+    return res.status(503).json({ success: false, available: false, message: 'Username availability is temporarily unavailable.' });
+  }
+};
 
 // Helper to sign JWT
 const generateToken = (user, rememberMe = false) => {
@@ -55,18 +165,44 @@ const rememberDevice = async (user, deviceToken) => {
 export const register = async (req, res) => {
   try {
     const {
-      name,
       email,
+      username,
+      firstName,
+      middleName = '',
+      lastName,
+      dateOfBirth,
+      gender = '',
       phone = '',
-      address = '',
+      phoneCountryCode = '+1',
+      country = '',
+      province = '',
+      city = '',
+      barangay = '',
+      streetAddress = '',
+      postalCode = '',
+      education = '',
+      occupation = '',
+      employmentStatus = '',
+      bio = '',
+      avatar = '',
+      businessName = '',
+      businessType = '',
+      businessAddress = '',
+      businessRegistrationNumber = '',
+      contactPerson = '',
       password,
+      confirmPassword,
       role = 'user',
       careerTrack = 'General',
       businessProfile = {},
       businessDocument,
     } = req.body;
-    const normalizedName = name?.trim();
-    const normalizedEmail = email?.toLowerCase().trim();
+    const normalizedEmail = normalizeIdentifier(email);
+    const normalizedUsername = normalizeIdentifier(username);
+    const normalizedFirstName = String(firstName || '').trim();
+    const normalizedMiddleName = String(middleName || '').trim();
+    const normalizedLastName = String(lastName || '').trim();
+    const normalizedName = [normalizedFirstName, normalizedMiddleName, normalizedLastName].filter(Boolean).join(' ');
 
     if (!['user', 'provider'].includes(role)) {
       return res.status(400).json({
@@ -75,24 +211,28 @@ export const register = async (req, res) => {
       });
     }
 
-    if (!normalizedName || !normalizedEmail || !password) {
+    if (!normalizedFirstName || !normalizedLastName || !normalizedEmail || !normalizedUsername || !password || !dateOfBirth) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide full name, email, and password',
+        message: 'Complete the required account and personal information fields.',
       });
     }
 
-    if (normalizedName.length < 2 || normalizedName.length > 100) {
+    if (!usernamePattern.test(normalizedUsername)) {
+      return res.status(400).json({ success: false, message: 'Username must be 3–20 characters using letters, numbers, or underscores.' });
+    }
+
+    if (normalizedFirstName.length < 1 || normalizedFirstName.length > 80 || normalizedLastName.length < 1 || normalizedLastName.length > 80 || normalizedMiddleName.length > 80 || normalizedName.length > 100) {
       return res.status(400).json({
         success: false,
-        message: 'Name must be between 2 and 100 characters',
+        message: 'Enter valid first, middle, and last names.',
       });
     }
 
     if (!namePattern.test(normalizedName)) {
       return res.status(400).json({
         success: false,
-        message: 'Name may only contain letters, spaces, apostrophes, periods, and hyphens',
+        message: 'Names may only contain letters, spaces, apostrophes, periods, and hyphens.',
       });
     }
 
@@ -103,13 +243,6 @@ export const register = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters long',
-      });
-    }
-
     if (Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_LENGTH) {
       return res.status(400).json({
         success: false,
@@ -117,18 +250,43 @@ export const register = async (req, res) => {
       });
     }
 
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    if (!passwordMeetsRules(password)) {
       return res.status(400).json({
         success: false,
-        message: 'Password must include an uppercase letter, lowercase letter, and number',
+        message: 'Password must be at least 8 characters and include uppercase, lowercase, and numeric characters.',
+      });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    const birthTimestamp = new Date(dateOfBirth);
+    if (Number.isNaN(birthTimestamp.getTime()) || birthTimestamp > new Date()) {
+      return res.status(400).json({ success: false, message: 'Enter a valid date of birth.' });
+    }
+    const age = calculateAge(birthTimestamp);
+    if (age < 18) {
+      return res.status(400).json({ success: false, message: 'You must be at least 18 years old to create an account.' });
+    }
+
+    if (gender && !['female', 'male', 'non_binary', 'prefer_not_to_say'].includes(gender)) {
+      return res.status(400).json({ success: false, message: 'Choose a valid gender option.' });
+    }
+
+    if (role === 'provider' && (!String(businessName).trim() || !String(businessType).trim() || !String(contactPerson).trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Providers must provide a business name, business type, and contact person.',
       });
     }
 
-    if (role === 'provider' && (!businessProfile.companyName?.trim() || !businessProfile.industry?.trim())) {
-      return res.status(400).json({
-        success: false,
-        message: 'Providers must provide a business name and industry',
-      });
+    let normalizedAvatar = '';
+    if (avatar) {
+      const match = /^data:image\/(png|jpeg);base64,([a-z\d+/]+=*)$/i.exec(String(avatar));
+      if (!match || Buffer.from(match[2], 'base64').length > 3 * 1024 * 1024) {
+        return res.status(400).json({ success: false, message: 'Profile photo must be a PNG or JPG up to 3 MB.' });
+      }
+      normalizedAvatar = String(avatar);
     }
 
     let businessVerification;
@@ -144,32 +302,59 @@ export const register = async (req, res) => {
       }
     }
 
-    // Treat the full name as the username and prevent case-insensitive duplicates.
-    const existingUser = await User.findOne({
-      $or: [
-        { email: normalizedEmail },
-        { name: { $regex: `^${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
-      ],
-    });
+    const existingUser = await User.findOne({ $or: [{ email: normalizedEmail }, { username: normalizedUsername }] });
     if (existingUser) {
       return res.status(400).json({
         success: false,
         message: existingUser.email === normalizedEmail
-          ? 'An account with this email address already exists. Please sign in.'
-          : 'That username is already in use. Please choose another name.',
+          ? 'An account with this email address already exists.'
+          : 'That username is already in use.',
       });
     }
 
+    const normalizedPhoneCountryCode = /^\+[1-9]\d{0,3}$/.test(String(phoneCountryCode)) ? String(phoneCountryCode) : '';
+    const normalizedBusinessProfile = role === 'provider' ? {
+      ...businessProfile,
+      companyName: String(businessName).trim(),
+      industry: String(businessType).trim(),
+      location: String(businessAddress).trim(),
+    } : undefined;
+    const fullAddress = [streetAddress, barangay, city, province, country, postalCode].map((part) => String(part || '').trim()).filter(Boolean).join(', ');
+
     // Create user in MongoDB
     const user = await User.create({
+      username: normalizedUsername,
       name: normalizedName,
+      firstName: normalizedFirstName,
+      middleName: normalizedMiddleName,
+      lastName: normalizedLastName,
       email: normalizedEmail,
-      phone: String(phone).trim().slice(0, 40),
-      address: String(address).trim().slice(0, 300),
+      dateOfBirth: birthTimestamp,
+      age,
+      gender,
+      avatar: normalizedAvatar,
+      phone: `${normalizedPhoneCountryCode}${String(phone).trim()}`.slice(0, 40),
+      phoneCountryCode: normalizedPhoneCountryCode,
+      country: String(country).trim().slice(0, 100),
+      province: String(province).trim().slice(0, 100),
+      city: String(city).trim().slice(0, 100),
+      barangay: String(barangay).trim().slice(0, 100),
+      streetAddress: String(streetAddress).trim().slice(0, 200),
+      postalCode: String(postalCode).trim().slice(0, 20),
+      address: fullAddress.slice(0, 300),
+      education: String(education).trim().slice(0, 100),
+      occupation: String(occupation).trim().slice(0, 120),
+      employmentStatus: String(employmentStatus).trim().slice(0, 80),
+      bio: String(bio).trim().slice(0, 2000),
+      businessName: role === 'provider' ? String(businessName).trim().slice(0, 120) : '',
+      businessType: role === 'provider' ? String(businessType).trim().slice(0, 100) : '',
+      businessAddress: role === 'provider' ? String(businessAddress).trim().slice(0, 300) : '',
+      businessRegistrationNumber: role === 'provider' ? String(businessRegistrationNumber).trim().slice(0, 100) : '',
+      contactPerson: role === 'provider' ? String(contactPerson).trim().slice(0, 160) : '',
       password,
       role,
       careerTrack: careerTrack || 'General',
-      businessProfile: role === 'provider' ? businessProfile : undefined,
+      businessProfile: normalizedBusinessProfile,
       businessVerification,
     });
 
@@ -182,6 +367,10 @@ export const register = async (req, res) => {
       user: user.toJSON(),
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0];
+      return res.status(409).json({ success: false, message: field === 'username' ? 'That username is already in use.' : 'An account with this email address already exists.' });
+    }
     console.error('[Auth Error - Register]:', error);
     return res.status(500).json({
       success: false,
@@ -194,34 +383,18 @@ export const register = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 export const login = async (req, res) => {
-  return requestLoginCode(req, res);
-  /*
   try {
-    const { email, password } = req.body;
-    const normalizedEmail = email?.toLowerCase().trim();
+    const { identifier, email, password, rememberMe = false, deviceToken } = req.body;
+    const normalizedIdentifier = normalizeIdentifier(identifier || email);
 
-    if (!normalizedEmail || !password) {
+    if (!normalizedIdentifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please enter both email and password',
+        message: 'Please provide your email or username and password.',
       });
     }
 
-    if (!emailPattern.test(normalizedEmail)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide a valid email address',
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 6 characters long',
-      });
-    }
-
-    const loginKey = getLoginKey(req, normalizedEmail);
+    const loginKey = getLoginKey(req.ip, normalizedIdentifier);
     const lockedSeconds = getLockout(loginKey);
     if (lockedSeconds) {
       return res.status(429).json({
@@ -231,9 +404,7 @@ export const login = async (req, res) => {
       });
     }
 
-    // Find user in MongoDB and explicitly select the password
-    const user = await User.findOne({ email: normalizedEmail }).select('+password');
-
+    const user = await findUserByIdentifier(normalizedIdentifier).select('+password');
     if (!user) {
       const failedAttempts = recordFailedLogin(loginKey);
       if (failedAttempts) {
@@ -243,13 +414,9 @@ export const login = async (req, res) => {
           lockoutSeconds: failedAttempts,
         });
       }
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password',
-      });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Verify password match using bcrypt
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       const failedAttempts = recordFailedLogin(loginKey);
@@ -260,42 +427,62 @@ export const login = async (req, res) => {
           lockoutSeconds: failedAttempts,
         });
       }
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email or password',
-      });
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    loginAttempts.delete(loginKey);
+    resetLoginAttempts(loginKey);
 
-    // Verify account status
     if (user.status === 'suspended') {
       return res.status(403).json({
         success: false,
-        message: 'Account suspended. Please contact career counselor support.',
+        message: 'Account suspended. Please contact support.',
       });
     }
 
-    // Update last active timestamp
-    user.lastActiveAt = new Date();
-    await user.save({ validateBeforeSave: false });
+    if (user.role === 'admin') {
+      user.lastActiveAt = new Date();
+      await user.save({ validateBeforeSave: false });
+      return res.status(200).json({
+        success: true,
+        message: 'Administrative login successful',
+        token: generateToken(user, rememberMe),
+        user: user.toJSON(),
+      });
+    }
 
-    const token = generateToken(user);
+    if (isTrustedDevice(user, deviceToken)) {
+      user.lastActiveAt = new Date();
+      await user.save({ validateBeforeSave: false });
+      return res.status(200).json({
+        success: true,
+        trustedDevice: true,
+        message: 'Trusted device recognized. Login successful.',
+        token: generateToken(user, rememberMe),
+        user: user.toJSON(),
+      });
+    }
+
+    const code = generateVerificationCode();
+    const emailResult = await sendLoginCodeEmail(user.email, code);
+    user.loginCode = code;
+    user.loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
 
     return res.status(200).json({
       success: true,
-      message: 'Login successful',
-      token,
-      user: user.toJSON(),
+      requiresCode: true,
+      destinationEmail: user.email,
+      message: emailResult.consoleOnly
+        ? 'Console-only delivery is active. Enter the code shown in the backend console.'
+        : `A 6-digit verification code was sent to ${user.email}. Enter it to continue signing in.`,
     });
   } catch (error) {
     console.error('[Auth Error - Login]:', error);
-    return res.status(500).json({
+    return res.status(503).json({
       success: false,
-      message: error.message || 'Server error during login',
+      message: error.message || 'Server error while signing in',
     });
   }
-  */
 };
 
 // @desc    Authenticate administrator or counselor
@@ -303,17 +490,17 @@ export const login = async (req, res) => {
 // @access  Public (Enforces Admin Role)
 export const adminLogin = async (req, res) => {
   try {
-    const { email, password, securityCode } = req.body;
-    const normalizedEmail = String(email || '').toLowerCase().trim();
+    const { identifier, email, password } = req.body;
+    const normalizedIdentifier = normalizeIdentifier(identifier || email);
 
-    if (!normalizedEmail || !password) {
+    if (!normalizedIdentifier || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide administrator email and password',
       });
     }
 
-    const loginKey = getLoginKey(req.ip, normalizedEmail);
+    const loginKey = getLoginKey(req.ip, normalizedIdentifier);
     const lockedSeconds = getLockout(loginKey);
     if (lockedSeconds) {
       return res.status(429).json({
@@ -323,7 +510,7 @@ export const adminLogin = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    const user = await findUserByIdentifier(normalizedIdentifier).select('+password');
 
     if (!user) {
       const failedAttempts = recordFailedLogin(loginKey);
@@ -336,7 +523,7 @@ export const adminLogin = async (req, res) => {
       }
       return res.status(401).json({
         success: false,
-        message: 'Invalid administrator credentials',
+        message: 'Invalid credentials',
       });
     }
 
@@ -352,7 +539,7 @@ export const adminLogin = async (req, res) => {
       }
       return res.status(401).json({
         success: false,
-        message: 'Invalid administrator credentials',
+        message: 'Invalid credentials',
       });
     }
 
@@ -392,17 +579,17 @@ export const adminLogin = async (req, res) => {
 // @access  Public
 export const requestLoginCode = async (req, res) => {
   try {
-    const { email, password, rememberMe = false, deviceToken } = req.body;
-    const normalizedEmail = String(email || '').toLowerCase().trim();
+    const { identifier, email, password, rememberMe = false, deviceToken } = req.body;
+    const normalizedIdentifier = normalizeIdentifier(identifier || email);
 
-    if (!normalizedEmail || !password) {
+    if (!normalizedIdentifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide your email and password',
+        message: 'Please provide your email or username and password.',
       });
     }
 
-    const loginKey = getLoginKey(req.ip, normalizedEmail);
+    const loginKey = getLoginKey(req.ip, normalizedIdentifier);
     const lockedSeconds = getLockout(loginKey);
     if (lockedSeconds) {
       return res.status(429).json({
@@ -412,7 +599,7 @@ export const requestLoginCode = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    const user = await findUserByIdentifier(normalizedIdentifier).select('+password');
     if (!user) {
       const failedAttempts = recordFailedLogin(loginKey);
       if (failedAttempts) {
@@ -424,7 +611,7 @@ export const requestLoginCode = async (req, res) => {
       }
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: 'Invalid credentials',
       });
     }
 
@@ -440,7 +627,7 @@ export const requestLoginCode = async (req, res) => {
       }
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: 'Invalid credentials',
       });
     }
 
@@ -481,7 +668,7 @@ export const requestLoginCode = async (req, res) => {
     }
 
     const code = generateVerificationCode();
-    const emailResult = await sendLoginCodeEmail(normalizedEmail, code);
+    const emailResult = await sendLoginCodeEmail(user.email, code);
     user.loginCode = code;
     user.loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
@@ -489,9 +676,10 @@ export const requestLoginCode = async (req, res) => {
     return res.status(200).json({
       success: true,
       requiresCode: true,
+      destinationEmail: user.email,
       message: emailResult.consoleOnly
         ? `Console-only delivery is active. Enter the code shown in the backend console.`
-        : `A 6-digit verification code was sent to ${normalizedEmail}. Enter it to continue signing in.`,
+        : `A 6-digit verification code was sent to ${user.email}. Enter it to continue signing in.`,
     });
   } catch (error) {
     console.error('[Auth Error - Request Login Code]:', error);
@@ -507,17 +695,17 @@ export const requestLoginCode = async (req, res) => {
 // @access  Public
 export const verifyLoginCode = async (req, res) => {
   try {
-    const { email, password, code, rememberMe = false, deviceToken } = req.body;
-    const normalizedEmail = String(email || '').toLowerCase().trim();
+    const { identifier, email, password, code, rememberMe = false, deviceToken } = req.body;
+    const normalizedIdentifier = normalizeIdentifier(identifier || email);
 
-    if (!normalizedEmail || !password || !code) {
+    if (!normalizedIdentifier || !password || !code) {
       return res.status(400).json({
         success: false,
-        message: 'Email, password, and verification code are required',
+        message: 'Email or username, password, and verification code are required.',
       });
     }
 
-    const loginKey = getLoginKey(req.ip, normalizedEmail);
+    const loginKey = getLoginKey(req.ip, normalizedIdentifier);
     const lockedSeconds = getLockout(loginKey);
     if (lockedSeconds) {
       return res.status(429).json({
@@ -527,7 +715,7 @@ export const verifyLoginCode = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    const user = await findUserByIdentifier(normalizedIdentifier).select('+password');
     if (!user) {
       const failedAttempts = recordFailedLogin(loginKey);
       if (failedAttempts) {
@@ -539,7 +727,7 @@ export const verifyLoginCode = async (req, res) => {
       }
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: 'Invalid credentials',
       });
     }
 
@@ -555,7 +743,7 @@ export const verifyLoginCode = async (req, res) => {
       }
       return res.status(401).json({
         success: false,
-        message: 'Invalid email or password',
+        message: 'Invalid credentials',
       });
     }
 
@@ -635,21 +823,193 @@ export const getMe = async (req, res) => {
   }
 };
 
+export const getProfileCustomization = async (req, res) => {
+  try {
+    const payload = serializeProfileCustomization(req.user);
+    return res.status(200).json({
+      success: true,
+      data: payload,
+    });
+  } catch (error) {
+    console.error('[Auth Error - GetProfileCustomization]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve profile customization settings',
+    });
+  }
+};
+
+export const updateProfileCustomization = async (req, res) => {
+  try {
+    const { profileInfo, customization, privacySettings } = req.body || {};
+
+    if (profileInfo) {
+      const profileData = normalizeProfileInfo(profileInfo);
+      req.user.profileInfo = {
+        ...normalizeProfileInfo(req.user.profileInfo || {}),
+        ...profileData,
+        desiredSalary: {
+          min: Number(profileData.desiredSalary?.min) || 0,
+          max: Number(profileData.desiredSalary?.max) || 0,
+          currency: profileData.desiredSalary?.currency || 'USD',
+        },
+      };
+    }
+
+    if (customization) {
+      const normalizedCustomization = normalizeCustomization(customization);
+      req.user.customization = {
+        ...normalizeCustomization(req.user.customization || {}),
+        ...normalizedCustomization,
+      };
+    }
+
+    if (privacySettings) {
+      req.user.privacySettings = {
+        ...normalizePrivacySettings(req.user.privacySettings || {}),
+        ...normalizePrivacySettings(privacySettings),
+      };
+    }
+
+    await req.user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile customization updated',
+      data: serializeProfileCustomization(req.user),
+    });
+  } catch (error) {
+    console.error('[Auth Error - UpdateProfileCustomization]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update profile customization settings',
+    });
+  }
+};
+
 export const updateMyProfile = async (req, res) => {
   try {
-    const { name, phone = '', address = '' } = req.body;
+    const { name, phone, address, avatar, bio, education, occupation, employmentStatus, skills, experience, educationHistory, profileInfo } = req.body;
     const normalizedName = String(name ?? req.user.name).trim();
     if (normalizedName.length < 2 || normalizedName.length > 100 || !namePattern.test(normalizedName)) {
       return res.status(400).json({ success: false, message: 'Enter a valid full name' });
     }
     req.user.name = normalizedName;
-    req.user.phone = String(phone).trim().slice(0, 40);
-    req.user.address = String(address).trim().slice(0, 300);
+    if (phone !== undefined) req.user.phone = String(phone).trim().slice(0, 40);
+    if (address !== undefined) req.user.address = String(address).trim().slice(0, 300);
+    if (avatar !== undefined) {
+      if (avatar) {
+        const match = /^data:image\/(png|jpeg);base64,([a-z\d+/]+=*)$/i.exec(String(avatar));
+        if (!match || Buffer.from(match[2], 'base64').length > 3 * 1024 * 1024) throw profileInputError('Profile photo must be a PNG or JPG up to 3 MB.');
+        req.user.avatar = String(avatar);
+      } else req.user.avatar = '';
+    }
+    if (bio !== undefined) req.user.bio = sanitizeTextField(bio, { maxLength: 2000 });
+    if (education !== undefined) req.user.education = sanitizeTextField(education, { maxLength: 100 });
+    if (occupation !== undefined) req.user.occupation = sanitizeTextField(occupation, { maxLength: 120 });
+    if (employmentStatus !== undefined) req.user.employmentStatus = sanitizeTextField(employmentStatus, { maxLength: 80 });
+    if (skills !== undefined) {
+      if (!Array.isArray(skills) || skills.length > 50) throw profileInputError('Add no more than 50 skills.');
+      req.user.skills = [...new Set(skills.map((skill) => sanitizeTextField(skill, { maxLength: 80 })).filter(Boolean))];
+    }
+    if (experience !== undefined) {
+      if (!Array.isArray(experience) || experience.length > 20) throw profileInputError('Add no more than 20 experience entries.');
+      req.user.experience = experience.map((entry) => ({
+        _id: entry._id,
+        title: sanitizeTextField(entry.title, { maxLength: 120 }),
+        company: sanitizeTextField(entry.company, { maxLength: 120 }),
+        location: sanitizeTextField(entry.location, { maxLength: 120 }),
+        startDate: entry.startDate ? new Date(entry.startDate) : undefined,
+        endDate: entry.endDate ? new Date(entry.endDate) : undefined,
+        current: Boolean(entry.current),
+        description: sanitizeTextField(entry.description, { maxLength: 2000 }),
+      }));
+      if (req.user.experience.some((entry) => (entry.startDate && Number.isNaN(entry.startDate.getTime())) || (entry.endDate && Number.isNaN(entry.endDate.getTime())))) {
+        throw profileInputError('Experience dates must be valid.');
+      }
+    }
+    if (educationHistory !== undefined) {
+      if (!Array.isArray(educationHistory) || educationHistory.length > 20) throw profileInputError('Add no more than 20 education entries.');
+      req.user.educationHistory = educationHistory.map((entry) => ({
+        _id: entry._id,
+        school: sanitizeTextField(entry.school, { maxLength: 160 }),
+        degree: sanitizeTextField(entry.degree, { maxLength: 120 }),
+        fieldOfStudy: sanitizeTextField(entry.fieldOfStudy, { maxLength: 120 }),
+        startDate: entry.startDate ? new Date(entry.startDate) : undefined,
+        endDate: entry.endDate ? new Date(entry.endDate) : undefined,
+        description: sanitizeTextField(entry.description, { maxLength: 1000 }),
+      }));
+      if (req.user.educationHistory.some((entry) => (entry.startDate && Number.isNaN(entry.startDate.getTime())) || (entry.endDate && Number.isNaN(entry.endDate.getTime())))) {
+        throw profileInputError('Education dates must be valid.');
+      }
+    }
+    if (profileInfo !== undefined) {
+      req.user.profileInfo = normalizeProfileInfo({ ...normalizeProfileInfo(req.user.profileInfo || {}), ...profileInfo });
+    }
     await req.user.save();
     return res.status(200).json({ success: true, message: 'Profile updated', user: req.user.toJSON() });
   } catch (error) {
+    if (error.statusCode || error.name === 'ValidationError') return res.status(error.statusCode || 400).json({ success: false, message: error.message });
     console.error('[Auth Error - Update Profile]:', error);
     return res.status(500).json({ success: false, message: 'Failed to update profile' });
+  }
+};
+
+export const getMyResume = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('+resume.documentData');
+    if (!user?.resume?.documentData) return res.status(404).json({ success: false, message: 'Resume not found' });
+    const detected = await fileTypeFromBuffer(user.resume.documentData);
+    if (!detected || detected.mime !== user.resume.mimeType) return res.status(404).json({ success: false, message: 'Resume not found' });
+    res.set('Content-Type', user.resume.mimeType);
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Content-Disposition', `${req.query.inline === 'true' ? 'inline' : 'attachment'}; filename="${String(user.resume.fileName || 'resume').replace(/[\r\n"\\]/g, '_')}"`);
+    return res.send(user.resume.documentData);
+  } catch (error) {
+    console.error('[Auth Error - Resume Download]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to retrieve resume' });
+  }
+};
+
+export const updateMyResume = async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: 'Choose a PDF, JPG, or PNG resume.' });
+  try {
+    const detected = await fileTypeFromBuffer(req.file.buffer);
+    if (!detected || !['application/pdf', 'image/jpeg', 'image/png'].includes(detected.mime) || detected.mime !== req.file.mimetype) {
+      return res.status(400).json({ success: false, message: 'Resume content must be a valid PDF, JPG, or PNG.' });
+    }
+    req.user.resume = {
+      fileName: String(req.file.originalname || 'resume').replace(/[\\/\r\n]/g, '_').slice(0, 255),
+      mimeType: detected.mime,
+      fileSize: req.file.size,
+      uploadedAt: new Date(),
+      documentData: req.file.buffer,
+    };
+    await req.user.save();
+    return res.status(200).json({
+      success: true,
+      message: 'Resume saved to your profile',
+      resume: {
+        fileName: req.user.resume.fileName,
+        mimeType: req.user.resume.mimeType,
+        fileSize: req.user.resume.fileSize,
+        uploadedAt: req.user.resume.uploadedAt,
+      },
+    });
+  } catch (error) {
+    console.error('[Auth Error - Resume Upload]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to save resume' });
+  }
+};
+
+export const deleteMyResume = async (req, res) => {
+  try {
+    req.user.resume = undefined;
+    await req.user.save();
+    return res.status(200).json({ success: true, message: 'Resume removed from your profile' });
+  } catch (error) {
+    console.error('[Auth Error - Resume Delete]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to remove resume' });
   }
 };
 
@@ -658,26 +1018,25 @@ export const updateMyProfile = async (req, res) => {
 // @access  Public
 export const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
+    const identifier = normalizeIdentifier(req.body.identifier || req.body.email);
+    if (!identifier) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide an email address',
+        message: 'Please provide your email address or username.',
       });
     }
 
-    const normalizedEmail = String(email).toLowerCase().trim();
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await findUserByIdentifier(identifier);
 
     if (!user) {
       return res.status(200).json({
         success: true,
-        message: 'If the email exists in our records, a reset code has been sent.',
+        message: 'If the account exists, a password reset code has been sent to its registered email.',
       });
     }
 
     const resetCode = String(crypto.randomInt(100000, 1000000));
-    const delivery = await sendPasswordResetCodeEmail(normalizedEmail, resetCode);
+    const delivery = await sendPasswordResetCodeEmail(user.email, resetCode);
 
     user.resetCode = resetCode;
     user.resetCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -685,8 +1044,8 @@ export const forgotPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `A 6-digit verification code has been sent to ${normalizedEmail}.`,
-      ...(delivery.consoleOnly && process.env.NODE_ENV !== 'production' ? { code: resetCode } : {}),
+      message: 'If the account exists, a password reset code has been sent to its registered email.',
+      deliveryMode: delivery.consoleOnly ? 'console' : 'email',
     });
   } catch (error) {
     console.error('[Auth Error - Forgot Password]:', error);
@@ -702,16 +1061,17 @@ export const forgotPassword = async (req, res) => {
 // @access  Public
 export const verifyResetCode = async (req, res) => {
   try {
-    const { email, code } = req.body;
+    const identifier = normalizeIdentifier(req.body.identifier || req.body.email);
+    const { code } = req.body;
 
-    if (!email || !code) {
+    if (!identifier || !code) {
       return res.status(400).json({
         success: false,
-        message: 'Email and verification code are required',
+        message: 'Email or username and verification code are required.',
       });
     }
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    const user = await findUserByIdentifier(identifier);
     if (!user || !user.resetCode) {
       return res.status(400).json({
         success: false,
@@ -755,20 +1115,18 @@ export const verifyResetCode = async (req, res) => {
 // @access  Public
 export const resetPassword = async (req, res) => {
   try {
-    const { email, code, newPassword } = req.body;
+    const identifier = normalizeIdentifier(req.body.identifier || req.body.email);
+    const { code, newPassword } = req.body;
 
-    if (!email || !code || !newPassword) {
+    if (!identifier || !code || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Email, verification code, and new password are required',
+        message: 'Email or username, verification code, and new password are required.',
       });
     }
 
-    if (String(newPassword).length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: 'New password must be at least 6 characters long',
-      });
+    if (!passwordMeetsRules(String(newPassword))) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters and include uppercase, lowercase, and numeric characters.' });
     }
 
     if (Buffer.byteLength(String(newPassword), 'utf8') > MAX_PASSWORD_LENGTH) {
@@ -778,7 +1136,7 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    const user = await findUserByIdentifier(identifier);
     if (!user || !user.resetCode) {
       return res.status(400).json({
         success: false,
@@ -836,10 +1194,10 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    if (!passwordMeetsRules(String(newPassword))) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message: 'New password must be at least 8 characters and include uppercase, lowercase, and numeric characters.',
       });
     }
 

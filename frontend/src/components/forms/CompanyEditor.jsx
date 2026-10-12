@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import AddressMap from '../common/AddressMap';
 
-const newRequirement = (type = 'document') => ({
+const newRequirement = (type = 'file') => ({
   type,
-  title: type === 'document' ? '' : type === 'interview' ? 'Interview details' : type === 'dressCode' ? 'Dress code' : 'Additional notes',
+  title: type === 'file' || type === 'document' ? '' : type === 'interview' ? 'Interview details' : type === 'dressCode' ? 'Dress code' : type === 'note' ? 'Additional notes' : '',
   description: '',
-  isRequired: type === 'document',
+  isRequired: type === 'document' || type === 'file',
+  options: [],
   allowedFileTypes: ['application/pdf', 'image/jpeg', 'image/png'],
   maxSizeMB: 5,
   interviewDate: '',
@@ -14,19 +16,30 @@ const newRequirement = (type = 'document') => ({
 });
 
 const requirementTypes = [
+  ['text', 'Text response'],
+  ['date', 'Date'],
+  ['select', 'Dropdown'],
+  ['file', 'File upload'],
   ['document', 'Document'],
   ['interview', 'Interview details'],
   ['dressCode', 'Dress code'],
   ['note', 'Additional note'],
 ];
 
-const CompanyEditor = ({ initialCompany, onSave, onCancel, saving = false }) => {
+const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, onCancel, saving = false }) => {
   const [company, setCompany] = useState({
+    organizationType: initialCompany?.organizationType || organizationType,
     name: initialCompany?.name || '',
     category: initialCompany?.category || '',
     description: initialCompany?.description || '',
     logo: initialCompany?.logo || '',
     location: initialCompany?.location || '',
+    formattedAddress: initialCompany?.formattedAddress || '',
+    latitude: initialCompany?.latitude ?? '',
+    longitude: initialCompany?.longitude ?? '',
+    locations: initialCompany?.locations || [],
+    size: initialCompany?.size || '',
+    website: initialCompany?.website || '',
     requirements: (initialCompany?.requirements || []).map((requirement) => ({
       ...requirement,
       interviewDate: requirement.interviewDate ? new Date(requirement.interviewDate).toISOString().slice(0, 16) : '',
@@ -34,6 +47,29 @@ const CompanyEditor = ({ initialCompany, onSave, onCancel, saving = false }) => 
     })),
   });
   const [error, setError] = useState('');
+  const [logoLoading, setLogoLoading] = useState(false);
+
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 3 * 1024 * 1024) {
+      setError('Choose a PNG or JPG logo up to 3 MB.');
+      event.target.value = '';
+      return;
+    }
+    setError('');
+    setLogoLoading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCompany((current) => ({ ...current, logo: String(reader.result || '') }));
+      setLogoLoading(false);
+    };
+    reader.onerror = () => {
+      setError('Unable to read this logo file.');
+      setLogoLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const updateRequirement = (index, updates) => {
     setCompany((current) => ({
@@ -72,6 +108,11 @@ const CompanyEditor = ({ initialCompany, onSave, onCancel, saving = false }) => 
     try {
       await onSave({
         ...company,
+        latitude: company.latitude === '' ? undefined : Number(company.latitude),
+        longitude: company.longitude === '' ? undefined : Number(company.longitude),
+        locations: typeof company.locations === 'string'
+          ? company.locations.split(/[\n,]/).map((location) => location.trim()).filter(Boolean)
+          : company.locations,
         requirements: company.requirements.map((requirement, order) => ({
           ...requirement,
           order,
@@ -87,18 +128,34 @@ const CompanyEditor = ({ initialCompany, onSave, onCancel, saving = false }) => 
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && <div role="alert" className="border-l-4 border-rose-500 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}
       <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-2">
-        <label className="text-sm font-semibold text-slate-700">Business name *
+        <label className="text-sm font-semibold text-slate-700">{company.organizationType === 'business' ? 'Business name' : 'Company name'} *
           <input required maxLength={120} value={company.name} onChange={(event) => setCompany({ ...company, name: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </label>
-        <label className="text-sm font-semibold text-slate-700">Category *
+        <label className="text-sm font-semibold text-slate-700">{company.organizationType === 'business' ? 'Industry' : 'Category'} *
           <input required maxLength={100} value={company.category} onChange={(event) => setCompany({ ...company, category: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </label>
         <label className="text-sm font-semibold text-slate-700">Location
           <input maxLength={200} value={company.location} onChange={(event) => setCompany({ ...company, location: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </label>
-        <label className="text-sm font-semibold text-slate-700">Logo URL
-          <input type="url" maxLength={2000} value={company.logo} onChange={(event) => setCompany({ ...company, logo: event.target.value })} placeholder="https://example.com/logo.png" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <label className="text-sm font-semibold text-slate-700">Company size
+          <input maxLength={40} value={company.size} onChange={(event) => setCompany({ ...company, size: event.target.value })} placeholder="e.g. 50–200 employees" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </label>
+        <div className="sm:col-span-2"><h2 className="mb-2 text-sm font-semibold text-slate-700">Map location</h2><AddressMap location={company.location} formattedAddress={company.formattedAddress} latitude={company.latitude} longitude={company.longitude} onChange={(coordinates) => setCompany((current) => ({ ...current, ...coordinates }))} /></div>
+        <label className="text-sm font-semibold text-slate-700">Website
+          <input type="url" maxLength={200} value={company.website} onChange={(event) => setCompany({ ...company, website: event.target.value })} placeholder="https://example.com" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Locations
+          <textarea rows={2} maxLength={2400} value={company.locations.join('\n')} onChange={(event) => setCompany({ ...company, locations: event.target.value })} placeholder="One location per line" className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </label>
+        <div className="sm:col-span-2">
+          <label className="text-sm font-semibold text-slate-700">Logo URL
+            <input type="url" maxLength={2000} value={company.logo.startsWith('data:') ? '' : company.logo} onChange={(event) => setCompany({ ...company, logo: event.target.value })} placeholder="https://example.com/logo.png" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </label>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{logoLoading ? 'Reading logo…' : 'Upload PNG/JPG'}<input type="file" accept="image/png,image/jpeg" disabled={logoLoading} onChange={handleLogoUpload} className="sr-only" /></label>
+            {company.logo.startsWith('data:image/') && <><img src={company.logo} alt="Company logo preview" className="h-10 w-10 rounded-md border border-slate-200 object-contain" /><button type="button" onClick={() => setCompany({ ...company, logo: '' })} className="text-xs font-semibold text-rose-700 hover:underline">Remove uploaded logo</button></>}
+          </div>
+        </div>
         <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Description
           <textarea rows={4} maxLength={3000} value={company.description} onChange={(event) => setCompany({ ...company, description: event.target.value })} className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </label>
@@ -143,7 +200,7 @@ const CompanyEditor = ({ initialCompany, onSave, onCancel, saving = false }) => 
                 <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Instructions
                   <textarea rows={2} maxLength={2000} value={requirement.description} onChange={(event) => updateRequirement(index, { description: event.target.value })} className="mt-1 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
                 </label>
-                {requirement.type === 'document' && <>
+                {['file', 'document'].includes(requirement.type) && <>
                   <fieldset className="sm:col-span-2">
                     <legend className="text-xs font-semibold text-slate-700">Allowed file types</legend>
                     <div className="mt-2 flex flex-wrap gap-4">
@@ -168,9 +225,12 @@ const CompanyEditor = ({ initialCompany, onSave, onCancel, saving = false }) => 
                     </div>
                   </fieldset>
                   <label className="text-xs font-semibold text-slate-700">Maximum size (MB)
-                    <input type="number" min="0.1" max="10" step="0.1" value={requirement.maxSizeMB} onChange={(event) => updateRequirement(index, { maxSizeMB: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
+                    <input type="number" min="0.1" max="5" step="0.1" value={requirement.maxSizeMB} onChange={(event) => updateRequirement(index, { maxSizeMB: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
                   </label>
                 </>}
+                {requirement.type === 'select' && <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Options (one per line)
+                  <textarea rows={3} value={(requirement.options || []).join('\n')} onChange={(event) => updateRequirement(index, { options: event.target.value.split('\n') })} placeholder={'First option\nSecond option'} className="mt-1 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
+                </label>}
                 {requirement.type === 'interview' && <>
                   <label className="text-xs font-semibold text-slate-700">Interview date/time
                     <input type="datetime-local" value={requirement.interviewDate} onChange={(event) => updateRequirement(index, { interviewDate: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />

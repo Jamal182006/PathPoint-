@@ -9,11 +9,13 @@ import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import applicationRoutes from './routes/applicationRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-import analyticsRoutes from './routes/analyticsRoutes.js';
 import providerRoutes from './routes/providerRoutes.js';
 import companyRoutes from './routes/companyRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import workLogRoutes from './routes/workLogRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import pinRoutes from './routes/pinRoutes.js';
 
 // Load the backend environment regardless of the process working directory.
 dotenv.config({
@@ -68,11 +70,13 @@ if (process.env.NODE_ENV !== 'test') {
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
-app.use('/api/analytics', analyticsRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/work-logs', workLogRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/v1', profileRoutes);
+app.use('/api/pins', pinRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Root greeting / health check shortcut

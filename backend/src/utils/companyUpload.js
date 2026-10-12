@@ -27,10 +27,10 @@ const upload = multer({
     callback(null, true);
   },
   limits: {
-    fileSize: 10 * 1024 * 1024,
+    fileSize: 5 * 1024 * 1024,
     files: 20,
     fields: 5,
-    fieldSize: 2000,
+    fieldSize: 128 * 1024,
   },
 });
 
@@ -42,7 +42,7 @@ export const companyApplicationUpload = (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: error.code === 'LIMIT_FILE_SIZE'
-          ? 'Each document must be 10 MB or smaller'
+          ? 'Each document must be 5 MB or smaller'
           : error.message || 'Invalid document upload',
       });
     }

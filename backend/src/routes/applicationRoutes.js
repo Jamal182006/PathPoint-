@@ -9,10 +9,17 @@ import {
   uploadResume,
 } from '../controllers/applicationController.js';
 import { applicantOnly, protect } from '../middleware/auth.js';
+import { deleteUserApplication, listUserApplications, updateUserApplication } from '../controllers/userApplicationController.js';
+import { importApplications } from '../controllers/applicationImportController.js';
 
 const router = express.Router();
 
 router.use(protect, applicantOnly); // Personal job-tracker data is applicant-only.
+
+router.get('/submissions', listUserApplications);
+router.patch('/submissions/:kind/:id', updateUserApplication);
+router.delete('/submissions/:kind/:id', deleteUserApplication);
+router.post('/import', importApplications);
 
 router.route('/')
   .get(getApplications)

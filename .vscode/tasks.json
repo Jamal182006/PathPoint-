@@ -861,6 +861,17 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Temporary PH location test",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\node.exe",
+			"args": [
+				"--test",
+				"backend/src/utils/phLocationValidation.test.js"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

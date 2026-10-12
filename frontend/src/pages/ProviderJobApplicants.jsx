@@ -4,7 +4,7 @@ import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
 import { ArrowLeft, Download, Eye, FileText, Loader2, Search, X } from 'lucide-react';
 
-const statuses = ['submitted', 'under_review', 'interview_scheduled', 'accepted', 'rejected'];
+const statuses = ['submitted', 'under_review', 'shortlisted', 'interview_scheduled', 'accepted', 'hired', 'rejected'];
 const ProviderJobApplicants = () => {
   const { jobId } = useParams();
   const { toast } = useToast();
@@ -56,7 +56,9 @@ const ProviderJobApplicants = () => {
 
   const retrieveFile = async (application, response, download = false) => {
     try {
-      const blob = await apiAdapter.getJobApplicationFile(application.id, response.id, !download);
+      const blob = response.kind === 'resume'
+        ? await apiAdapter.getJobApplicationResume(application.id, !download)
+        : await apiAdapter.getJobApplicationFile(application.id, response.id, !download);
       const url = URL.createObjectURL(blob);
       if (download) {
         const anchor = document.createElement('a'); anchor.href = url; anchor.download = response.fileName; anchor.click(); URL.revokeObjectURL(url);

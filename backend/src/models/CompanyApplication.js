@@ -13,19 +13,33 @@ const submittedFileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const statusHistorySchema = new mongoose.Schema(
+  {
+    status: { type: String, enum: ['submitted', 'under_review', 'changes_requested', 'interview_scheduled', 'accepted', 'approved', 'rejected', 'withdrawn'], required: true },
+    changedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const companyApplicationSchema = new mongoose.Schema(
   {
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
     applicantId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status: {
       type: String,
-      enum: ['submitted', 'under_review', 'interview_scheduled', 'accepted', 'rejected'],
+      enum: ['submitted', 'under_review', 'changes_requested', 'interview_scheduled', 'accepted', 'approved', 'rejected', 'withdrawn'],
       default: 'submitted',
       index: true,
     },
+    formData: { type: mongoose.Schema.Types.Mixed, default: {} },
     submittedFiles: { type: [submittedFileSchema], default: [] },
     providerNote: { type: String, trim: true, maxlength: 2000, default: '' },
+    applicantNote: { type: String, trim: true, maxlength: 2000, default: '' },
     interviewDate: { type: Date },
+    rejectedAt: { type: Date },
+    withdrawnAt: { type: Date },
+    archivedAt: { type: Date },
+    statusHistory: { type: [statusHistorySchema], default: [] },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
@@ -34,6 +48,7 @@ const companyApplicationSchema = new mongoose.Schema(
 
 companyApplicationSchema.index({ companyId: 1, applicantId: 1 }, { unique: true });
 companyApplicationSchema.index({ applicantId: 1, updatedAt: -1 });
+companyApplicationSchema.index({ applicantId: 1, status: 1, updatedAt: -1 });
 companyApplicationSchema.index({ companyId: 1, status: 1, createdAt: -1 });
 
 const CompanyApplication = mongoose.model('CompanyApplication', companyApplicationSchema);

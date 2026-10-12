@@ -17,12 +17,13 @@ import {
 } from 'lucide-react';
 
 export const Login = () => {
-  const { login, requestLoginCode, verifyLoginCode, backendOnline } = useAuth();
+  const { login, requestLoginCode, verifyLoginCode, backendOnline, settings } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
+  const [verificationDestination, setVerificationDestination] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -65,26 +66,15 @@ export const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const normalizedEmail = email.trim().toLowerCase();
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const normalizedIdentifier = identifier.trim().toLowerCase();
 
     if (lockoutSeconds > 0) {
       setErrorMessage(`Login is temporarily locked. Try again in ${lockoutSeconds} seconds.`);
       return;
     }
 
-    if (!normalizedEmail || !password) {
-      setErrorMessage('Please enter both email and password.');
-      return;
-    }
-
-    if (!emailPattern.test(normalizedEmail)) {
-      setErrorMessage('Please enter a valid email address.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.');
+    if (!normalizedIdentifier || !password) {
+      setErrorMessage('Please enter your email or username and password.');
       return;
     }
 
@@ -93,14 +83,14 @@ export const Login = () => {
 
     try {
       if (loginCodeRequired) {
-        const result = await verifyLoginCode(normalizedEmail, password, verificationCode.trim(), rememberMe);
+        const result = await verifyLoginCode(normalizedIdentifier, password, verificationCode.trim(), rememberMe);
         toast(result.source === 'backend' ? 'Connected to live backend! Signed in.' : 'Signed in successfully!', 'success');
         const from = location.state?.from?.pathname || getRoleHome(result.user?.role);
         navigate(from, { replace: true });
         return;
       }
 
-      const result = await requestLoginCode(normalizedEmail, password, rememberMe);
+      const result = await requestLoginCode(normalizedIdentifier, password, rememberMe);
       if (result.token) {
         toast(result.user?.role === 'admin' ? 'Administrator signed in successfully.' : 'Signed in successfully.', 'success');
         const defaultPath = result.user?.role === 'admin'
@@ -115,12 +105,13 @@ export const Login = () => {
 
       if (result.requiresCode) {
         setLoginCodeRequired(true);
+        setVerificationDestination(result.destinationEmail || '');
         setVerificationCode('');
         toast('A 6-digit verification code was sent to your email.', 'success');
         return;
       }
 
-      const loginResult = await login(normalizedEmail, password, rememberMe);
+      const loginResult = await login(normalizedIdentifier, password, rememberMe);
       toast(
         loginResult.source === 'backend'
           ? 'Connected to live backend! Signed in.'
@@ -134,7 +125,7 @@ export const Login = () => {
         setLockoutSeconds(err.lockoutSeconds);
       }
       setRegistrationNotice(false);
-      const msg = err.message || 'Invalid email or password.';
+      const msg = err.message || 'Invalid credentials';
       setErrorMessage(msg);
       toast(msg, 'error');
     } finally {
@@ -152,7 +143,7 @@ export const Login = () => {
     setResendLoading(true);
     setErrorMessage('');
     try {
-      await requestLoginCode(email.trim().toLowerCase(), password, rememberMe);
+      await requestLoginCode(identifier.trim().toLowerCase(), password, rememberMe);
       setVerificationCode('');
       toast('A new verification code was sent to your email.', 'success');
     } catch (err) {
@@ -166,23 +157,39 @@ export const Login = () => {
   };
 
   return (
-    <div className="auth-page min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      {/* Brand Header */}
-      <div className="auth-brand sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="auth-brand-mark inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-brand-500 text-white shadow-lg shadow-indigo-200 mb-3">
-          <Compass className="w-8 h-8" />
+    <div className={`auth-page min-h-screen flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(32rem,1.06fr)] ${settings?.theme === 'dark' ? 'auth-dark' : ''}`}>
+      <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-slate-950 px-10 py-10 text-white lg:flex xl:px-16 xl:py-12">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
+        <div className="relative">
+          <Link to="/" className="inline-flex items-center gap-3 text-white">
+            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-lg shadow-indigo-950/40"><Compass className="h-6 w-6" /></span>
+            <span className="text-lg font-bold">PathPoint</span>
+          </Link>
         </div>
-        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          PathPoint
-        </h2>
-        <p className="mt-1.5 text-sm text-slate-600">
-          Personal Job Application Progress & Interview Tracker
-        </p>
+        <div className="relative max-w-xl py-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">One workspace. Every next step.</p>
+          <h1 className="mt-5 text-4xl font-bold leading-tight text-white xl:text-5xl">Bring your career journey into focus.</h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">Applicants, providers, and career teams move through one shared platform, with every application and review connected.</p>
+          <div className="mt-10 grid gap-0 border-y border-white/15 sm:grid-cols-3">
+            <div className="py-4 sm:pr-4"><p className="text-sm font-semibold text-white">Applicants</p><p className="mt-1 text-xs leading-5 text-slate-400">Discover listings and follow every decision.</p></div>
+            <div className="border-t border-white/15 py-4 sm:border-l sm:border-t-0 sm:px-4"><p className="text-sm font-semibold text-white">Providers</p><p className="mt-1 text-xs leading-5 text-slate-400">Publish companies and review candidates.</p></div>
+            <div className="border-t border-white/15 py-4 sm:border-l sm:border-t-0 sm:pl-4"><p className="text-sm font-semibold text-white">Career teams</p><p className="mt-1 text-xs leading-5 text-slate-400">Verify listings and monitor platform health.</p></div>
+          </div>
+        </div>
+        <div className="relative flex items-center justify-between border-t border-white/15 pt-5 text-xs text-slate-400">
+          <span>Built for the work behind every opportunity.</span>
+          <span className="inline-flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${backendOnline ? 'bg-emerald-400' : 'bg-amber-400'}`} />{backendOnline ? 'Services connected' : 'Service connection check'}</span>
+        </div>
+      </aside>
 
-      </div>
+      <main className="relative flex min-h-screen flex-1 flex-col bg-white/55">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5 sm:px-8 lg:justify-end lg:px-12">
+          <Link to="/" className="inline-flex items-center gap-2.5 text-slate-900 lg:hidden"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white"><Compass className="h-5 w-5" /></span><span className="font-bold">PathPoint</span></Link>
+          <span className="hidden text-xs text-slate-500 lg:block">Secure access to your workspace</span>
+        </div>
 
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="auth-card bg-white py-8 px-6 shadow-xl shadow-slate-200/60 rounded-3xl border border-slate-200 sm:px-10">
+        <section className="auth-card mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-8 sm:px-8 lg:px-16 xl:px-24">
+          <div className="mx-auto w-full max-w-md">
           {sessionExpired && (
             <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
@@ -203,35 +210,30 @@ export const Login = () => {
             </div>
           )}
 
-          <div className="mb-6">
+          <div className="mb-7">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">
-              Your career workspace
+              Secure sign in
             </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
               Welcome back
-            </h1>
-            <p className="mt-1.5 text-sm leading-6 text-slate-500">
-              Pick up where you left off and keep your next opportunity moving.
-            </p>
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Sign in to continue to your role-based PathPoint workspace.</p>
           </div>
 
-          <form className="space-y-4" onSubmit={handleSubmit} autoComplete="off">
-            {/* Email */}
+          <form className="space-y-4" onSubmit={handleSubmit} autoComplete="on">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Email Address
-              </label>
+              <label htmlFor="login-identifier" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">Email or Username</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
                 <input
-                  id="login-email"
-                  type="email"
-                  name="email"
-                  autoComplete="off"
+                  id="login-identifier"
+                  type="text"
+                  name="username"
+                  autoComplete="username"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Email address or username"
                   className="auth-input w-full pl-9 pr-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                 />
               </div>
@@ -250,7 +252,7 @@ export const Login = () => {
                   id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
-                  autoComplete="off"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -260,7 +262,8 @@ export const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-3 rounded p-1 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -306,24 +309,22 @@ export const Login = () => {
             </div>
           </form>
 
-          {/* Link to Register */}
-          <div className="mt-6 text-center text-xs text-slate-600">
-            Don't have an account?{' '}
-            <Link
-              to="/register"
-              className="font-semibold text-indigo-600 hover:text-indigo-700 underline"
-            >
-              Create Account
-            </Link>
+          <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-200 pt-5 text-xs text-slate-500">
+            <button type="button" onClick={() => setBackendModalOpen(true)} className="inline-flex items-center gap-2 rounded-md py-1 font-medium hover:text-slate-900">
+              <span className={`h-2 w-2 rounded-full ${backendOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              {backendOnline ? 'Services connected' : 'Connection status'}
+            </button>
+            <p>Don&apos;t have an account? <Link to="/register" className="font-semibold text-indigo-700 hover:text-indigo-900">Create one</Link></p>
           </div>
-        </div>
-      </div>
+          </div>
+        </section>
+      </main>
 
       {/* Modals */}
       <ForgotPasswordModal
         isOpen={forgotPasswordOpen}
         onClose={() => setForgotPasswordOpen(false)}
-        defaultEmail={email}
+        defaultEmail={identifier}
       />
       <BackendStatusModal
         isOpen={backendModalOpen}
@@ -331,7 +332,7 @@ export const Login = () => {
       />
       <LoginVerificationModal
         isOpen={loginCodeRequired}
-        email={email.trim().toLowerCase()}
+        email={verificationDestination || identifier.trim().toLowerCase()}
         code={verificationCode}
         loading={loading}
         resendLoading={resendLoading}

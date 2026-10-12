@@ -1,6 +1,6 @@
 # PathPoint — Frontend & Full Backend-Ready Architecture
 
-**PathPoint** is a React and Express job platform backed by MongoDB, built with **React 18 (Vite), Tailwind CSS, Recharts, Axios, and @hello-pangea/dnd**.
+**PathPoint** is a React and Express job platform backed by MongoDB, built with **React 18 (Vite), Tailwind CSS, Axios, and @hello-pangea/dnd**.
 
 It has role-based authentication, an applicant pipeline, provider company and job tools, admin review queues, and a REST API backed by MongoDB.
 
@@ -23,10 +23,13 @@ It has role-based authentication, an applicant pipeline, provider company and jo
 - **Application Detail & Audit Trail (`/applications/:id`):**
   - Timestamped `statusHistory` audit trail.
   - Multi-round interview scheduler with upcoming alerts.
+- **My Applications (`/my-applications`):**
+  - Searchable, sortable, paginated company and job submissions with rejected history, notes, archive, and withdrawal actions.
+  - Track and untrack applications, companies, and jobs from their detail and list views.
 - **Interview Scheduler Calendar (`/interviews`):**
   - Centralized schedule with Next 7 Days urgency highlight.
-- **Personal Analytics (`/analytics`):**
-  - Interview conversion rate, offer rate, response velocity, and pipeline funnel charts.
+- **Work Log (`/work-log`):**
+  - Multi-step modal for recording, editing, and deleting work logs, backed by MongoDB.
 
 ---
 
@@ -73,8 +76,8 @@ The frontend is 100% prepared for instant backend hookup:
 npm install
 ```
 
-### 2. Configure Environment (Optional)
-Copy `.env.example` to `.env`:
+### 2. Configure Environment
+Use the live `frontend/.env` file with:
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
@@ -87,9 +90,9 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## Local test accounts
+## Database-backed accounts
 
-Configure unique account credentials in `backend/.env` and run `npm --prefix backend run seed`. The seed is idempotent and does not clear existing database records.
+Create accounts through the registration flow. The frontend sends requests to the backend configured in `frontend/.env`, and the backend stores account data in the MongoDB database configured in `backend/.env`. Do not run the optional seed script against a live database.
 
 ---
 
@@ -98,7 +101,6 @@ Configure unique account credentials in `backend/.env` and run `npm --prefix bac
 - **Framework:** React 18 with Vite
 - **Styling:** Tailwind CSS (Vanilla CSS + utility design system)
 - **Icons:** `lucide-react`
-- **Charts:** `recharts`
 - **Drag-and-Drop:** `@hello-pangea/dnd`
 - **Routing:** `react-router-dom` v6
 - **HTTP Client:** `axios`

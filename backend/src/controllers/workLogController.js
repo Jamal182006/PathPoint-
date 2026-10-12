@@ -3,6 +3,7 @@ import WorkLog from '../models/WorkLog.js';
 const validId = (id) => /^[a-f\d]{24}$/i.test(String(id));
 const validStatuses = new Set(['ongoing', 'completed', 'cancelled']);
 const validPaymentStatuses = new Set(['paid', 'unpaid', 'pending']);
+const validCategories = new Set(['general', 'cleaning', 'delivery', 'repair', 'care', 'other']);
 const badRequest = (message) => Object.assign(new Error(message), { statusCode: 400 });
 
 const normalizeWorkLog = (body = {}) => {
@@ -16,13 +17,17 @@ const normalizeWorkLog = (body = {}) => {
   const days = Number(body.days || 0);
   const payAmount = Number(body.payAmount || 0);
   if (![hours, days, payAmount].every(Number.isFinite) || hours < 0 || days < 0 || payAmount < 0) throw badRequest('Hours, days, and pay must be non-negative numbers');
+  if (hours === 0 && days === 0) throw badRequest('Enter hours or days worked');
   const status = body.status || 'ongoing';
   const paymentStatus = body.paymentStatus || 'pending';
+  const category = body.category || 'general';
   if (!validStatuses.has(status)) throw badRequest('Choose a valid work status');
   if (!validPaymentStatuses.has(paymentStatus)) throw badRequest('Choose a valid payment status');
+  if (!validCategories.has(category)) throw badRequest('Choose a valid work category');
 
   return {
     title: title.slice(0, 160),
+    category,
     clientName: String(body.clientName || '').trim().slice(0, 160),
     location: String(body.location || '').trim().slice(0, 200),
     startedAt,

@@ -8,8 +8,9 @@ router.get('/health', (req, res) => {
   const dbStatus = getDBStatus();
   const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
 
-  res.status(200).json({
-    status: 'healthy',
+  const isHealthy = dbStatus === 'connected';
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'healthy' : 'unavailable',
     version: '1.0.0',
     uptimeSeconds,
     database: dbStatus,

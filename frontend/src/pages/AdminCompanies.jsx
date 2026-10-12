@@ -13,8 +13,8 @@ const AdminCompanies = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState('');
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const response = await adminApi.getCompanies({ status: status === 'all' ? undefined : status, search, page, limit: 20 });
       setCompanies(response.data?.data || []);
@@ -26,7 +26,16 @@ const AdminCompanies = () => {
     }
   };
 
-  useEffect(() => { load(); }, [status, search, page]);
+  useEffect(() => {
+    load();
+    const intervalId = window.setInterval(() => load(true), 10000);
+    const refreshOnFocus = () => { if (document.visibilityState === 'visible') load(true); };
+    document.addEventListener('visibilitychange', refreshOnFocus);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
+  }, [status, search, page]);
 
   const review = async (company, nextStatus) => {
     const rejectionReason = nextStatus === 'rejected'

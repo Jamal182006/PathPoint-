@@ -1,7 +1,7 @@
 import express from 'express';
 import { applicantOnly, approvedProviderOnly, protect } from '../middleware/auth.js';
 import { archiveProviderJob, createJob, getProviderJob, getProviderJobs, getPublicJob, getPublicJobs, updateProviderJob, updateProviderJobStatus } from '../controllers/jobController.js';
-import { downloadJobApplicationResponse, getApplicantJobApplication, getApplicantJobApplications, getProviderJobApplications, submitJobApplication, updateProviderJobApplication } from '../controllers/jobApplicationController.js';
+import { downloadJobApplicationResponse, downloadJobApplicationResume, getApplicantJobApplication, getApplicantJobApplicationDraft, getApplicantJobApplications, getProviderJobApplications, saveJobApplicationDraft, submitJobApplication, updateProviderJobApplication } from '../controllers/jobApplicationController.js';
 import { jobApplicationUpload } from '../utils/jobUpload.js';
 
 const router = express.Router();
@@ -10,6 +10,9 @@ router.get('/', getPublicJobs);
 router.get('/applications/mine', protect, getApplicantJobApplications);
 router.get('/applications/:applicationId', protect, getApplicantJobApplication);
 router.get('/applications/:applicationId/responses/:responseId/file', protect, downloadJobApplicationResponse);
+router.get('/applications/:applicationId/resume', protect, downloadJobApplicationResume);
+router.get('/:jobId/applications/draft', protect, applicantOnly, getApplicantJobApplicationDraft);
+router.put('/:jobId/applications/draft', protect, applicantOnly, jobApplicationUpload, saveJobApplicationDraft);
 router.post('/:jobId/applications', protect, applicantOnly, jobApplicationUpload, submitJobApplication);
 router.patch('/applications/:applicationId/status', protect, approvedProviderOnly, updateProviderJobApplication);
 router.get('/provider/listings', protect, approvedProviderOnly, getProviderJobs);

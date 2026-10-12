@@ -90,6 +90,8 @@ applicationSchema.set('toJSON', {
   },
 });
 
+applicationSchema.index({ userId: 1, status: 1, updatedAt: -1 });
+
 const Application = mongoose.model('Application', applicationSchema);
 
 export default Application;

@@ -14,7 +14,6 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState('email');
   const [resultMessage, setResultMessage] = useState('');
-  const [devCode, setDevCode] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -24,7 +23,6 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
       setConfirmPassword('');
       setPhase('email');
       setResultMessage('');
-      setDevCode('');
     }
   }, [isOpen, defaultEmail]);
 
@@ -38,25 +36,21 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
     setLoading(false);
     setPhase('email');
     setResultMessage('');
-    setDevCode('');
   };
 
   const handleSubmitEmail = async (e) => {
     e.preventDefault();
-    const normalizedEmail = email.trim();
-    if (!normalizedEmail) {
-      toast('Please enter your email address.', 'error');
+    const normalizedIdentifier = email.trim();
+    if (!normalizedIdentifier) {
+      toast('Please enter your email address or username.', 'error');
       return;
     }
 
     setLoading(true);
     try {
-      const res = await forgotPassword(normalizedEmail);
+      const res = await forgotPassword(normalizedIdentifier);
       setPhase('code');
       setResultMessage(res?.message || 'A verification code has been sent to your email.');
-      if (res?.code) {
-        setDevCode(res.code);
-      }
       toast('Verification code sent.', 'success');
     } catch (err) {
       toast(err.message || 'Unable to process request.', 'error');
@@ -88,8 +82,8 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
   const handleSubmitPassword = async (e) => {
     e.preventDefault();
 
-    if (!newPassword || newPassword.length < 6) {
-      toast('New password must be at least 6 characters long.', 'error');
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      toast('Use at least 8 characters with uppercase, lowercase, and a number.', 'error');
       return;
     }
 
@@ -136,23 +130,23 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Reset Your Password</h3>
                 <p className="text-xs text-slate-500">
-                  Enter your registered email to receive a verification code.
+                  Enter your email or username to receive a code at your registered email.
                 </p>
               </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                Account Email
+                Email or Username
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@example.com"
+                  placeholder="Email address or username"
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
@@ -197,12 +191,6 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
                 </p>
               </div>
             </div>
-
-            {devCode && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
-                Development code: <span className="font-bold tracking-widest">{devCode}</span>
-              </div>
-            )}
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">

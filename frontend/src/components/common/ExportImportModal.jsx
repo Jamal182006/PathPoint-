@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { exportService } from '../../services/exportService';
 import { useToast } from './Toast';
+import { apiAdapter } from '../../services/apiAdapter';
 import {
   FileSpreadsheet,
   FileCode,
@@ -23,6 +24,7 @@ export const ExportImportModal = ({
   const [importJsonText, setImportJsonText] = useState('');
   const [importError, setImportError] = useState('');
   const [replaceMode, setReplaceMode] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -58,41 +60,23 @@ export const ExportImportModal = ({
     reader.readAsText(file);
   };
 
-  const handleImportSubmit = () => {
+  const handleImportSubmit = async () => {
     if (!importJsonText.trim()) {
       setImportError('Please provide JSON text or select a JSON file.');
       return;
     }
 
+    setImporting(true);
     try {
       const validApps = exportService.parseImportJSON(importJsonText);
-      const storageKey = 'pathpoint_applications';
-      let current = [];
-      try {
-        current = JSON.parse(localStorage.getItem(storageKey)) || [];
-      } catch {
-        current = [];
-      }
-
-      let updated = [];
-      if (replaceMode) {
-        updated = validApps;
-      } else {
-        // Append unique
-        const existingIds = new Set(current.map((a) => a._id));
-        const newApps = validApps.map((a) => ({
-          ...a,
-          _id: existingIds.has(a._id) ? `app-${Date.now()}-${Math.random()}` : a._id,
-        }));
-        updated = [...current, ...newApps];
-      }
-
-      localStorage.setItem(storageKey, JSON.stringify(updated));
-      toast(`Successfully imported ${validApps.length} applications!`, 'success');
+      const result = await apiAdapter.importApplications(validApps, replaceMode);
+      toast(`Imported ${result.imported} applications${result.skipped ? `; skipped ${result.skipped} duplicates` : ''}.`, 'success');
       if (onDataImported) onDataImported();
       onClose();
     } catch (err) {
       setImportError(err.message);
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -237,9 +221,10 @@ export const ExportImportModal = ({
             </button>
             <button
               onClick={handleImportSubmit}
-              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition"
+              disabled={importing}
+              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-50"
             >
-              Complete Import
+              {importing ? 'Importing…' : 'Complete Import'}
             </button>
           </div>
         </div>

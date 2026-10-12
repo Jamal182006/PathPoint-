@@ -78,13 +78,63 @@
   box-shadow: 0 12px 22px rgba(79, 70, 229, 0.22);
 }
 
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: page-enter 180ms ease-out both;
+}
+
+.auth-dark {
+  background: #020817;
+  color: #e2e8f0;
+}
+
+.auth-dark main {
+  background-color: #0f172a;
+}
+
+.auth-dark .auth-card,
+.auth-dark > div > section {
+  background-color: #111c2e;
+  border-color: #334155;
+}
+
+.auth-dark .text-slate-900,
+.auth-dark .text-slate-800,
+.auth-dark .text-slate-700 {
+  color: #e2e8f0;
+}
+
+.auth-dark .text-slate-600,
+.auth-dark .text-slate-500,
+.auth-dark .text-slate-400 {
+  color: #a9b7ca;
+}
+
+.auth-dark input:not([type='checkbox']):not([type='file']),
+.auth-dark select,
+.auth-dark textarea {
+  background-color: #0f172a;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 3px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-page::before,
   .auth-page::after,
   .auth-brand,
   .auth-brand-mark,
   .auth-card,
-  .auth-card form > div {
+  .auth-card form > div,
+  .animate-fade-in {
     animation: none;
   }
 

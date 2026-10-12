@@ -3,6 +3,7 @@ import apiClient from './client';
 export const adminApi = {
   // Aggregate cohort benchmarks & KPI distribution
   getAggregateMetrics: () => apiClient.get('/admin/aggregate-metrics'),
+  getActivityLog: (params) => apiClient.get('/admin/activity-log', { params }),
 
   // Seeker Directory / User Management
   getUsers: (params) => apiClient.get('/admin/users', { params }),

@@ -1,21 +1,30 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, Suspense, lazy, useMemo, useCallback } from 'react';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TrackedItemsProvider } from './context/TrackedItemsContext';
 import { ToastProvider } from './components/common/Toast';
 import Navbar from './components/layout/Navbar';
+import ProviderSidebar from './components/layout/ProviderSidebar';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ShortcutsModal from './components/common/ShortcutsModal';
 
 import AdminLayout from './components/layout/AdminLayout';
 
+const accentMap = {
+  indigo: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 100: '#e0e7ff' },
+  teal: { 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 100: '#ccfbf1' },
+  rose: { 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 100: '#ffe4e6' },
+  violet: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 100: '#ede9fe' },
+};
+
 const Login = lazy(() => import('./pages/Login'));
-const Register = lazy(() => import('./pages/Register'));
+const Register = lazy(() => import('./pages/RegisterWizard'));
 const AccessDenied = lazy(() => import('./pages/AccessDenied'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
 const InterviewScheduler = lazy(() => import('./pages/InterviewScheduler'));
-const Analytics = lazy(() => import('./pages/Analytics'));
-const Profile = lazy(() => import('./pages/Profile'));
+const Profile = lazy(() => import('./pages/ProfileWorkspace'));
 const AdminMetrics = lazy(() => import('./pages/AdminMetrics'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminProviders = lazy(() => import('./pages/AdminProviders'));
@@ -26,51 +35,40 @@ const ProviderCompanies = lazy(() => import('./pages/ProviderCompanies'));
 const ProviderCompanyForm = lazy(() => import('./pages/ProviderCompanyForm'));
 const ProviderCompanyDetail = lazy(() => import('./pages/ProviderCompanyDetail'));
 const CompanyDetail = lazy(() => import('./pages/CompanyDetail'));
-const CompanyApplications = lazy(() => import('./pages/CompanyApplications'));
+const JobsDirectory = lazy(() => import('./pages/JobsDirectory'));
+const MyApplications = lazy(() => import('./pages/MyApplications'));
 const AdminCompanies = lazy(() => import('./pages/AdminCompanies'));
 const ProviderJobs = lazy(() => import('./pages/ProviderJobs'));
 const ProviderJobForm = lazy(() => import('./pages/ProviderJobForm'));
 const ProviderJobApplicants = lazy(() => import('./pages/ProviderJobApplicants'));
-const ApplicantJobs = lazy(() => import('./pages/ApplicantJobs'));
-const JobDetail = lazy(() => import('./pages/JobDetail'));
-const MyJobApplications = lazy(() => import('./pages/MyJobApplications'));
+const JobDetail = lazy(() => import('./pages/JobApplicationWizard'));
 const WorkLogDashboard = lazy(() => import('./pages/WorkLogDashboard'));
 const AdminJobs = lazy(() => import('./pages/AdminJobs'));
 const AdminApplications = lazy(() => import('./pages/AdminApplications'));
 
-const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
-  const { isAuthenticated, settings } = useAuth();
+const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
+  const { isAuthenticated, settings, user } = useAuth();
   const navigate = useNavigate();
-
-  const accentMap = {
-    indigo: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 100: '#e0e7ff' },
-    teal: { 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 100: '#ccfbf1' },
-    rose: { 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 100: '#ffe4e6' },
-    violet: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 100: '#ede9fe' },
-  };
-
+  const location = useLocation();
+  const isAuthPage = !isAuthenticated && ['/login', '/register'].includes(location.pathname);
   const accent = accentMap[settings?.accent] || accentMap.indigo;
-  const appStyle = {
-    '--accent-500': accent[500],
-    '--accent-600': accent[600],
-    '--accent-700': accent[700],
-    '--accent-100': accent[100],
-    '--page-bg': settings?.theme === 'dark' ? '#020817' : '#f8fafc',
-    '--page-text': settings?.theme === 'dark' ? '#e2e8f0' : '#0f172a',
-    '--surface-bg': settings?.theme === 'dark' ? '#0f172a' : '#ffffff',
-  };
+  const isProvider = isAuthenticated && user?.role === 'provider';
 
-  const openBrowseModal = () => {
-    if (window.location.pathname !== '/dashboard' && window.location.pathname !== '/') {
-      navigate('/dashboard');
-    }
-    onOpenBrowseModal();
-  };
+  const appStyle = useMemo(
+    () => ({
+      '--accent-500': accent[500],
+      '--accent-600': accent[600],
+      '--accent-700': accent[700],
+      '--accent-100': accent[100],
+      '--page-bg': settings?.theme === 'dark' ? '#020817' : '#f8fafc',
+      '--page-text': settings?.theme === 'dark' ? '#e2e8f0' : '#0f172a',
+      '--surface-bg': settings?.theme === 'dark' ? '#0f172a' : '#ffffff',
+    }),
+    [accent, settings?.theme]
+  );
 
-  // Global Keyboard Listener
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ignore if user is focused inside input, textarea, or select
+  const handleKeyDown = useCallback(
+    (e) => {
       const tag = e.target.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) {
         return;
@@ -81,7 +79,7 @@ const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
         onOpenShortcutsModal();
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        openBrowseModal();
+        navigate('/jobs');
       } else if (e.key === '/') {
         e.preventDefault();
         const searchInput = document.getElementById('dashboard-search-input');
@@ -102,15 +100,15 @@ const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
       } else if (e.key === 'c' || e.key === 'C') {
         e.preventDefault();
         navigate('/interviews');
-      } else if (e.key === 'a' || e.key === 'A') {
-        e.preventDefault();
-        navigate('/analytics');
       }
-    };
+    },
+    [navigate, onOpenShortcutsModal]
+  );
 
+  useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate, onOpenBrowseModal, onOpenShortcutsModal]);
+  }, [handleKeyDown]);
 
   return (
     <div
@@ -118,10 +116,24 @@ const AppLayout = ({ children, onOpenBrowseModal, onOpenShortcutsModal }) => {
       className={`min-h-screen flex flex-col ${settings?.theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${settings?.compactMode ? 'text-[15px]' : ''}`}
     >
       {isAuthenticated && <Navbar />}
-      <main className="flex-1 pb-12">{children}</main>
+      <div className="flex flex-1">
+        {isProvider && <ProviderSidebar />}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.main
+            key={location.pathname}
+            className={`app-main min-w-0 flex-1 ${isAuthPage ? 'pb-0' : 'pb-12'}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
+      </div>
     </div>
   );
-};
+});
 
 const PublicAuthRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
@@ -163,15 +175,15 @@ const HomeRoute = ({ dashboardProps }) => {
 
 export const App = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isBrowseModalOpen, setIsBrowseModalOpen] = useState(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
 
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          <TrackedItemsProvider>
+          <ToastProvider>
           <AppLayout
-            onOpenBrowseModal={() => setIsBrowseModalOpen(true)}
             onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
           >
             <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center text-sm text-slate-500">Loading page…</div>}>
@@ -216,8 +228,6 @@ export const App = () => {
                 element={<HomeRoute dashboardProps={{
                   isAddModalOpen,
                   setIsAddModalOpen,
-                  browseModalOpen: isBrowseModalOpen,
-                  setBrowseModalOpen: setIsBrowseModalOpen,
                 }} />}
               />
               <Route
@@ -227,8 +237,6 @@ export const App = () => {
                     <Dashboard
                       isAddModalOpen={isAddModalOpen}
                       setIsAddModalOpen={setIsAddModalOpen}
-                      browseModalOpen={isBrowseModalOpen}
-                      setBrowseModalOpen={setIsBrowseModalOpen}
                     />
                   </ProtectedRoute>
                 }
@@ -245,13 +253,12 @@ export const App = () => {
                 path="/companies/:companyId"
                 element={<ProtectedRoute><CompanyDetail /></ProtectedRoute>}
               />
-              <Route
-                path="/my-company-applications"
-                element={<ProtectedRoute><CompanyApplications /></ProtectedRoute>}
-              />
-              <Route path="/jobs" element={<ProtectedRoute applicantOnly><ApplicantJobs /></ProtectedRoute>} />
+              <Route path="/companies" element={<ProtectedRoute applicantOnly><Navigate to="/jobs" replace /></ProtectedRoute>} />
+              <Route path="/my-company-applications" element={<ProtectedRoute applicantOnly><Navigate to="/my-applications" replace /></ProtectedRoute>} />
+              <Route path="/my-job-applications" element={<ProtectedRoute applicantOnly><Navigate to="/my-applications" replace /></ProtectedRoute>} />
+              <Route path="/jobs" element={<ProtectedRoute applicantOnly><JobsDirectory /></ProtectedRoute>} />
               <Route path="/jobs/:jobId" element={<ProtectedRoute applicantOnly><JobDetail /></ProtectedRoute>} />
-              <Route path="/my-job-applications" element={<ProtectedRoute applicantOnly><MyJobApplications /></ProtectedRoute>} />
+              <Route path="/my-applications" element={<ProtectedRoute applicantOnly><MyApplications /></ProtectedRoute>} />
               <Route path="/work-log" element={<ProtectedRoute applicantOnly><WorkLogDashboard /></ProtectedRoute>} />
               <Route
                 path="/interviews"
@@ -263,11 +270,7 @@ export const App = () => {
               />
               <Route
                 path="/analytics"
-                element={
-                  <ProtectedRoute>
-                    <Analytics />
-                  </ProtectedRoute>
-                }
+                element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>}
               />
               <Route
                 path="/profile"
@@ -328,8 +331,10 @@ export const App = () => {
             isOpen={isShortcutsModalOpen}
             onClose={() => setIsShortcutsModalOpen(false)}
           />
-        </ToastProvider>
-      </AuthProvider>
+          </ToastProvider>
+          </TrackedItemsProvider>
+        </AuthProvider>
+      </MotionConfig>
     </BrowserRouter>
   );
 };

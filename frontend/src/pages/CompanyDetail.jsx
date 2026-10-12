@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
-import { ArrowLeft, Building2, CalendarClock, CircleAlert, FileText, Loader2, MapPin, Upload } from 'lucide-react';
+import { LocationMap } from '../components/common/AddressMap';
+import PinButton from '../components/common/PinButton';
+import { ArrowLeft, BadgeCheck, Building2, CalendarClock, CircleAlert, FileText, Loader2, MapPin, Upload } from 'lucide-react';
 
 const CompanyDetail = () => {
   const { companyId } = useParams();
+  const [searchParams] = useSearchParams();
+  const resubmitId = searchParams.get('resubmit');
   const navigate = useNavigate();
   const { toast } = useToast();
   const [company, setCompany] = useState(null);
@@ -15,19 +19,33 @@ const CompanyDetail = () => {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [validation, setValidation] = useState({});
+  const [answers, setAnswers] = useState({});
+  const [previousApplication, setPreviousApplication] = useState(null);
 
   useEffect(() => {
     let active = true;
-    apiAdapter.getCompany(companyId)
-      .then((record) => { if (active) setCompany(record); })
+    Promise.all([
+      apiAdapter.getCompany(companyId),
+      resubmitId ? apiAdapter.getMyCompanyApplication(resubmitId) : Promise.resolve(null),
+    ])
+      .then(([record, application]) => {
+        if (!active) return;
+        if (application && application.companyId !== companyId) throw new Error('This application does not belong to this company.');
+        setCompany(record);
+        if (application) {
+          setPreviousApplication(application);
+          setAnswers(application.formData || {});
+        }
+      })
       .catch((loadError) => { if (active) setError(loadError.message || 'Unable to load this company.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [companyId]);
+  }, [companyId, resubmitId]);
 
   const requirements = useMemo(() => [...(company?.requirements || [])].sort((left, right) => left.order - right.order), [company]);
-  const documentRequirements = requirements.filter((requirement) => requirement.type === 'document');
-  const informationRequirements = requirements.filter((requirement) => requirement.type !== 'document');
+  const documentRequirements = requirements.filter((requirement) => ['document', 'file'].includes(requirement.type));
+  const responseRequirements = requirements.filter((requirement) => ['text', 'date', 'select'].includes(requirement.type));
+  const informationRequirements = requirements.filter((requirement) => !['document', 'file', 'text', 'date', 'select'].includes(requirement.type));
 
   const selectFile = (requirement, file) => {
     setValidation((current) => ({ ...current, [requirement._id]: '' }));
@@ -52,26 +70,34 @@ const CompanyDetail = () => {
   const handleApply = async (event) => {
     event.preventDefault();
     const errors = {};
+    for (const requirement of responseRequirements) {
+      const value = String(answers[requirement._id] || '').trim();
+      if (requirement.isRequired && !value) errors[requirement._id] = 'This field is required.';
+      else if (value && requirement.type === 'date' && Number.isNaN(new Date(value).getTime())) errors[requirement._id] = 'Enter a valid date.';
+      else if (value && requirement.type === 'select' && !requirement.options?.includes(value)) errors[requirement._id] = 'Choose one of the listed options.';
+    }
     for (const requirement of documentRequirements) {
       if (requirement.isRequired && !files[requirement._id]) errors[requirement._id] = 'This document is required.';
     }
     setValidation(errors);
     if (Object.keys(errors).length) return;
 
-    const formData = new FormData();
+    const submission = new FormData();
+    const responseData = responseRequirements.reduce((result, requirement) => ({ ...result, [requirement._id]: answers[requirement._id] || '' }), {});
+    submission.append('formData', JSON.stringify(responseData));
     documentRequirements.forEach((requirement) => {
       const file = files[requirement._id];
-      if (file) formData.append(requirement._id, file, file.name);
+      if (file) submission.append(requirement._id, file, file.name);
     });
 
     setSubmitting(true);
     setProgress(0);
     try {
-      await apiAdapter.submitCompanyApplication(companyId, formData, (event) => {
+      await apiAdapter.submitCompanyApplication(companyId, submission, (event) => {
         if (event.total) setProgress(Math.round((event.loaded / event.total) * 100));
       });
-      toast('Application submitted.', 'success');
-      navigate('/my-company-applications');
+      toast(previousApplication ? 'Application resubmitted.' : 'Application submitted.', 'success');
+      navigate('/my-applications');
     } catch (submitError) {
       toast(submitError.message || 'Unable to submit application.', 'error');
     } finally {
@@ -84,17 +110,26 @@ const CompanyDetail = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
-      <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-700"><ArrowLeft className="h-4 w-4" /> Browse companies</Link>
+      <Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-700"><ArrowLeft className="h-4 w-4" /> Browse jobs</Link>
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start">
         {company.logo ? <img src={company.logo} alt={`${company.name} logo`} className="h-16 w-16 rounded-md border border-slate-200 object-contain" /> : <span className="flex h-16 w-16 items-center justify-center rounded-md bg-indigo-50 text-indigo-700"><Building2 className="h-7 w-7" /></span>}
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase text-indigo-700">{company.category}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-start justify-between gap-3"><p className="text-xs font-semibold uppercase text-indigo-700">{company.category}</p><PinButton itemType="company" itemId={companyId} details={{ title: company.name, subtitle: company.category, status: company.status === 'approved' ? 'Verified' : 'Pending review', latestUpdate: `Organization updated ${new Date(company.updatedAt).toLocaleDateString()}`, href: `/companies/${companyId}` }} /></div>
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${company.status === 'approved' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+              {company.status === 'approved' && <BadgeCheck className="h-3 w-3" />}
+              {company.status === 'approved' ? 'Verified' : 'Pending verification'}
+            </span>
+          </div>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">{company.name}</h1>
           {company.ownerName && <p className="mt-1 text-sm text-slate-600">Listed by {company.ownerName}</p>}
           {company.location && <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600"><MapPin className="h-4 w-4 text-slate-400" />{company.location}</p>}
+          {(company.size || company.locations?.length > 0 || company.website) && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">{company.size && <span>{company.size}</span>}{company.locations?.length > 0 && <span>Locations: {company.locations.join(', ')}</span>}{/^https?:\/\//i.test(company.website || '') && <a href={company.website} target="_blank" rel="noreferrer" className="font-semibold text-indigo-700 underline">Company website</a>}</div>}
           {company.description && <p className="mt-4 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">{company.description}</p>}
         </div>
       </header>
+
+      <section className="max-w-2xl"><h2 className="mb-2 text-base font-bold text-slate-900">Location</h2><LocationMap address={company.formattedAddress || company.location} latitude={company.latitude} longitude={company.longitude} /></section>
 
       <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
         <div className="space-y-6">
@@ -125,6 +160,19 @@ const CompanyDetail = () => {
           <h2 className="text-base font-bold text-slate-900">Submit application</h2>
           <p className="mt-1 text-xs text-slate-500">Complete the listed documents before submitting.</p>
           <form onSubmit={handleApply} className="mt-4 space-y-4">
+            {resubmitId && <p className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">Update your responses and documents, then resubmit for provider review.</p>}
+            {responseRequirements.map((requirement) => (
+              <div key={requirement._id}>
+                <label className="block text-xs font-semibold text-slate-700">
+                  {requirement.title}{requirement.isRequired ? ' *' : ' (optional)'}
+                  {requirement.description && <span className="mt-1 block font-normal text-slate-500">{requirement.description}</span>}
+                  {requirement.type === 'text' && <textarea rows={3} maxLength={5000} required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />}
+                  {requirement.type === 'date' && <input type="date" required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />}
+                  {requirement.type === 'select' && <select required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="mt-2 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal"><option value="">Choose an option</option>{(requirement.options || []).map((option) => <option key={option} value={option}>{option}</option>)}</select>}
+                </label>
+                {validation[requirement._id] && <p role="alert" className="mt-1 text-xs text-rose-700">{validation[requirement._id]}</p>}
+              </div>
+            ))}
             {documentRequirements.map((requirement) => (
               <div key={requirement._id}>
                 <label className="block text-xs font-semibold text-slate-700">

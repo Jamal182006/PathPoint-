@@ -1,6 +1,6 @@
 # PathPoint
 
-PathPoint is a full-stack job application tracker with a React frontend and an Express + MongoDB backend.Nice
+PathPoint is one role-based application for applicants, providers, and administrators, backed by a shared Express API and MongoDB database.
 
 
 This project is split into two folders:
@@ -31,7 +31,7 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/pathpoint?retryWr
 MONGODB_ALLOW_MEMORY_FALLBACK=false
 ```
 
-Copy `backend/.env.example` to `backend/.env`, then replace `<username>`, `<password>`, and `<cluster-host>` with the values from Atlas. Set a random `JWT_SECRET` with at least 32 characters. URL-encode special characters in the username or password. Keep `.env` local and never commit its values.
+Use the live `backend/.env` file as the source of truth. Populate the real MongoDB URI, JWT secret, SMTP settings, and demo account passwords directly in that file. URL-encode special characters in the MongoDB username or password. Keep `.env` local and never commit its values.
 
 ## Quick start
 
@@ -77,23 +77,27 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/pathpoint?retryWr
 MONGODB_ALLOW_MEMORY_FALLBACK=false
 ```
 
-The backend environment file is server-only and contains database and SMTP settings. The frontend uses a separate `frontend/.env` containing only `VITE_API_URL`; `frontend/.env.example` is only its template. For Gmail or Google Workspace, use an authorized app password and the SMTP settings enabled by the organization.
+The backend environment file is server-only and contains database and SMTP settings. The frontend uses a separate `frontend/.env` containing only `VITE_API_URL`. For Gmail or Google Workspace, use an authorized app password and the SMTP settings enabled by the organization.
 
 To test backend SMTP authentication without sending an email or displaying credentials, run `npm --prefix backend run check:smtp` after configuring `backend/.env`.
 
 ### Company applications
 
-Company records and company applications are stored separately from the existing applicant job-tracker `applications` collection. Providers manage their companies at `/provider/companies`; the admin company review queue is at `/admin/companies`; applicants browse approved companies and submit documents from the company detail page.
+Company records and company applications are stored separately from the existing applicant job-tracker `applications` collection. Providers manage their companies at `/provider/companies`; the admin company review queue is at `/admin/companies`; applicants browse listings owned by verified providers, including listings pending company review. Pending listings are marked clearly; rejected and archived listings remain unavailable. Applicants submit dynamic text, date, select, and document fields from the company detail page.
 
-The API adds `GET /api/companies`, `GET /api/companies/:companyId`, `POST /api/companies/:companyId/applications`, applicant application list/detail/file routes under `/api/companies/applications`, provider company CRUD under `/api/providers/me/companies`, provider applicant/status routes, and admin company list/review/archive routes under `/api/admin/companies`. Private uploads are stored in `backend/private-uploads/company-applications` and are accessible only through authenticated ownership-checked routes. Keep this directory on persistent private storage for deployments; it is excluded from Git.
+The API adds `GET /api/companies`, `GET /api/companies/:companyId`, `POST /api/companies/:companyId/applications`, applicant application list/detail/file routes under `/api/companies/applications`, provider company CRUD under `/api/providers/me/companies`, provider applicant/status routes, and admin company list/review/archive routes under `/api/admin/companies`. Mongo-backed notifications are available under `/api/notifications` and refresh in the app every 10 seconds. The admin activity log is available at `/api/admin/activity-log`. Company application documents accept PDF, JPG, or PNG, up to 5 MB each, and are accessible only through authenticated ownership-checked routes. Keep `backend/private-uploads` on persistent private storage for deployments; it is excluded from Git.
 
 Existing embedded provider business profiles can be migrated idempotently with `npm --prefix backend run migrate:companies`. Profiles with no prior verification state are migrated as Pending; existing approved or rejected verification states are preserved. The migration does not delete User or Application records. Run backend tests with `npm --prefix backend test`.
+
+Existing accounts can receive usernames and nullable profile fields with the idempotent `npm --prefix backend run migrate:users` migration. It preserves populated user data, derives a unique username from each email when missing, and does not alter passwords. New accounts collect account, personal, address, and role-specific information through a five-step sign-up. Applicants can log in or reset passwords with either email or username.
+
+Applicants discover provider companies and open job listings together at **Jobs** (`/jobs`). Company verification state is displayed from MongoDB; pending listings from verified providers remain discoverable. Both job and company application history is available at **My Applications** (`/my-applications`). The old `/companies`, `/my-company-applications`, and `/my-job-applications` URLs redirect to their current destinations.
 
 ### Job listings and local work
 
 Providers manage job listings at `/provider/jobs`. New listings remain drafts until an admin approves them; applicants can only see open jobs from approved companies/providers. Job application files are stored privately under `backend/private-uploads/job-applications` and served through ownership-checked endpoints. Applicant job submissions and local work records use the MongoDB `jobapplications` and `worklogs` collections. Admin job review is at `/admin/jobs`; cross-pipeline application review and deletion is at `/admin/applications`. The normal backend startup creates all required collections and indexes.
 
-Admin overview metrics now include active job listings and recent database activity. Its pending provider verification count links directly to the verification queue. Authenticated applicant analytics and interviews use API data; the frontend does not silently switch to browser-only application records when the backend is unavailable.
+Admin overview metrics now include active job listings and recent database activity. Its pending provider verification count links directly to the verification queue. Applicant interviews and work logs use API data; the frontend does not silently switch to browser-only application records when the backend is unavailable. The retired applicant `/analytics` URL redirects to the dashboard; admin aggregate metrics remain available at `/admin`.
 
 ## 3) Install frontend dependencies
 
@@ -122,9 +126,9 @@ Visit this URL in your browser:
 http://localhost:5173
 ```
 
-## Local test accounts
+## Database-backed accounts
 
-Copy the sample account email and password variables from `backend/.env.example` into `backend/.env` and set unique passwords. `npm run seed` creates one administrator, one approved provider with an approved company, one pending provider with a pending company, and two applicants. Seeding is idempotent and preserves existing users, companies, applications, and uploads. Existing accounts with matching email addresses are left unchanged.
+Create accounts through the registration flow. The frontend uses `frontend/.env` to reach the backend, and the backend uses the server-only `backend/.env` to connect to MongoDB. The optional seed script is for disposable development databases only; do not run it against a live database.
 
 ## Useful commands
 
@@ -133,8 +137,8 @@ Copy the sample account email and password variables from `backend/.env.example`
 ```bash
 cd backend
 npm run dev
-npm run seed
 npm run migrate:companies
+npm run migrate:users
 ```
 
 ### Frontend
@@ -148,14 +152,14 @@ npm run preview
 
 ## Manual end-to-end checklist
 
-1. Copy `backend/.env.example` to `backend/.env`, set the seed passwords, and run `npm --prefix backend run seed`; sign in with the seeded pending provider and verify the account shows **Pending**.
-2. Sign in as admin, open **Provider verification**, preview the document, approve the provider, then confirm the provider can open company tools.
-3. Submit a company and verify it stays hidden from applicants until approved in **Companies**. Confirm a rejected company shows its reason and can be edited and resubmitted.
-4. Create a job with required document and text requirements, salary range, deadline, and slots. Confirm it stays unavailable until admin approval and the provider opens it.
-5. As an applicant, browse the approved listing, submit only profile details and required responses, and confirm duplicate, deadline, invalid-file, and full-slot submissions are rejected.
-6. As the provider, review the applicant, preview their files, schedule an interview, and set an outcome. Confirm the applicant sees the updated status and interview details in **Job applications**.
-7. Check `/admin/applications` for all three application types, try its filters/search/pagination, and verify its delete action removes uploaded files for company and job submissions.
-8. As an applicant, confirm analytics, interviews, and work logs load from the API; stop the backend and verify the app reports an unavailable service instead of showing local sample records.
+1. Confirm `/api/health` reports `database: connected`, then register a real user and provider account through the app.
+2. Sign up as a User through all five steps, then sign in with the email and again with the username. Repeat signup as a Provider and confirm its dashboard shows pending verification.
+3. As an approved Provider, add a company; as a User, confirm it appears in `/jobs` with its database status. Search, sort, and filter the directory.
+4. Submit an application, request changes as the Provider, and confirm the user sees a notification/status update and can resubmit from **My Applications**.
+5. Check that separate Companies and Company Apps navigation items are absent, old URLs redirect, and the Dashboard has no weekly target.
+6. At login, confirm exactly one **Create one** link is visible and the layout has no bottom gap at 360, 768, 1024, and 1440 px in light/dark modes.
+7. Sign in as admin, review provider/company verification, and confirm the approved badge/rejection note updates from the shared database.
+8. Confirm `/analytics` redirects to `/dashboard`; pin and unpin a job, company, and application; verify pins and latest updates appear on the Dashboard. Confirm interviews and work logs load from the API, then stop the backend and verify the app reports an unavailable service instead of showing local sample records.
 
 ## Troubleshooting
 

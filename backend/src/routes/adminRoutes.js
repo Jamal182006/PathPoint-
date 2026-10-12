@@ -8,11 +8,13 @@ import CompanyApplication from '../models/CompanyApplication.js';
 import JobApplication from '../models/JobApplication.js';
 import JobListing from '../models/JobListing.js';
 import WorkLog from '../models/WorkLog.js';
+import ActivityLog from '../models/ActivityLog.js';
 import { adminArchiveJob, adminListJobs, adminReviewJob } from '../controllers/jobController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { MAX_BUSINESS_DOCUMENT_SIZE } from '../utils/businessVerification.js';
 import { getCompanyUploadDirectory } from '../utils/companyUpload.js';
 import { getJobUploadDirectory } from '../utils/jobUpload.js';
+import { notifyUser, recordActivity } from '../utils/platformEvents.js';
 
 const router = express.Router();
 
@@ -21,6 +23,21 @@ router.use(protect, adminOnly);
 router.get('/jobs', adminListJobs);
 router.patch('/jobs/:jobId/review', adminReviewJob);
 router.delete('/jobs/:jobId', adminArchiveJob);
+
+router.get('/activity-log', async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
+    const [data, count] = await Promise.all([
+      ActivityLog.find().populate('actorId', 'name email role').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      ActivityLog.countDocuments(),
+    ]);
+    return res.status(200).json({ success: true, count, page, pages: Math.ceil(count / limit), data });
+  } catch (error) {
+    console.error('[Admin Error - Activity Log]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load activity log' });
+  }
+});
 
 router.get('/applications', async (req, res) => {
   try {
@@ -162,6 +179,10 @@ router.patch('/companies/:id/review', async (req, res) => {
     company.reviewedBy = req.user._id;
     company.reviewedAt = new Date();
     await company.save();
+    await Promise.all([
+      notifyUser(company.providerId._id, `${company.name} was ${status}${status === 'rejected' ? `: ${company.rejectionReason}` : ' and is now verified'}.`, `/provider/companies/${company._id}`),
+      recordActivity(req.user._id, `${status} a company listing`, company._id, 'company'),
+    ]);
     return res.status(200).json({ success: true, message: `Company ${status}`, data: company });
   } catch (error) {
     console.error('[Admin Error - Company Review]:', error);
@@ -228,6 +249,10 @@ router.patch('/providers/:id/verification', async (req, res) => {
     provider.businessVerification.reviewedAt = new Date();
     provider.businessVerification.reviewedBy = req.user._id;
     await provider.save();
+    await Promise.all([
+      notifyUser(provider._id, `Your provider verification was ${status}${status === 'rejected' ? `: ${provider.businessVerification.rejectionReason}` : ''}.`, '/provider'),
+      recordActivity(req.user._id, `${status} provider verification`, provider._id, 'provider'),
+    ]);
 
     return res.status(200).json({ success: true, message: `Provider verification ${status}`, data: provider.toJSON() });
   } catch (error) {
@@ -261,7 +286,7 @@ router.get('/aggregate-metrics', async (req, res) => {
     const approvedCompanies = await Company.find({ providerId: { $in: approvedProviders.map(({ _id }) => _id) }, status: 'approved', isArchived: false }).select('_id');
     const activeJobListings = await JobListing.countDocuments({
       companyId: { $in: approvedCompanies.map(({ _id }) => _id) },
-      status: 'open',
+      status: { $in: ['verified', 'open'] },
       reviewStatus: 'approved',
       archivedAt: { $exists: false },
       $or: [{ applicationDeadline: { $exists: false } }, { applicationDeadline: null }, { applicationDeadline: { $gte: new Date() } }],
@@ -312,8 +337,10 @@ router.get('/aggregate-metrics', async (req, res) => {
     const pipelineStatusMap = {
       submitted: 'Applied',
       under_review: 'Interviewing',
+      changes_requested: 'Applied',
       interview_scheduled: 'Interviewing',
       accepted: 'Offered',
+      approved: 'Offered',
       rejected: 'Rejected',
     };
     [...jobStatusRows, ...companyStatusRows].forEach(({ _id, count }) => {
@@ -451,6 +478,11 @@ router.patch('/users/:id/status', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    await Promise.all([
+      recordActivity(req.user._id, `${status} user account`, user._id, 'user'),
+      notifyUser(user._id, `Your account was ${status} by an administrator.`, '/profile'),
+    ]);
+
     res.status(200).json({
       success: true,
       message: `User status updated to ${status}`,
@@ -476,6 +508,7 @@ router.patch('/users/:id/archive', async (req, res) => {
     user.isArchived = archived;
     if (archived) user.status = 'suspended';
     await user.save();
+    await recordActivity(req.user._id, `${archived ? 'archived' : 'restored'} user account`, user._id, 'user');
     return res.status(200).json({ success: true, message: archived ? 'Account archived; records retained' : 'Account restored', data: user.toJSON() });
   } catch (error) {
     console.error('[Admin Error - Archive User]:', error);

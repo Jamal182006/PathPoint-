@@ -11,8 +11,20 @@ const jobResponseSchema = new mongoose.Schema(
     mimeType: { type: String, enum: ['application/pdf', 'image/jpeg', 'image/png'] },
     fileSize: { type: Number, min: 1 },
     uploadedAt: { type: Date },
+    documentData: { type: Buffer, select: false },
   },
   { _id: true }
+);
+
+const resumeSchema = new mongoose.Schema(
+  {
+    fileName: { type: String, trim: true, maxlength: 255 },
+    mimeType: { type: String, enum: ['application/pdf', 'image/jpeg', 'image/png'] },
+    fileSize: { type: Number, min: 1 },
+    uploadedAt: { type: Date },
+    documentData: { type: Buffer, select: false },
+  },
+  { _id: false }
 );
 
 const applicantSnapshotSchema = new mongoose.Schema(
@@ -25,22 +37,41 @@ const applicantSnapshotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const statusHistorySchema = new mongoose.Schema(
+  {
+    status: { type: String, enum: ['draft', 'submitted', 'under_review', 'shortlisted', 'interview_scheduled', 'accepted', 'hired', 'rejected', 'withdrawn'], required: true },
+    changedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const jobApplicationSchema = new mongoose.Schema(
   {
     jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'JobListing', required: true },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
     applicantId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     applicant: { type: applicantSnapshotSchema, required: true },
+    draftStep: { type: Number, min: 1, max: 4, default: 1 },
+    experience: { type: String, trim: true, maxlength: 5000, default: '' },
+    coverLetter: { type: String, trim: true, maxlength: 5000, default: '' },
+    resume: { type: resumeSchema, default: undefined },
     responses: { type: [jobResponseSchema], default: [] },
-    status: { type: String, enum: ['submitted', 'under_review', 'interview_scheduled', 'accepted', 'rejected'], default: 'submitted', index: true },
+    status: { type: String, enum: ['draft', 'submitted', 'under_review', 'shortlisted', 'interview_scheduled', 'accepted', 'hired', 'rejected', 'withdrawn'], default: 'submitted', index: true },
+    submittedAt: { type: Date },
     providerNote: { type: String, trim: true, maxlength: 2000, default: '' },
+    applicantNote: { type: String, trim: true, maxlength: 2000, default: '' },
     interviewDate: { type: Date },
+    rejectedAt: { type: Date },
+    withdrawnAt: { type: Date },
+    archivedAt: { type: Date },
+    statusHistory: { type: [statusHistorySchema], default: [] },
   },
   { timestamps: true }
 );
 
 jobApplicationSchema.index({ jobId: 1, applicantId: 1 }, { unique: true });
 jobApplicationSchema.index({ applicantId: 1, updatedAt: -1 });
+jobApplicationSchema.index({ applicantId: 1, status: 1, updatedAt: -1 });
 jobApplicationSchema.index({ companyId: 1, status: 1, createdAt: -1 });
 
 const JobApplication = mongoose.model('JobApplication', jobApplicationSchema);

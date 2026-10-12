@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { apiAdapter, checkBackendStatus } from '../services/apiAdapter';
 import { getBaseURL, setBaseURL } from '../api/client';
 
@@ -32,6 +32,16 @@ export const AuthProvider = ({ children }) => {
       return defaultSettings;
     }
   });
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('pathpoint_token');
+    sessionStorage.removeItem('pathpoint_token');
+    localStorage.removeItem('pathpoint_user');
+    sessionStorage.removeItem('pathpoint_user');
+    localStorage.removeItem('pathpoint_token_expires_at');
+    setToken(null);
+    setUser(null);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('pathpoint_settings', JSON.stringify(settings));
@@ -83,120 +93,96 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('pathpoint:session-expired', onSessionExpired);
   }, []);
 
-  // Standard Candidate / User Login
-  const login = async (email, password = '', rememberMe = true) => {
-    const result = await apiAdapter.login(email, password, rememberMe);
+  const login = useCallback(async (identifier, password = '', rememberMe = true) => {
+    const result = await apiAdapter.login(identifier, password, rememberMe);
     setUser(result.user);
     setToken(result.token);
     return result;
-  };
+  }, []);
 
-  const requestLoginCode = async (email, password = '', rememberMe = true) => {
-    const result = await apiAdapter.requestLoginCode(email, password, rememberMe);
+  const requestLoginCode = useCallback(async (identifier, password = '', rememberMe = true) => {
+    const result = await apiAdapter.requestLoginCode(identifier, password, rememberMe);
     if (result.token && result.user) {
       setUser(result.user);
       setToken(result.token);
     }
     return result;
-  };
+  }, []);
 
-  const verifyLoginCode = async (email, password = '', code = '', rememberMe = true) => {
-    const result = await apiAdapter.verifyLoginCode(email, password, code, rememberMe);
+  const verifyLoginCode = useCallback(async (identifier, password = '', code = '', rememberMe = true) => {
+    const result = await apiAdapter.verifyLoginCode(identifier, password, code, rememberMe);
     setUser(result.user);
     setToken(result.token);
     return result;
-  };
+  }, []);
 
-  // Candidate Registration
-  const register = async (userData, rememberMe = true) => {
+  const register = useCallback(async (userData, rememberMe = true) => {
     const result = await apiAdapter.register(userData, rememberMe);
-    setUser(result.user);
-    setToken(result.token);
-    return result;
-  };
-
-  const updateMyProfile = async (profileData) => {
-    const updated = await apiAdapter.updateMyProfile(profileData);
-    setUser(updated);
-    return updated;
-  };
-
-  // Password Recovery
-  const forgotPassword = async (email) => {
-    return apiAdapter.forgotPassword(email);
-  };
-
-  const verifyResetCode = async (email, code) => {
-    return apiAdapter.verifyResetCode(email, code);
-  };
-
-  const resetPassword = async (email, code, newPassword) => {
-    return apiAdapter.resetPassword(email, code, newPassword);
-  };
-
-  // Password Change
-  const changePassword = async (curr, next) => {
-    return apiAdapter.changePassword(curr, next);
-  };
-
-  // Clean Logout
-  const logout = () => {
+    setUser(null);
+    setToken(null);
     localStorage.removeItem('pathpoint_token');
     sessionStorage.removeItem('pathpoint_token');
     localStorage.removeItem('pathpoint_user');
     sessionStorage.removeItem('pathpoint_user');
     localStorage.removeItem('pathpoint_token_expires_at');
-    setToken(null);
-    setUser(null);
-  };
+    return result;
+  }, []);
 
-  // Recheck backend health
-  const recheckBackend = async () => {
+  const updateMyProfile = useCallback(async (profileData) => {
+    const updated = await apiAdapter.updateMyProfile(profileData);
+    setUser(updated);
+    return updated;
+  }, []);
+
+  const forgotPassword = useCallback(async (identifier) => apiAdapter.forgotPassword(identifier), []);
+  const verifyResetCode = useCallback(async (identifier, code) => apiAdapter.verifyResetCode(identifier, code), []);
+  const resetPassword = useCallback(async (identifier, code, newPassword) => apiAdapter.resetPassword(identifier, code, newPassword), []);
+  const changePassword = useCallback(async (curr, next) => apiAdapter.changePassword(curr, next), []);
+
+  const recheckBackend = useCallback(async () => {
     const online = await checkBackendStatus(true);
     setBackendOnline(online);
     return online;
-  };
+  }, []);
 
-  // Configure custom backend URL
-  const updateApiUrl = (newUrl) => {
+  const updateApiUrl = useCallback((newUrl) => {
     setBaseURL(newUrl);
     setApiUrlState(getBaseURL());
     return recheckBackend();
-  };
+  }, [recheckBackend]);
 
-  const updateSettings = (updates) => {
+  const updateSettings = useCallback((updates) => {
     setSettings((prev) => ({ ...prev, ...updates }));
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        backendOnline,
-        apiUrl,
-        settings,
-        updateSettings,
-        updateApiUrl,
-        recheckBackend,
-        login,
-        requestLoginCode,
-        verifyLoginCode,
-        register,
-        updateMyProfile,
-        forgotPassword,
-        verifyResetCode,
-        resetPassword,
-        changePassword,
-        logout,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === 'admin',
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      loading,
+      backendOnline,
+      apiUrl,
+      settings,
+      updateSettings,
+      updateApiUrl,
+      recheckBackend,
+      login,
+      requestLoginCode,
+      verifyLoginCode,
+      register,
+      updateMyProfile,
+      forgotPassword,
+      verifyResetCode,
+      resetPassword,
+      changePassword,
+      logout,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === 'admin',
+    }),
+    [user, token, loading, backendOnline, apiUrl, settings, updateSettings, updateApiUrl, recheckBackend, login, requestLoginCode, verifyLoginCode, register, updateMyProfile, forgotPassword, verifyResetCode, resetPassword, changePassword, logout]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

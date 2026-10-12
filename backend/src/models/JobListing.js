@@ -21,12 +21,27 @@ const jobListingSchema = new mongoose.Schema(
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
     providerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 160 },
+    category: { type: String, trim: true, maxlength: 100, default: '' },
     description: { type: String, required: true, trim: true, maxlength: 10000 },
+    responsibilities: { type: [{ type: String, trim: true, maxlength: 1000 }], default: [] },
+    qualifications: { type: [{ type: String, trim: true, maxlength: 1000 }], default: [] },
+    skills: { type: [{ type: String, trim: true, maxlength: 80 }], default: [] },
     requirements: { type: [jobRequirementSchema], default: [] },
     salaryType: { type: String, enum: ['fixed', 'range'], default: 'range' },
     salaryMin: { type: Number, min: 0 },
     salaryMax: { type: Number, min: 0 },
     salaryPayPeriod: { type: String, enum: ['hour', 'day', 'week', 'month', 'year', 'project'], default: 'month' },
+    currency: { type: String, trim: true, uppercase: true, minlength: 3, maxlength: 3, default: 'USD' },
+    salaryNegotiable: { type: Boolean, default: false },
+    benefits: { type: [{ type: String, trim: true, maxlength: 120 }], default: [] },
+    workSetup: { type: String, enum: ['on_site', 'remote', 'hybrid'], default: 'on_site' },
+    experienceLevel: { type: String, trim: true, maxlength: 80, default: '' },
+    educationLevel: { type: String, trim: true, maxlength: 120, default: '' },
+    dressCode: { type: String, trim: true, maxlength: 500, default: '' },
+    workSchedule: { type: String, trim: true, maxlength: 500, default: '' },
+    startDate: { type: Date },
+    contactName: { type: String, trim: true, maxlength: 120, default: '' },
+    contactEmail: { type: String, trim: true, lowercase: true, maxlength: 254, default: '' },
     interviewerName: { type: String, trim: true, maxlength: 120, default: '' },
     interviewerPosition: { type: String, trim: true, maxlength: 120, default: '' },
     interviewerContact: { type: String, trim: true, maxlength: 200, default: '' },
@@ -38,8 +53,16 @@ const jobListingSchema = new mongoose.Schema(
     applicationDeadline: { type: Date },
     employmentType: { type: String, enum: ['full_time', 'part_time', 'contract', 'temporary', 'internship', 'casual'], required: true },
     location: { type: String, trim: true, maxlength: 200, default: '' },
-    status: { type: String, enum: ['draft', 'open', 'closed'], default: 'draft', index: true },
-    reviewStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
+    formattedAddress: { type: String, trim: true, maxlength: 300, default: '' },
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
+    status: {
+      type: String,
+      enum: ['draft', 'pending_verification', 'verified', 'rejected', 'closed', 'open'],
+      default: 'draft',
+      index: true,
+    },
+    reviewStatus: { type: String, enum: ['draft', 'pending', 'approved', 'rejected'], default: 'pending', index: true },
     reviewReason: { type: String, trim: true, maxlength: 500, default: '' },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     reviewedAt: { type: Date },
@@ -58,10 +81,12 @@ jobListingSchema.pre('validate', function validateJobDates(next) {
   }
   if (this.interviewDate && this.interviewDate.getTime() < now) this.invalidate('interviewDate', 'Interview date cannot be in the past');
   if (this.applicationDeadline && this.applicationDeadline.getTime() < now) this.invalidate('applicationDeadline', 'Application deadline cannot be in the past');
+  if (this.startDate && Number.isNaN(this.startDate.getTime())) this.invalidate('startDate', 'Start date is invalid');
   next();
 });
 
 jobListingSchema.index({ providerId: 1, archivedAt: 1, createdAt: -1 });
+jobListingSchema.index({ providerId: 1, companyId: 1, archivedAt: 1, updatedAt: -1 });
 jobListingSchema.index({ reviewStatus: 1, status: 1, createdAt: -1 });
 jobListingSchema.index({ companyId: 1, status: 1, reviewStatus: 1 });
 

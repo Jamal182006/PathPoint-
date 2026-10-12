@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import AddressMap from '../common/AddressMap';
+import { validateJob } from './jobValidation';
+import { readJobDraft, removeJobDraft, writeJobDraft } from './jobDraftStorage';
 
 const types = [
   ['full_time', 'Full-time'], ['part_time', 'Part-time'], ['contract', 'Contract'],
   ['temporary', 'Temporary'], ['internship', 'Internship'], ['casual', 'Casual'],
 ];
+const steps = ['Basics & location', 'Requirements', 'Compensation', 'Role details', 'Review'];
 const fileTypes = [['application/pdf', 'PDF'], ['image/jpeg', 'JPG'], ['image/png', 'PNG']];
 const emptyRequirement = (type = 'file') => ({
   type,
@@ -26,15 +30,21 @@ const localDate = (value) => {
   return Number.isNaN(date.getTime()) || date.getTime() < Date.now() ? '' : date.toISOString().slice(0, 10);
 };
 
-const JobEditor = ({ initialJob, companyName, saving, onSave, onCancel }) => {
-  const [job, setJob] = useState({
+const createInitialJob = (initialJob, company) => ({
     title: initialJob?.title || '',
+    category: initialJob?.category || company?.category || '',
     description: initialJob?.description || '',
+    responsibilities: initialJob?.responsibilities || [],
+    qualifications: initialJob?.qualifications || [],
+    skills: initialJob?.skills || [],
     requirements: (initialJob?.requirements || []).map((requirement) => ({ ...requirement, allowedFileTypes: requirement.allowedFileTypes || [] })),
     salaryType: initialJob?.salaryType || 'range',
     salaryMin: initialJob?.salaryMin ?? '',
     salaryMax: initialJob?.salaryMax ?? '',
     salaryPayPeriod: initialJob?.salaryPayPeriod || 'month',
+    currency: initialJob?.currency || 'USD',
+    salaryNegotiable: initialJob?.salaryNegotiable || false,
+    benefits: initialJob?.benefits || [],
     interviewerName: initialJob?.interviewerName || '',
     interviewerPosition: initialJob?.interviewerPosition || '',
     interviewerContact: initialJob?.interviewerContact || '',
@@ -44,9 +54,51 @@ const JobEditor = ({ initialJob, companyName, saving, onSave, onCancel }) => {
     slots: initialJob?.slots || 1,
     applicationDeadline: localDate(initialJob?.applicationDeadline),
     employmentType: initialJob?.employmentType || 'full_time',
-    location: initialJob?.location || '',
+    workSetup: initialJob?.workSetup || 'on_site',
+    experienceLevel: initialJob?.experienceLevel || '',
+    educationLevel: initialJob?.educationLevel || '',
+    dressCode: initialJob?.dressCode || '',
+    workSchedule: initialJob?.workSchedule || '',
+    startDate: localDate(initialJob?.startDate),
+    contactName: initialJob?.contactName || '',
+    contactEmail: initialJob?.contactEmail || '',
+    location: initialJob?.location || company?.location || '',
+    formattedAddress: initialJob?.formattedAddress || company?.formattedAddress || '',
+    latitude: initialJob?.latitude ?? company?.latitude ?? '',
+    longitude: initialJob?.longitude ?? company?.longitude ?? '',
+    useCompanyLocation: initialJob ? false : true,
   });
+
+const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel, onDirtyChange, draftKey }) => {
+  const [recoveredDraft, setRecoveredDraft] = useState(null);
+  const [job, setJob] = useState(() => createInitialJob(initialJob, company));
   const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [draftStatus, setDraftStatus] = useState('');
+  const markDirty = () => { setDirty(true); onDirtyChange?.(true); };
+
+  useEffect(() => {
+    const draft = readJobDraft(window.localStorage, draftKey);
+    if (draft) setRecoveredDraft(draft);
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!dirty || recoveredDraft || !draftKey) return undefined;
+    setDraftStatus('Saving this device draft…');
+    const timeout = window.setTimeout(() => {
+      const saved = writeJobDraft(window.localStorage, draftKey, { job, currentStep });
+      setDraftStatus(saved ? `Draft saved on this device at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Could not save a browser draft.');
+    }, 500);
+    return () => window.clearTimeout(timeout);
+  }, [dirty, recoveredDraft, draftKey, job, currentStep]);
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warnBeforeLeave = (event) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warnBeforeLeave);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeave);
+  }, [dirty]);
 
   const updateRequirement = (index, changes) => setJob((current) => ({
     ...current,
@@ -61,41 +113,104 @@ const JobEditor = ({ initialJob, companyName, saving, onSave, onCancel }) => {
     return { ...current, requirements: requirements.map((requirement, order) => ({ ...requirement, order })) };
   });
 
+  const validateCurrentStep = () => {
+    if (currentStep === 0 && (!job.title.trim() || !job.category.trim() || !job.description.trim())) {
+      return 'Enter the job title, category, and description before continuing.';
+    }
+    if (currentStep === 1 && job.requirements.some((requirement) => !requirement.title.trim() || (requirement.type === 'file' && !requirement.allowedFileTypes.length))) {
+      return 'Complete each requirement or remove it before continuing.';
+    }
+    if (currentStep === 2) {
+      if (!Number.isInteger(Number(job.slots)) || Number(job.slots) < 1 || Number(job.slots) > 10000) return 'Openings must be a whole number between 1 and 10000.';
+      if (job.salaryMin !== '' && job.salaryMax !== '' && Number(job.salaryMin) > Number(job.salaryMax)) return 'Minimum salary cannot exceed maximum salary.';
+      if (!/^[A-Z]{3}$/.test(String(job.currency || '').trim().toUpperCase())) return 'Currency must be a three-letter code.';
+    }
+    if (currentStep === 3 && job.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(job.contactEmail.trim())) {
+      return 'Enter a valid contact email before continuing.';
+    }
+    return '';
+  };
+
+  const continueStep = () => {
+    const validationError = validateCurrentStep();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError('');
+    setCurrentStep((step) => Math.min(steps.length - 1, step + 1));
+  };
+
+  const restoreDraft = () => {
+    if (!recoveredDraft) return;
+    setJob({ ...createInitialJob(initialJob, company), ...recoveredDraft.job });
+    setCurrentStep(recoveredDraft.currentStep);
+    setRecoveredDraft(null);
+    setError('');
+    markDirty();
+  };
+
+  const discardDraft = () => {
+    removeJobDraft(window.localStorage, draftKey);
+    setRecoveredDraft(null);
+    setDraftStatus('');
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
-    if (job.salaryMin !== '' && job.salaryMax !== '' && Number(job.salaryMin) > Number(job.salaryMax)) {
-      setError('Minimum salary cannot exceed maximum salary.');
-      return;
-    }
-    if (job.requirements.some((requirement) => !requirement.title.trim() || (requirement.type === 'file' && !requirement.allowedFileTypes.length))) {
-      setError('Every requirement needs a title and file requirements need an allowed file type.');
+    const workflowAction = event.nativeEvent.submitter?.value || 'submit';
+    const validationError = validateJob(job);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     try {
       await onSave({
         ...job,
+        workflowAction,
+        responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities : job.responsibilities.split('\n').map((value) => value.trim()).filter(Boolean),
+        qualifications: Array.isArray(job.qualifications) ? job.qualifications : job.qualifications.split('\n').map((value) => value.trim()).filter(Boolean),
+        skills: Array.isArray(job.skills) ? job.skills : job.skills.split(',').map((value) => value.trim()).filter(Boolean),
+        benefits: Array.isArray(job.benefits) ? job.benefits : job.benefits.split('\n').map((value) => value.trim()).filter(Boolean),
         salaryMin: job.salaryMin === '' ? undefined : Number(job.salaryMin),
         salaryMax: job.salaryMax === '' ? undefined : Number(job.salaryMax),
         slots: Number(job.slots),
+        startDate: job.startDate ? new Date(`${job.startDate}T00:00:00`).toISOString() : undefined,
         interviewDate: job.interviewDate ? new Date(job.interviewDate).toISOString() : undefined,
         applicationDeadline: job.applicationDeadline ? new Date(`${job.applicationDeadline}T23:59:59`).toISOString() : undefined,
         requirements: job.requirements.map((requirement, order) => ({ ...requirement, order })),
       });
+      removeJobDraft(window.localStorage, draftKey);
+      setDraftStatus('');
+      setDirty(false);
+      onDirtyChange?.(false);
     } catch (saveError) {
       setError(saveError.message || 'Unable to save the job listing.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} onChange={markDirty} onInput={markDirty} onClickCapture={(event) => { if (event.target.closest('.leaflet-container')) markDirty(); }} className="space-y-6">
       {error && <p role="alert" className="border-l-4 border-rose-500 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
-      <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-2">
+      {recoveredDraft && <section role="status" className="flex flex-col justify-between gap-3 border border-indigo-200 bg-indigo-50 p-4 sm:flex-row sm:items-center"><div><h2 className="text-sm font-semibold text-indigo-950">Unfinished job draft found</h2><p className="mt-1 text-xs text-indigo-800">Saved on this device {new Date(recoveredDraft.savedAt).toLocaleString()}. Restore it and continue where you left off?</p></div><div className="flex shrink-0 gap-2"><button type="button" onClick={discardDraft} className="rounded-md border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-800">Discard</button><button type="button" onClick={restoreDraft} className="rounded-md bg-indigo-700 px-3 py-2 text-xs font-semibold text-white">Restore draft</button></div></section>}
+      <p aria-live="polite" className="min-h-4 text-right text-[11px] text-slate-500">{draftStatus}</p>
+      <nav aria-label="Job listing steps" className="border-b border-slate-200 pb-4">
+        <p className="mb-3 text-xs font-semibold text-slate-600">Step {currentStep + 1} of {steps.length}: {steps[currentStep]}</p>
+        <ol className="grid grid-cols-5 gap-2">
+          {steps.map((step, index) => <li key={step}><button type="button" disabled={index > currentStep} aria-current={currentStep === index ? 'step' : undefined} onClick={() => { setCurrentStep(index); setError(''); }} className={`w-full border-t-2 pt-2 text-left text-[10px] font-semibold sm:text-xs ${currentStep === index ? 'border-indigo-700 text-indigo-800' : index < currentStep ? 'border-emerald-600 text-slate-700' : 'border-slate-200 text-slate-400'} disabled:cursor-default`}>{step}</button></li>)}
+        </ol>
+      </nav>
+
+      {currentStep === 0 && <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-2">
         <label className="text-sm font-semibold text-slate-700">Company
           <input readOnly value={companyName || initialJob?.companyId?.name || ''} className="mt-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-normal" />
         </label>
         <label className="text-sm font-semibold text-slate-700">Job title *
           <input required maxLength={160} value={job.title} onChange={(event) => setJob({ ...job, title: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
+        </label>
+        <label className="text-sm font-semibold text-slate-700">Category *
+          <input required maxLength={100} value={job.category} onChange={(event) => setJob({ ...job, category: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
         </label>
         <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Description *
           <textarea required maxLength={10000} rows={6} value={job.description} onChange={(event) => setJob({ ...job, description: event.target.value })} className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
@@ -105,27 +220,74 @@ const JobEditor = ({ initialJob, companyName, saving, onSave, onCancel }) => {
             {types.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
-        <label className="text-sm font-semibold text-slate-700">Work location
-          <input maxLength={200} value={job.location} onChange={(event) => setJob({ ...job, location: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
+        <label className="text-sm font-semibold text-slate-700">Work setup
+          <select value={job.workSetup} onChange={(event) => setJob({ ...job, workSetup: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal"><option value="on_site">On-site</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option></select>
         </label>
-      </section>
+        <section aria-labelledby="job-location-heading" className="space-y-3 border-t border-slate-200 pt-4 sm:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div><h3 id="job-location-heading" className="text-sm font-semibold text-slate-800">Work location</h3><p className="mt-0.5 text-xs text-slate-500">Choose the company address or set a location just for this job.</p></div>
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={job.useCompanyLocation} onChange={(event) => { const checked = event.target.checked; setJob((current) => ({ ...current, useCompanyLocation: checked, location: checked ? (company?.location || '') : '', formattedAddress: checked ? (company?.formattedAddress || '') : '', latitude: checked ? (company?.latitude ?? '') : '', longitude: checked ? (company?.longitude ?? '') : '' })); markDirty(); }} />Use company location</label>
+          </div>
+          {job.useCompanyLocation
+            ? <AddressMap readOnly compact className="h-40" location={company?.location || job.location} formattedAddress={company?.formattedAddress || job.formattedAddress} latitude={company?.latitude ?? job.latitude} longitude={company?.longitude ?? job.longitude} />
+            : <AddressMap location={job.location} formattedAddress={job.formattedAddress} latitude={job.latitude} longitude={job.longitude} onChange={(coordinates) => { setJob((current) => ({ ...current, ...coordinates })); markDirty(); }} />}
+        </section>
+      </section>}
 
-      <section className="space-y-3 border-b border-slate-200 pb-6">
+      {currentStep === 1 && <section className="space-y-3 border-b border-slate-200 pb-6">
         <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-base font-bold text-slate-900">Applicant requirements</h2><p className="mt-1 text-xs text-slate-500">Choose file uploads or short text responses and order them for applicants.</p></div><label className="flex items-center gap-2 text-xs font-semibold text-slate-600">Add<select value="" onChange={(event) => { if (event.target.value) setJob((current) => ({ ...current, requirements: [...current.requirements, emptyRequirement(event.target.value)] })); }} className="rounded-md border border-slate-300 bg-white px-2 py-2"><option value="" disabled>Requirement type</option><option value="file">File upload</option><option value="text">Text response</option></select></label></div>
         {job.requirements.map((requirement, index) => <fieldset key={requirement._id || index} className="border-y border-slate-200 py-4"><div className="flex items-center justify-between"><legend className="text-xs font-bold uppercase text-indigo-700">{requirement.type === 'file' ? 'File upload' : 'Text response'}</legend><div className="flex gap-1"><button type="button" disabled={!index} onClick={() => moveRequirement(index, -1)} aria-label="Move requirement up" className="rounded p-1.5 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button><button type="button" disabled={index === job.requirements.length - 1} onClick={() => moveRequirement(index, 1)} aria-label="Move requirement down" className="rounded p-1.5 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button><button type="button" onClick={() => setJob((current) => ({ ...current, requirements: current.requirements.filter((_item, itemIndex) => itemIndex !== index) }))} aria-label="Remove requirement" className="rounded p-1.5 text-rose-700 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button></div></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-slate-700">Requirement title<input value={requirement.title} onChange={(event) => updateRequirement(index, { title: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label><label className="flex items-center gap-2 self-end pb-2 text-xs font-semibold text-slate-700"><input type="checkbox" checked={requirement.isRequired} onChange={(event) => updateRequirement(index, { isRequired: event.target.checked })} />Required</label><label className="text-xs font-semibold text-slate-700 sm:col-span-2">Instructions<textarea rows={2} maxLength={1500} value={requirement.description} onChange={(event) => updateRequirement(index, { description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>{requirement.type === 'file' && <><fieldset className="sm:col-span-2"><legend className="text-xs font-semibold text-slate-700">Allowed file types</legend><div className="mt-2 flex gap-4">{fileTypes.map(([mime, label]) => <label key={mime} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={requirement.allowedFileTypes.includes(mime)} onChange={(event) => updateRequirement(index, { allowedFileTypes: event.target.checked ? [...requirement.allowedFileTypes, mime] : requirement.allowedFileTypes.filter((item) => item !== mime) })} />{label}</label>)}</div></fieldset><label className="text-xs font-semibold text-slate-700">Max size (MB)<input type="number" min="0.1" max="10" step="0.1" value={requirement.maxSizeMB} onChange={(event) => updateRequirement(index, { maxSizeMB: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label></>}</div></fieldset>)}
         {!job.requirements.length && <p className="border-y border-dashed border-slate-300 py-7 text-center text-sm text-slate-500">No requirements added.</p>}
-      </section>
+      </section>}
 
-      <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-3">
+      {currentStep === 2 && <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-3">
         <label className="text-sm font-semibold text-slate-700">Salary type<select value={job.salaryType} onChange={(event) => setJob({ ...job, salaryType: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal"><option value="range">Range</option><option value="fixed">Fixed</option></select></label>
         <label className="text-sm font-semibold text-slate-700">Minimum pay<input type="number" min="0" step="0.01" value={job.salaryMin} onChange={(event) => setJob({ ...job, salaryMin: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
         <label className="text-sm font-semibold text-slate-700">Maximum pay<input type="number" min="0" step="0.01" value={job.salaryMax} onChange={(event) => setJob({ ...job, salaryMax: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Currency<input required maxLength={3} minLength={3} value={job.currency} onChange={(event) => setJob({ ...job, currency: event.target.value.toUpperCase() })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={job.salaryNegotiable} onChange={(event) => setJob({ ...job, salaryNegotiable: event.target.checked })} />Negotiable</label>
         <label className="text-sm font-semibold text-slate-700">Pay period<select value={job.salaryPayPeriod} onChange={(event) => setJob({ ...job, salaryPayPeriod: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal">{['hour', 'day', 'week', 'month', 'year', 'project'].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
         <label className="text-sm font-semibold text-slate-700">Open slots<input type="number" required min="1" max="10000" value={job.slots} onChange={(event) => setJob({ ...job, slots: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
         <label className="text-sm font-semibold text-slate-700">Application deadline<input type="date" value={job.applicationDeadline} onChange={(event) => setJob({ ...job, applicationDeadline: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
-      </section>
+        <label className="text-sm font-semibold text-slate-700">Benefits<textarea rows={2} value={Array.isArray(job.benefits) ? job.benefits.join('\n') : job.benefits} onChange={(event) => setJob({ ...job, benefits: event.target.value })} placeholder="One benefit per line" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+      </section>}
 
+      {currentStep === 3 && <>
       <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-2">
+        <label className="text-sm font-semibold text-slate-700">Experience level<input maxLength={80} value={job.experienceLevel} onChange={(event) => setJob({ ...job, experienceLevel: event.target.value })} placeholder="Entry, mid, senior" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Education level<input maxLength={120} value={job.educationLevel} onChange={(event) => setJob({ ...job, educationLevel: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Skills (comma separated)<input value={Array.isArray(job.skills) ? job.skills.join(', ') : job.skills} onChange={(event) => setJob({ ...job, skills: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Responsibilities<textarea rows={3} value={Array.isArray(job.responsibilities) ? job.responsibilities.join('\n') : job.responsibilities} onChange={(event) => setJob({ ...job, responsibilities: event.target.value })} placeholder="One responsibility per line" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Qualifications<textarea rows={3} value={Array.isArray(job.qualifications) ? job.qualifications.join('\n') : job.qualifications} onChange={(event) => setJob({ ...job, qualifications: event.target.value })} placeholder="One qualification per line" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Dress code<textarea rows={2} maxLength={500} value={job.dressCode} onChange={(event) => setJob({ ...job, dressCode: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Schedule / shifts<textarea rows={2} maxLength={500} value={job.workSchedule} onChange={(event) => setJob({ ...job, workSchedule: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Start date<input type="date" value={job.startDate} onChange={(event) => setJob({ ...job, startDate: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Contact person<input maxLength={120} value={job.contactName} onChange={(event) => setJob({ ...job, contactName: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+        <label className="text-sm font-semibold text-slate-700">Contact email<input type="email" maxLength={254} value={job.contactEmail} onChange={(event) => setJob({ ...job, contactEmail: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+      </section>
+      </>}
+
+      {currentStep === 4 && <section className="space-y-4 border-b border-slate-200 pb-6">
+        <div><h2 className="text-base font-bold text-slate-900">Review job listing</h2><p className="mt-1 text-sm text-slate-600">Check the details before saving this draft or sending it for admin review.</p></div>
+        <dl className="grid gap-x-6 gap-y-3 border-y border-slate-200 py-4 text-sm sm:grid-cols-2">
+          {[
+            ['Company', companyName || initialJob?.companyId?.name || 'Company'],
+            ['Position', job.title || 'Not entered'],
+            ['Category', job.category || 'Not entered'],
+            ['Employment', job.employmentType.replaceAll('_', ' ')],
+            ['Work setup', job.workSetup.replaceAll('_', '-')],
+            ['Location', job.formattedAddress || job.location || company?.location || 'Not listed'],
+            ['Openings', String(job.slots || 1)],
+            ['Compensation', job.salaryNegotiable ? 'Negotiable' : job.salaryMin !== '' ? `${job.currency} ${job.salaryMin}${job.salaryMax !== '' ? `–${job.salaryMax}` : ''} per ${job.salaryPayPeriod}` : 'Not listed'],
+            ['Deadline', job.applicationDeadline || 'No deadline'],
+            ['Requirements', `${job.requirements.length} item${job.requirements.length === 1 ? '' : 's'}`],
+          ].map(([label, value]) => <div key={label}><dt className="text-xs font-semibold text-slate-500">{label}</dt><dd className="mt-1 break-words font-medium text-slate-900">{value}</dd></div>)}
+        </dl>
+        <div><h3 className="text-sm font-semibold text-slate-800">Description</h3><p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-600">{job.description || 'No description entered.'}</p></div>
+        <div><h3 className="text-sm font-semibold text-slate-800">Applicant requirements</h3>{job.requirements.length ? <ul className="mt-1 list-disc pl-5 text-sm text-slate-600">{job.requirements.map((requirement, index) => <li key={requirement._id || index}>{requirement.title || 'Untitled requirement'}{requirement.isRequired ? ' (required)' : ' (optional)'}</li>)}</ul> : <p className="mt-1 text-sm text-slate-600">None added.</p>}</div>
+      </section>}
+
+      {currentStep === 3 && <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-2">
         <label className="text-sm font-semibold text-slate-700">Interviewer name<input maxLength={120} value={job.interviewerName} onChange={(event) => setJob({ ...job, interviewerName: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
         <label className="text-sm font-semibold text-slate-700">Position<input maxLength={120} value={job.interviewerPosition} onChange={(event) => setJob({ ...job, interviewerPosition: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
         <label className="text-sm font-semibold text-slate-700">Contact<input maxLength={200} value={job.interviewerContact} onChange={(event) => setJob({ ...job, interviewerContact: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
@@ -133,8 +295,9 @@ const JobEditor = ({ initialJob, companyName, saving, onSave, onCancel }) => {
         <label className="text-sm font-semibold text-slate-700">Interview location<input maxLength={300} value={job.interviewLocation} onChange={(event) => setJob({ ...job, interviewLocation: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
         <label className="text-sm font-semibold text-slate-700">Interview link<input type="url" maxLength={500} value={job.interviewLink} onChange={(event) => setJob({ ...job, interviewLink: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
       </section>
+      }
 
-      <div className="flex justify-end gap-2"><button type="button" onClick={onCancel} disabled={saving} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold">Cancel</button><button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Plus className="h-4 w-4" />{saving ? 'Saving…' : 'Save draft for review'}</button></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-4"><button type="button" onClick={() => { if (dirty && !window.confirm('Discard unsaved job changes?')) return; discardDraft(); onCancel(); }} disabled={saving} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold">Cancel</button><div className="flex flex-wrap justify-end gap-2">{currentStep > 0 && <button type="button" disabled={saving} onClick={() => { setError(''); setCurrentStep((step) => Math.max(0, step - 1)); }} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">Back</button>}{currentStep < steps.length - 1 ? <button type="button" disabled={saving} onClick={continueStep} className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Continue</button> : <><button type="submit" value="draft" disabled={saving} className="inline-flex items-center gap-2 rounded-md border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800 disabled:opacity-50">{saving ? 'Saving…' : 'Save as draft'}</button><button type="submit" value="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"><Plus className="h-4 w-4" />{saving ? 'Submitting…' : 'Submit for admin review'}</button></>}</div></div>
     </form>
   );
 };

@@ -12,7 +12,9 @@ import CompanyApplication from '../models/CompanyApplication.js';
 import JobListing from '../models/JobListing.js';
 import JobApplication from '../models/JobApplication.js';
 import WorkLog from '../models/WorkLog.js';
-import { createCompany, getMyCompany, getPublicCompanies } from './companyController.js';
+import Notification from '../models/Notification.js';
+import ActivityLog from '../models/ActivityLog.js';
+import { createCompany, getMyCompany, getPublicCompanies, getPublicCompany } from './companyController.js';
 import {
   getProviderCompanyApplications,
   downloadCompanyApplicationFile,
@@ -21,11 +23,12 @@ import {
 } from './companyApplicationController.js';
 import { getCompanyUploadDirectory } from '../utils/companyUpload.js';
 import { migrateLegacyProviderCompany } from '../utils/legacyCompanyMigration.js';
-import { adminReviewJob, createJob, getPublicJobs, updateProviderJobStatus } from './jobController.js';
-import { getApplicantJobApplications, submitJobApplication, updateProviderJobApplication } from './jobApplicationController.js';
+import { adminListJobs, adminReviewJob, createJob, getProviderJobs, getPublicJobs, updateProviderJob, updateProviderJobStatus } from './jobController.js';
+import { getApplicantJobApplicationDraft, getApplicantJobApplications, getProviderJobApplications, saveJobApplicationDraft, submitJobApplication, updateProviderJobApplication } from './jobApplicationController.js';
 import { createWorkLog, listWorkLogs } from './workLogController.js';
 import { updateApplication as updateTrackerApplication } from './applicationController.js';
 import adminRoutes from '../routes/adminRoutes.js';
+import { listMyNotifications, markNotificationRead } from './notificationController.js';
 
 let memoryServer;
 const testFilePaths = new Set();
@@ -74,11 +77,11 @@ const adminRouteHandler = (routePath, method) => {
 before(async () => {
   memoryServer = await MongoMemoryServer.create();
   await mongoose.connect(memoryServer.getUri());
-  await Promise.all([User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog].map((model) => model.createIndexes()));
+  await Promise.all([User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog, Notification, ActivityLog].map((model) => model.createIndexes()));
 });
 
 beforeEach(async () => {
-  await Promise.all([User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog].map((model) => model.deleteMany({})));
+  await Promise.all([User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog, Notification, ActivityLog].map((model) => model.deleteMany({})));
 });
 
 after(async () => {
@@ -97,12 +100,19 @@ test('providers can only read and manage their own company records', async () =>
     body: {
       name: 'Northwind Studio',
       category: 'Design',
+      size: '11-50 employees',
+      website: 'https://northwind.example',
+      locations: ['Oakland', 'San Francisco'],
       requirements: [{ type: 'document', title: 'Resume', isRequired: true, allowedFileTypes: ['application/pdf'] }],
     },
   }, createResponse);
 
   assert.equal(createResponse.statusCode, 201);
   assert.equal(createResponse.body.data.status, 'pending');
+  assert.equal(createResponse.body.data.organizationType, 'company');
+  assert.deepEqual(createResponse.body.data.locations, ['Oakland', 'San Francisco']);
+  assert.equal(createResponse.body.data.size, '11-50 employees');
+  assert.equal(createResponse.body.data.website, 'https://northwind.example');
   const companyId = String(createResponse.body.data._id);
   const ownerResponse = response();
   await getMyCompany({ user: provider, params: { companyId } }, ownerResponse);
@@ -111,6 +121,15 @@ test('providers can only read and manage their own company records', async () =>
   const unauthorizedResponse = response();
   await getMyCompany({ user: otherProvider, params: { companyId } }, unauthorizedResponse);
   assert.equal(unauthorizedResponse.statusCode, 404);
+
+  const businessResponse = response();
+  await createCompany({ user: provider, body: { organizationType: 'business', name: 'Riverside Market', category: 'Retail' } }, businessResponse);
+  assert.equal(businessResponse.statusCode, 201);
+  assert.equal(businessResponse.body.data.organizationType, 'business');
+
+  const invalidTypeResponse = response();
+  await createCompany({ user: provider, body: { organizationType: 'nonprofit', name: 'Invalid Listing', category: 'Other' } }, invalidTypeResponse);
+  assert.equal(invalidTypeResponse.statusCode, 400);
 });
 
 test('legacy provider migration defaults to pending, preserves approved status, and is idempotent', async () => {
@@ -139,20 +158,112 @@ test('legacy provider migration defaults to pending, preserves approved status, 
   assert.equal((await Company.findOne({ providerId: approvedProvider._id })).status, 'approved');
 });
 
-test('public company directory only returns approved companies owned by verified providers', async () => {
+test('public directory and applications include pending listings from verified providers', async () => {
   const verifiedProvider = await createUser('provider', 'Public Provider', 'approved');
   const pendingProvider = await createUser('provider', 'Pending Provider', 'pending');
-  await Company.create([
+  const [approvedCompany, pendingCompany] = await Company.create([
     { providerId: verifiedProvider._id, name: 'Approved Listing', category: 'Technology', status: 'approved' },
+    { providerId: verifiedProvider._id, name: 'Pending Listing', category: 'Technology', status: 'pending' },
+    { providerId: verifiedProvider._id, name: 'Rejected Listing', category: 'Technology', status: 'rejected' },
     { providerId: pendingProvider._id, name: 'Blocked Listing', category: 'Technology', status: 'approved' },
-    { providerId: verifiedProvider._id, name: 'Pending Company', category: 'Technology', status: 'pending' },
   ]);
+  await CompanyApplication.create({ companyId: approvedCompany._id, applicantId: (await createUser('user', 'Directory Applicant'))._id });
 
   const res = response();
   await getPublicCompanies({}, res);
   assert.equal(res.statusCode, 200);
-  assert.equal(res.body.count, 1);
-  assert.equal(res.body.data[0].name, 'Approved Listing');
+  assert.equal(res.body.count, 2);
+  assert.deepEqual(new Set(res.body.data.map(({ name }) => name)), new Set(['Approved Listing', 'Pending Listing']));
+  assert.equal(res.body.data.find(({ name }) => name === 'Approved Listing').applicantCount, 1);
+
+  const pendingDetail = response();
+  await getPublicCompany({ params: { companyId: String(pendingCompany._id) } }, pendingDetail);
+  assert.equal(pendingDetail.statusCode, 200);
+
+  const applicant = await createUser('user', 'Pending Listing Applicant');
+  const application = response();
+  await submitCompanyApplication({ user: applicant, params: { companyId: String(pendingCompany._id) }, body: {}, files: [] }, application);
+  assert.equal(application.statusCode, 201);
+  assert.equal(String(application.body.data.companyId), String(pendingCompany._id));
+});
+
+test('typed application answers, change requests, resubmission, and notifications stay connected', async () => {
+  const provider = await createUser('provider', 'Workflow Provider', 'approved');
+  const applicant = await createUser('user', 'Workflow Applicant');
+  const otherApplicant = await createUser('user', 'Other Workflow Applicant');
+  const company = await Company.create({
+    providerId: provider._id,
+    name: 'Workflow Company',
+    category: 'Technology',
+    status: 'approved',
+    requirements: [
+      { type: 'text', title: 'Experience', isRequired: true, order: 0 },
+      { type: 'select', title: 'Work mode', isRequired: true, options: ['Remote', 'On-site'], order: 1 },
+    ],
+  });
+  const requirements = company.requirements;
+  const missingAnswer = response();
+  await submitCompanyApplication({
+    user: applicant,
+    params: { companyId: String(company._id) },
+    body: { formData: JSON.stringify({ [requirements[0]._id]: 'Three years' }) },
+    files: [],
+  }, missingAnswer);
+  assert.equal(missingAnswer.statusCode, 400);
+  assert.match(missingAnswer.body.message, /work mode is required/i);
+
+  const submitted = response();
+  await submitCompanyApplication({
+    user: applicant,
+    params: { companyId: String(company._id) },
+    body: { formData: JSON.stringify({ [requirements[0]._id]: 'Three years', [requirements[1]._id]: 'Remote' }) },
+    files: [],
+  }, submitted);
+  assert.equal(submitted.statusCode, 201);
+  const applicationId = submitted.body.data.id;
+  assert.equal(submitted.body.data.formData[String(requirements[1]._id)], 'Remote');
+
+  const missingComment = response();
+  await updateCompanyApplicationStatus({
+    user: provider,
+    params: { applicationId },
+    body: { status: 'changes_requested' },
+  }, missingComment);
+  assert.equal(missingComment.statusCode, 400);
+
+  const changeRequest = response();
+  await updateCompanyApplicationStatus({
+    user: provider,
+    params: { applicationId },
+    body: { status: 'changes_requested', providerNote: 'Please add more detail.' },
+  }, changeRequest);
+  assert.equal(changeRequest.statusCode, 200);
+  assert.equal(changeRequest.body.data.status, 'changes_requested');
+
+  const resubmitted = response();
+  await submitCompanyApplication({
+    user: applicant,
+    params: { companyId: String(company._id) },
+    body: { formData: JSON.stringify({ [requirements[0]._id]: 'Five years', [requirements[1]._id]: 'On-site' }) },
+    files: [],
+  }, resubmitted);
+  assert.equal(resubmitted.statusCode, 200);
+  assert.equal(resubmitted.body.data.id, applicationId);
+  assert.equal(resubmitted.body.data.status, 'submitted');
+  assert.equal(resubmitted.body.data.formData[String(requirements[0]._id)], 'Five years');
+
+  const applicantNotifications = response();
+  await listMyNotifications({ user: applicant }, applicantNotifications);
+  assert.equal(applicantNotifications.body.unreadCount, 1);
+  assert.match(applicantNotifications.body.data[0].message, /changes requested/i);
+  const otherNotifications = response();
+  await listMyNotifications({ user: otherApplicant }, otherNotifications);
+  assert.equal(otherNotifications.body.unreadCount, 0);
+
+  const crossUserRead = response();
+  await markNotificationRead({ user: otherApplicant, params: { notificationId: String(applicantNotifications.body.data[0]._id) } }, crossUserRead);
+  assert.equal(crossUserRead.statusCode, 404);
+  assert.ok(await ActivityLog.countDocuments({ targetType: 'companyApplication', targetId: applicationId }));
 });
 
 test('applications require documents, validate files, prevent duplicates, and restrict provider actions', async () => {
@@ -336,6 +447,204 @@ test('job review gates publication and job applications are unique and status up
   assert.equal(applicantList.body.data[0].status, 'interview_scheduled');
   assert.equal(applicantList.body.data[0].applicant.phone, '555-0100');
   assert.ok(applicantList.body.data[0].interviewDate);
+});
+
+test('company jobs inherit locations, validate new fields, and keep drafts out of admin review', async () => {
+  const provider = await createUser('provider', 'Company Job Provider', 'approved');
+  const otherProvider = await createUser('provider', 'Other Job Provider', 'approved');
+  const admin = await createUser('admin', 'Company Job Admin');
+  const company = await Company.create({
+    providerId: provider._id,
+    name: 'Mapped Employer',
+    category: 'Hospitality',
+    status: 'approved',
+    location: 'Oakland',
+    formattedAddress: '1 Market Street, Oakland',
+    latitude: 37.8044,
+    longitude: -122.2712,
+  });
+  const otherCompany = await Company.create({ providerId: otherProvider._id, name: 'Other Employer', category: 'Retail', status: 'approved' });
+
+  const draftResponse = response();
+  await createJob({
+    user: provider,
+    params: { companyId: String(company._id) },
+    body: {
+      title: 'Cafe Manager',
+      description: 'Lead the daily cafe team.',
+      employmentType: 'full_time',
+      workflowAction: 'draft',
+      responsibilities: ['Lead the team'],
+      skills: ['Scheduling'],
+      salaryNegotiable: true,
+      contactEmail: 'jobs@example.com',
+    },
+  }, draftResponse);
+  assert.equal(draftResponse.statusCode, 201);
+  assert.equal(draftResponse.body.data.reviewStatus, 'draft');
+  assert.equal(draftResponse.body.data.latitude, 37.8044);
+  assert.equal(draftResponse.body.data.longitude, -122.2712);
+  assert.equal(draftResponse.body.data.category, 'Hospitality');
+  assert.deepEqual(draftResponse.body.data.responsibilities, ['Lead the team']);
+  assert.deepEqual(draftResponse.body.data.skills, ['Scheduling']);
+  assert.equal(draftResponse.body.data.salaryNegotiable, true);
+
+  const pendingDraftReviews = response();
+  await adminListJobs({ query: { reviewStatus: 'pending' } }, pendingDraftReviews);
+  assert.equal(pendingDraftReviews.body.count, 0);
+
+  const invalidLocation = response();
+  await createJob({
+    user: provider,
+    params: { companyId: String(company._id) },
+    body: { title: 'Invalid map', description: 'Bad coordinate.', employmentType: 'full_time', latitude: 120, longitude: 0 },
+  }, invalidLocation);
+  assert.equal(invalidLocation.statusCode, 400);
+
+  const invalidContact = response();
+  await createJob({
+    user: provider,
+    params: { companyId: String(company._id) },
+    body: { title: 'Invalid contact', description: 'Bad email.', employmentType: 'full_time', workflowAction: 'draft', contactEmail: 'not-an-email' },
+  }, invalidContact);
+  assert.equal(invalidContact.statusCode, 400);
+
+  const foreignCompanyJob = response();
+  await createJob({
+    user: provider,
+    params: { companyId: String(otherCompany._id) },
+    body: { title: 'Unauthorized', description: 'Wrong owner.', employmentType: 'full_time' },
+  }, foreignCompanyJob);
+  assert.equal(foreignCompanyJob.statusCode, 403);
+
+  const submitResponse = response();
+  await createJob({
+    user: provider,
+    params: { companyId: String(company._id) },
+    body: { title: 'Cafe Cook', description: 'Prepare cafe meals.', employmentType: 'part_time', workflowAction: 'submit' },
+  }, submitResponse);
+  assert.equal(submitResponse.body.data.reviewStatus, 'pending');
+  assert.equal(submitResponse.body.data.status, 'pending_verification');
+  assert.equal(await Notification.countDocuments({ userId: admin._id }), 1);
+
+  const allSubmittedJobs = response();
+  await adminListJobs({ query: { reviewStatus: 'all' } }, allSubmittedJobs);
+  assert.equal(allSubmittedJobs.body.count, 1);
+
+  await Company.updateOne({ _id: company._id }, { $set: { status: 'pending' } });
+  const blockedResubmission = response();
+  await updateProviderJob({ user: provider, params: { jobId: String(submitResponse.body.data._id) }, body: { workflowAction: 'submit' } }, blockedResubmission);
+  assert.equal(blockedResubmission.statusCode, 403);
+  await Company.updateOne({ _id: company._id }, { $set: { status: 'approved' } });
+
+  const review = response();
+  await adminReviewJob({ user: admin, params: { jobId: String(submitResponse.body.data._id) }, body: { reviewStatus: 'approved' } }, review);
+  assert.equal(review.statusCode, 200);
+  assert.equal(await Notification.countDocuments({ userId: provider._id }), 1);
+
+  const providerJobs = response();
+  await getProviderJobs({ user: provider, query: { companyId: String(company._id) } }, providerJobs);
+  assert.equal(providerJobs.body.count, 2);
+});
+
+test('job application drafts persist to Mongo, resume files stay private, and submission is owner-scoped and unique', async () => {
+  const provider = await createUser('provider', 'Draft Job Provider', 'approved');
+  const applicant = await createUser('user', 'Draft Job Applicant');
+  const otherApplicant = await createUser('user', 'Other Draft Applicant');
+  const otherProvider = await createUser('provider', 'Other Job Provider', 'approved');
+  const company = await Company.create({ providerId: provider._id, name: 'Draft Employer', category: 'Technology', status: 'approved' });
+  const job = await JobListing.create({
+    providerId: provider._id,
+    companyId: company._id,
+    title: 'Developer',
+    description: 'Build and maintain software.',
+    employmentType: 'full_time',
+    status: 'open',
+    reviewStatus: 'approved',
+    slots: 2,
+    requirements: [
+      { type: 'text', title: 'Relevant experience', isRequired: true },
+      { type: 'file', title: 'Portfolio', isRequired: true, allowedFileTypes: ['application/pdf'] },
+    ],
+  });
+  const [textRequirement, fileRequirement] = job.requirements;
+  const resumeBuffer = Buffer.from('%PDF-1.7\nProfile resume content');
+  applicant.resume = {
+    fileName: 'profile-resume.pdf',
+    mimeType: 'application/pdf',
+    fileSize: resumeBuffer.length,
+    uploadedAt: new Date(),
+    documentData: resumeBuffer,
+  };
+  await applicant.save();
+  const portfolioBuffer = Buffer.from('%PDF-1.7\nPortfolio document');
+
+  const draftResponse = response();
+  await saveJobApplicationDraft({
+    user: applicant,
+    params: { jobId: String(job._id) },
+    body: {
+      applicantName: applicant.name,
+      applicantEmail: applicant.email,
+      draftStep: '3',
+      useProfileResume: 'true',
+      experience: 'Built production web applications.',
+      coverLetter: 'I am interested in the role.',
+      [`requirement-${textRequirement._id}`]: 'Three years of experience',
+    },
+    files: [{
+      fieldname: String(fileRequirement._id),
+      originalname: 'portfolio.pdf',
+      mimetype: 'application/pdf',
+      size: portfolioBuffer.length,
+      buffer: portfolioBuffer,
+    }],
+  }, draftResponse);
+  assert.equal(draftResponse.statusCode, 200);
+  assert.equal(draftResponse.body.data.status, 'draft');
+  assert.equal(draftResponse.body.data.draftStep, 3);
+  assert.equal(draftResponse.body.data.resume.fileName, 'profile-resume.pdf');
+
+  const storedDraft = await JobApplication.findById(draftResponse.body.data.id).select('+resume.documentData +responses.documentData');
+  assert.equal(storedDraft.status, 'draft');
+  assert.equal(storedDraft.resume.documentData.toString(), resumeBuffer.toString());
+  assert.equal(storedDraft.responses.find((responseEntry) => responseEntry.responseType === 'file').documentData.toString(), portfolioBuffer.toString());
+
+  const providerDraftList = response();
+  await getProviderJobApplications({ user: provider, params: { jobId: String(job._id) } }, providerDraftList);
+  assert.equal(providerDraftList.body.count, 0);
+  const otherApplicantDraft = response();
+  await getApplicantJobApplicationDraft({ user: otherApplicant, params: { jobId: String(job._id) } }, otherApplicantDraft);
+  assert.equal(otherApplicantDraft.body.data, null);
+
+  const submitResponse = response();
+  await submitJobApplication({
+    user: applicant,
+    params: { jobId: String(job._id) },
+    body: {
+      applicantName: applicant.name,
+      applicantEmail: applicant.email,
+      draftStep: '4',
+      useProfileResume: 'true',
+      [`requirement-${textRequirement._id}`]: 'Three years of experience',
+    },
+    files: [],
+  }, submitResponse);
+  assert.equal(submitResponse.statusCode, 201);
+  assert.equal(submitResponse.body.data.status, 'submitted');
+  assert.equal(submitResponse.body.data.responses.find((item) => item.kind === 'resume').fileName, 'profile-resume.pdf');
+  assert.equal((await JobListing.findById(job._id)).applicationCount, 1);
+
+  const ownerApplicants = response();
+  await getProviderJobApplications({ user: provider, params: { jobId: String(job._id) } }, ownerApplicants);
+  assert.equal(ownerApplicants.body.count, 1);
+  const unauthorizedApplicants = response();
+  await getProviderJobApplications({ user: otherProvider, params: { jobId: String(job._id) } }, unauthorizedApplicants);
+  assert.equal(unauthorizedApplicants.statusCode, 404);
+
+  const duplicateResponse = response();
+  await submitJobApplication({ user: applicant, params: { jobId: String(job._id) }, body: {}, files: [] }, duplicateResponse);
+  assert.equal(duplicateResponse.statusCode, 409);
 });
 
 test('work logs are owner-private and summaries reflect payment state', async () => {

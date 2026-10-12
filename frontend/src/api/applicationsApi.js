@@ -1,6 +1,11 @@
 import apiClient from './client';
 
 export const applicationsApi = {
+  getSubmissions: (params) => apiClient.get('/applications/submissions', { params }),
+  updateSubmission: (kind, id, payload) => apiClient.patch(`/applications/submissions/${kind}/${id}`, payload),
+  deleteSubmission: (kind, id) => apiClient.delete(`/applications/submissions/${kind}/${id}`),
+  importAll: (payload) => apiClient.post('/applications/import', payload),
+
   // Fetch user's applications with status or search filter
   getAll: (params) => apiClient.get('/applications', { params }),
 

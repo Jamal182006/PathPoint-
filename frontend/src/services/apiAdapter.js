@@ -5,19 +5,37 @@ import providersApi from '../api/providersApi';
 import companiesApi from '../api/companiesApi';
 import jobsApi from '../api/jobsApi';
 import workLogsApi from '../api/workLogsApi';
-import analyticsApi from '../api/analyticsApi';
+import pinsApi from '../api/pinsApi';
 import systemApi from '../api/systemApi';
 
 let backendAvailable = false;
 let checkPromise = null;
+let lastBackendCheckAt = 0;
+const HEALTH_CHECK_TTL_MS = 10000;
 
 export const checkBackendStatus = async (force = false) => {
-  if (!force && checkPromise) return checkPromise;
+  const now = Date.now();
+
+  if (!force && checkPromise) {
+    return checkPromise;
+  }
+
+  if (!force && now - lastBackendCheckAt < HEALTH_CHECK_TTL_MS && typeof backendAvailable === 'boolean') {
+    return backendAvailable;
+  }
 
   checkPromise = (async () => {
-    const health = await systemApi.checkHealth();
-    backendAvailable = health.online;
-    return backendAvailable;
+    try {
+      const health = await systemApi.checkHealth();
+      backendAvailable = Boolean(health?.online);
+      return backendAvailable;
+    } catch {
+      backendAvailable = false;
+      return false;
+    } finally {
+      lastBackendCheckAt = Date.now();
+      checkPromise = null;
+    }
   })();
 
   return checkPromise;
@@ -78,14 +96,14 @@ export const apiAdapter = {
   // ==========================================
   // AUTHENTICATION
   // ==========================================
-  login: async (email, password, rememberMe = true) => {
+  login: async (identifier, password, rememberMe = true) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
     }
 
     try {
-      const res = await authApi.login({ email, password, rememberMe, deviceToken: getTrustedDeviceToken() });
+      const res = await authApi.login({ identifier, password, rememberMe, deviceToken: getTrustedDeviceToken() });
       if (res.data?.success && res.data.token) {
         persistAuthSession(res.data.user, res.data.token, rememberMe);
         return { user: res.data.user, token: res.data.token, source: 'backend' };
@@ -101,14 +119,14 @@ export const apiAdapter = {
     }
   },
 
-  requestLoginCode: async (email, password, rememberMe = true) => {
+  requestLoginCode: async (identifier, password, rememberMe = true) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
     }
 
     try {
-      const res = await authApi.requestLoginCode({ email, password, rememberMe, deviceToken: getTrustedDeviceToken() });
+      const res = await authApi.requestLoginCode({ identifier, password, rememberMe, deviceToken: getTrustedDeviceToken() });
       if (res.data?.success) {
         persistTrustedDevice(res.data.trustedDeviceToken);
         if (res.data.token && res.data.user) {
@@ -135,7 +153,7 @@ export const apiAdapter = {
     }
   },
 
-  verifyLoginCode: async (email, password, code, rememberMe = true) => {
+  verifyLoginCode: async (identifier, password, code, rememberMe = true) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
@@ -143,7 +161,7 @@ export const apiAdapter = {
 
     try {
       const deviceToken = getTrustedDeviceToken();
-      const res = await authApi.verifyLoginCode({ email, password, code, rememberMe, deviceToken });
+      const res = await authApi.verifyLoginCode({ identifier, password, code, rememberMe, deviceToken });
       if (res.data?.success && res.data.token) {
         persistTrustedDevice(res.data.trustedDeviceToken || deviceToken);
         persistAuthSession(res.data.user, res.data.token, rememberMe);
@@ -158,17 +176,16 @@ export const apiAdapter = {
     }
   },
 
-  register: async ({ name, email, phone = '', address = '', password, role = 'user', careerTrack = 'General', businessProfile, businessDocument }, rememberMe = true) => {
+  register: async (userData, rememberMe = true) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The server is unavailable. Start the backend and connect MongoDB before creating an account.');
     }
 
     try {
-      const res = await authApi.register({ name, email, phone, address, password, role, careerTrack, businessProfile, businessDocument });
-      if (res.data?.success && res.data.token) {
-        persistAuthSession(res.data.user, res.data.token, rememberMe);
-        return { user: res.data.user, token: res.data.token, source: 'backend' };
+      const res = await authApi.register(userData);
+      if (res.data?.success && res.data.user) {
+        return { user: res.data.user, token: res.data.token || null, source: 'backend' };
       }
       throw new Error(res.data?.message || 'Registration failed');
     } catch (err) {
@@ -176,6 +193,16 @@ export const apiAdapter = {
         throw new Error(err.response.data.message);
       }
       throw new Error('Unable to reach the registration server. Please try again.');
+    }
+  },
+
+  checkUsernameAvailability: async (username) => {
+    try {
+      const res = await authApi.checkUsernameAvailability(username);
+      return res.data;
+    } catch (err) {
+      if (err.response?.data?.message) throw new Error(err.response.data.message);
+      throw new Error('Unable to check username availability.');
     }
   },
 
@@ -201,14 +228,55 @@ export const apiAdapter = {
     return res.data.user;
   },
 
-  forgotPassword: async (email) => {
+  getProfileCustomization: async () => {
+    const online = await checkBackendStatus();
+    if (!online) throw new Error('The backend is unavailable. Profile settings require a database connection.');
+    const res = await withApiErrorMessage(authApi.getProfileCustomization());
+    return res.data?.data || res.data;
+  },
+
+  updateProfileCustomization: async (payload) => {
+    const online = await checkBackendStatus();
+    if (!online) throw new Error('The backend is unavailable. Profile settings require a database connection.');
+    const res = await withApiErrorMessage(authApi.updateProfileCustomization(payload));
+    return res.data?.data || res.data;
+  },
+
+  getMyResume: async (inline = false) => {
+    const online = await checkBackendStatus();
+    if (!online) throw new Error('The backend is unavailable. Resume downloads require a database connection.');
+    const res = await withApiErrorMessage(authApi.getMyResume(inline));
+    return res.data;
+  },
+
+  uploadMyResume: async (fileOrFormData) => {
+    const online = await checkBackendStatus();
+    if (!online) throw new Error('The backend is unavailable. Resume uploads require a database connection.');
+    let formData = fileOrFormData;
+    if (!(fileOrFormData instanceof FormData)) {
+      formData = new FormData();
+      formData.append('resume', fileOrFormData);
+    }
+    const res = await withApiErrorMessage(authApi.uploadMyResume(formData));
+    return res.data;
+  },
+
+  deleteMyResume: async () => {
+    const online = await checkBackendStatus();
+    if (!online) throw new Error('The backend is unavailable. Resume deletion requires a database connection.');
+    const res = await withApiErrorMessage(authApi.deleteMyResume());
+    return res.data;
+  },
+
+
+  forgotPassword: async (identifier) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The backend is unavailable. Please try again later.');
     }
 
     try {
-      const res = await authApi.forgotPassword(email);
+      const res = await authApi.forgotPassword(identifier);
       return res.data;
     } catch (err) {
       if (err.response?.data?.message) {
@@ -218,14 +286,14 @@ export const apiAdapter = {
     }
   },
 
-  verifyResetCode: async (email, code) => {
+  verifyResetCode: async (identifier, code) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The backend is unavailable. Please try again later.');
     }
 
     try {
-      const res = await authApi.verifyResetCode(email, code);
+      const res = await authApi.verifyResetCode(identifier, code);
       return res.data;
     } catch (err) {
       if (err.response?.data?.message) {
@@ -235,14 +303,14 @@ export const apiAdapter = {
     }
   },
 
-  resetPassword: async (email, code, newPassword) => {
+  resetPassword: async (identifier, code, newPassword) => {
     const online = await checkBackendStatus(true);
     if (!online) {
       throw new Error('The backend is unavailable. Please try again later.');
     }
 
     try {
-      const res = await authApi.resetPassword(email, code, newPassword);
+      const res = await authApi.resetPassword(identifier, code, newPassword);
       return res.data;
     } catch (err) {
       if (err.response?.data?.message) {
@@ -262,6 +330,50 @@ export const apiAdapter = {
   // ==========================================
   // APPLICATIONS
   // ==========================================
+  getApplicationSubmissions: async (params = {}) => {
+    const online = await checkBackendStatus(true);
+    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
+    const res = await withApiErrorMessage(applicationsApi.getSubmissions(params));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load applications');
+    return res.data;
+  },
+
+  updateApplicationSubmission: async (kind, id, payload) => {
+    const res = await withApiErrorMessage(applicationsApi.updateSubmission(kind, id, payload));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to update application');
+    return res.data.data;
+  },
+
+  deleteApplicationSubmission: async (kind, id) => {
+    const res = await withApiErrorMessage(applicationsApi.deleteSubmission(kind, id));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to delete application');
+    return true;
+  },
+
+  importApplications: async (applications, replace = false) => {
+    const res = await withApiErrorMessage(applicationsApi.importAll({ applications, replace }));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to import applications');
+    return res.data.data;
+  },
+
+  getPinnedItems: async () => {
+    const res = await withApiErrorMessage(pinsApi.getAll());
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load tracked items');
+    return res.data.data || [];
+  },
+
+  pinItem: async (payload) => {
+    const res = await withApiErrorMessage(pinsApi.create(payload));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to track item');
+    return res.data.data;
+  },
+
+  unpinItem: async ({ itemType, itemId, applicationKind }) => {
+    const res = await withApiErrorMessage(pinsApi.remove(itemType, itemId, applicationKind));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to untrack item');
+    return true;
+  },
+
   getApplications: async (userId, filters = {}) => {
     const online = await checkBackendStatus(true);
     if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
@@ -360,21 +472,6 @@ export const apiAdapter = {
       throw new Error(res.data?.message || 'Failed to upload resume');
     } catch (err) {
       throw new Error(err.response?.data?.message || err.message || 'Failed to upload resume');
-    }
-  },
-
-  // ==========================================
-  // ANALYTICS
-  // ==========================================
-  getAnalyticsSummary: async (userId) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Analytics require a database connection.');
-    try {
-      const res = await analyticsApi.getSummary();
-      if (res.data?.success) return res.data.data;
-      throw new Error(res.data?.message || 'Failed to load analytics');
-    } catch (err) {
-      throw new Error(err.response?.data?.message || err.message || 'Failed to load analytics');
     }
   },
 

@@ -15,10 +15,7 @@ const extensionByMimeType = {
 };
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, callback) => callback(null, uploadDirectory),
-    filename: (_req, file, callback) => callback(null, `${randomUUID()}${extensionByMimeType[file.mimetype] || '.bin'}`),
-  }),
+  storage: multer.memoryStorage(),
   fileFilter: (_req, file, callback) => {
     if (!extensionByMimeType[file.mimetype]) return callback(new Error('Only PDF, JPG, and PNG documents are accepted'));
     return callback(null, true);

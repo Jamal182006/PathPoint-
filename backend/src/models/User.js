@@ -31,8 +31,54 @@ const businessVerificationSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const experienceSchema = new mongoose.Schema(
+  {
+    title: { type: String, trim: true, maxlength: 120, default: '' },
+    company: { type: String, trim: true, maxlength: 120, default: '' },
+    location: { type: String, trim: true, maxlength: 120, default: '' },
+    startDate: { type: Date },
+    endDate: { type: Date },
+    current: { type: Boolean, default: false },
+    description: { type: String, trim: true, maxlength: 2000, default: '' },
+  },
+  { _id: true }
+);
+
+const educationHistorySchema = new mongoose.Schema(
+  {
+    school: { type: String, trim: true, maxlength: 160, default: '' },
+    degree: { type: String, trim: true, maxlength: 120, default: '' },
+    fieldOfStudy: { type: String, trim: true, maxlength: 120, default: '' },
+    startDate: { type: Date },
+    endDate: { type: Date },
+    description: { type: String, trim: true, maxlength: 1000, default: '' },
+  },
+  { _id: true }
+);
+
+const profileResumeSchema = new mongoose.Schema(
+  {
+    fileName: { type: String, trim: true, maxlength: 255 },
+    mimeType: { type: String, enum: ['application/pdf', 'image/jpeg', 'image/png'] },
+    fileSize: { type: Number, min: 1, max: 5 * 1024 * 1024 },
+    uploadedAt: { type: Date },
+    documentData: { type: Buffer, select: false },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
+    username: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 20,
+      match: /^[a-z0-9_]{3,20}$/,
+      sparse: true,
+      unique: true,
+    },
     name: {
       type: String,
       required: [true, 'Please provide your full name'],
@@ -50,12 +96,39 @@ const userSchema = new mongoose.Schema(
         'Please provide a valid email address',
       ],
     },
+    firstName: { type: String, trim: true, maxlength: 80 },
+    middleName: { type: String, trim: true, maxlength: 80, default: '' },
+    lastName: { type: String, trim: true, maxlength: 80 },
+    dateOfBirth: { type: Date },
+    age: { type: Number, min: 0, max: 130 },
+    gender: { type: String, enum: ['female', 'male', 'non_binary', 'prefer_not_to_say', ''], default: '' },
+    avatar: { type: String, default: '' },
     phone: { type: String, trim: true, maxlength: 40, default: '' },
+    phoneCountryCode: { type: String, trim: true, maxlength: 8, default: '+1' },
     address: { type: String, trim: true, maxlength: 300, default: '' },
+    country: { type: String, trim: true, maxlength: 100, default: '' },
+    province: { type: String, trim: true, maxlength: 100, default: '' },
+    city: { type: String, trim: true, maxlength: 100, default: '' },
+    barangay: { type: String, trim: true, maxlength: 100, default: '' },
+    streetAddress: { type: String, trim: true, maxlength: 200, default: '' },
+    postalCode: { type: String, trim: true, maxlength: 20, default: '' },
+    education: { type: String, trim: true, maxlength: 100, default: '' },
+    educationHistory: { type: [educationHistorySchema], default: [] },
+    experience: { type: [experienceSchema], default: [] },
+    skills: { type: [{ type: String, trim: true, maxlength: 80 }], default: [] },
+    resume: { type: profileResumeSchema, default: undefined },
+    occupation: { type: String, trim: true, maxlength: 120, default: '' },
+    employmentStatus: { type: String, trim: true, maxlength: 80, default: '' },
+    bio: { type: String, trim: true, maxlength: 2000, default: '' },
+    businessName: { type: String, trim: true, maxlength: 120, default: '' },
+    businessType: { type: String, trim: true, maxlength: 100, default: '' },
+    businessAddress: { type: String, trim: true, maxlength: 300, default: '' },
+    businessRegistrationNumber: { type: String, trim: true, maxlength: 100, default: '' },
+    contactPerson: { type: String, trim: true, maxlength: 160, default: '' },
     password: {
       type: String,
       required: [true, 'Please provide a password'],
-      minlength: [6, 'Password must be at least 6 characters long'],
+      minlength: [8, 'Password must be at least 8 characters long'],
       maxlength: [72, 'Password cannot exceed 72 characters'],
       validate: {
         validator: (value) => Buffer.byteLength(value, 'utf8') <= 72,
@@ -85,6 +158,55 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
       trim: true,
+    },
+    profileInfo: {
+      headline: { type: String, default: '', trim: true, maxlength: 160 },
+      bio: { type: String, default: '', trim: true, maxlength: 2000 },
+      targetRoles: [{ type: String, trim: true, maxlength: 80 }],
+      desiredSalary: {
+        min: { type: Number, min: 0, default: 0 },
+        max: { type: Number, min: 0, default: 0 },
+        currency: { type: String, default: 'USD', trim: true, maxlength: 12 },
+      },
+      workPreference: {
+        type: String,
+        enum: ['Remote', 'Hybrid', 'On-site', 'Flexible', ''],
+        default: '',
+      },
+    },
+    customization: {
+      themePreset: {
+        type: String,
+        enum: ['light', 'dark', 'minimal', 'dark_modern', 'creative_tech'],
+        default: 'light',
+      },
+      accentColor: {
+        type: String,
+        default: '#4F46E5',
+        trim: true,
+        maxlength: 20,
+      },
+      compactMode: { type: Boolean, default: false },
+      notifications: { type: Boolean, default: true },
+      showWelcomeBanner: { type: Boolean, default: true },
+      avatarUrl: { type: String, default: '', trim: true, maxlength: 500 },
+      bannerUrl: { type: String, default: '', trim: true, maxlength: 500 },
+      profileTitle: { type: String, default: '', trim: true, maxlength: 120 },
+      layoutBlocks: [
+        {
+          id: { type: String, required: true, trim: true },
+          order: { type: Number, default: 0 },
+          visible: { type: Boolean, default: true },
+        },
+      ],
+    },
+    privacySettings: {
+      profileVisibility: {
+        type: String,
+        enum: ['private', 'counselors_only', 'public'],
+        default: 'private',
+      },
+      shareResumeToPublic: { type: Boolean, default: false },
     },
     status: {
       type: String,
@@ -158,8 +280,14 @@ userSchema.set('toJSON', {
     delete ret._id;
     delete ret.__v;
     delete ret.password;
+    delete ret.passwordHash;
+    delete ret.resetCode;
+    delete ret.resetCodeExpiresAt;
+    delete ret.loginCode;
+    delete ret.loginCodeExpiresAt;
     delete ret.trustedDevices;
     if (ret.businessVerification) delete ret.businessVerification.documentData;
+    if (ret.resume) delete ret.resume.documentData;
     return ret;
   },
 });

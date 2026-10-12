@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { systemApi } from '../api/systemApi';
+import adminApi from '../api/adminApi';
 import {
   Activity,
   Server,
@@ -28,6 +29,7 @@ export const AdminSystem = () => {
   const [testing, setTesting] = useState(false);
   const [pingData, setPingData] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
+  const [activity, setActivity] = useState([]);
 
   const runDiagnostics = async () => {
     setTesting(true);
@@ -50,6 +52,7 @@ export const AdminSystem = () => {
 
   useEffect(() => {
     runDiagnostics();
+    adminApi.getActivityLog({ limit: 30 }).then((result) => setActivity(result.data?.data || [])).catch(() => {});
   }, []);
 
   const handleSaveUrl = async () => {
@@ -165,6 +168,19 @@ export const AdminSystem = () => {
       </div>
 
       {/* API Specification Banner */}
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div><h2 className="flex items-center gap-2 text-sm font-bold text-slate-900"><Activity className="h-4 w-4 text-indigo-600" />Platform activity</h2><p className="mt-1 text-xs text-slate-500">Recent changes recorded across provider, company, and application workflows.</p></div>
+          <span className="text-xs font-medium text-slate-500">{activity.length} events</span>
+        </header>
+        {activity.length ? <ol className="divide-y divide-slate-100">
+          {activity.map((item) => <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs">
+            <span className="text-slate-800"><strong className="font-semibold">{item.actorId?.name || 'System'}</strong> {item.action}</span>
+            <time className="text-slate-500">{new Date(item.createdAt).toLocaleString()}</time>
+          </li>)}
+        </ol> : <p className="px-5 py-8 text-center text-sm text-slate-500">No recorded activity yet.</p>}
+      </section>
+
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-2xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-xl bg-white/10 text-indigo-300">
