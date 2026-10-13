@@ -10,6 +10,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import ShortcutsModal from './components/common/ShortcutsModal';
 
 import AdminLayout from './components/layout/AdminLayout';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const accentMap = {
   indigo: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 100: '#e0e7ff' },
@@ -47,7 +48,7 @@ const AdminJobs = lazy(() => import('./pages/AdminJobs'));
 const AdminApplications = lazy(() => import('./pages/AdminApplications'));
 
 const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
-  const { isAuthenticated, settings, user } = useAuth();
+  const { isAuthenticated, isAdmin, settings, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthPage = !isAuthenticated && ['/login', '/register'].includes(location.pathname);
@@ -180,10 +181,11 @@ export const App = () => {
 
   return (
     <BrowserRouter>
-      <MotionConfig reducedMotion="user">
-        <AuthProvider>
-          <TrackedItemsProvider>
-          <ToastProvider>
+      <ErrorBoundary>
+        <MotionConfig reducedMotion="user">
+          <AuthProvider>
+            <TrackedItemsProvider>
+            <ToastProvider>
           <AppLayout
             onOpenShortcutsModal={() => setIsShortcutsModalOpen(true)}
           >
@@ -328,14 +330,15 @@ export const App = () => {
             </Suspense>
           </AppLayout>
 
-          <ShortcutsModal
-            isOpen={isShortcutsModalOpen}
-            onClose={() => setIsShortcutsModalOpen(false)}
-          />
-          </ToastProvider>
-          </TrackedItemsProvider>
-        </AuthProvider>
-      </MotionConfig>
+            <ShortcutsModal
+              isOpen={isShortcutsModalOpen}
+              onClose={() => setIsShortcutsModalOpen(false)}
+            />
+            </ToastProvider>
+            </TrackedItemsProvider>
+          </AuthProvider>
+        </MotionConfig>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 };
