@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useToast } from '../components/common/Toast';
 import { apiAdapter } from '../services/apiAdapter';
 import PinButton from '../components/common/PinButton';
+import { formatDateDisplay, formatDateTimeDisplay } from '../utils/dateUtils';
 import { Archive, BriefcaseBusiness, Building2, ChevronDown, Download, Eye, FileText, Loader2, Search, Trash2, Undo2, X } from 'lucide-react';
 
 const statusStyles = {
@@ -130,14 +131,14 @@ const MyApplications = () => {
           <div className="min-w-0">
             <h2 className="truncate font-bold text-slate-900">{application.title}</h2>
             <p className="mt-1 text-xs text-slate-600">{application.organization} · {application.kind === 'job' ? 'Job' : 'Company'}</p>
-            <p className="mt-1 text-[11px] text-slate-500">Applied {new Date(application.dateApplied || application.submittedAt || application.createdAt).toLocaleDateString()} · Updated {new Date(application.updatedAt || application.createdAt).toLocaleString()}</p>
+            <p className="mt-1 text-[11px] text-slate-500">Applied {formatDateDisplay(application.dateApplied || application.submittedAt || application.createdAt)} · Updated {formatDateTimeDisplay(application.updatedAt || application.createdAt)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2"><span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${statusStyles[application.status] || 'border-slate-200 bg-slate-50 text-slate-700'}`}>{application.displayStatus || String(application.status || 'unknown').replaceAll('_', ' ')}</span><PinButton itemType="application" itemId={application.id} applicationKind={application.kind} details={{ title: application.title, subtitle: application.organization, status: application.displayStatus, latestUpdate: `Updated ${new Date(application.updatedAt || application.createdAt).toLocaleDateString()}`, href: '/my-applications' }} /></div>
+        <div className="flex items-center gap-2"><span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase ${statusStyles[application.status] || 'border-slate-200 bg-slate-50 text-slate-700'}`}>{application.displayStatus || String(application.status || 'unknown').replaceAll('_', ' ')}</span><PinButton itemType="application" itemId={application.id} applicationKind={application.kind} details={{ title: application.title, subtitle: application.organization, status: application.displayStatus, latestUpdate: `Updated ${formatDateDisplay(application.updatedAt || application.createdAt)}`, href: '/my-applications' }} /></div>
       </div>
-      {application.status === 'rejected' && <div className="border-l-2 border-rose-300 pl-3 text-xs text-rose-900"><p className="font-semibold">Rejected {new Date(application.rejectedAt || application.updatedAt || application.createdAt).toLocaleDateString()}</p>{application.providerNote && <p className="mt-1 whitespace-pre-wrap">Employer feedback: {application.providerNote}</p>}</div>}
+      {application.status === 'rejected' && <div className="border-l-2 border-rose-300 pl-3 text-xs text-rose-900"><p className="font-semibold">Rejected {formatDateDisplay(application.rejectedAt || application.updatedAt || application.createdAt)}</p>{application.providerNote && <p className="mt-1 whitespace-pre-wrap">Employer feedback: {application.providerNote}</p>}</div>}
       {application.applicantNote && <p className="border-l-2 border-slate-300 pl-3 text-xs text-slate-600">Your note: {application.applicantNote}</p>}
-      {application.interviewDate && <p className="text-xs font-semibold text-indigo-700">Interview: {new Date(application.interviewDate).toLocaleString()}</p>}
+      {application.interviewDate && <p className="text-xs font-semibold text-indigo-700">Interview: {formatDateTimeDisplay(application.interviewDate)}</p>}
       {responsesFor(application).map((response) => <p key={response.id} className="text-xs text-slate-600"><span className="font-semibold text-slate-800">{response.title || response.requirementTitle}:</span> {String(response.value)}</p>)}
       {files.length > 0 && <div className="flex flex-wrap gap-2">{files.map((file) => <div key={file.id} className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2"><FileText className="h-4 w-4 text-indigo-700" /><span className="max-w-48 truncate text-xs font-semibold text-slate-800">{file.requirementTitle || file.fileName}</span><button type="button" title="Preview document" onClick={() => fileAction(application, file)} className="rounded p-1 text-slate-500 hover:bg-slate-100"><Eye className="h-4 w-4" /></button><button type="button" title="Download document" onClick={() => fileAction(application, file, true)} className="rounded p-1 text-slate-500 hover:bg-slate-100"><Download className="h-4 w-4" /></button></div>)}</div>}
       {application.status === 'draft' && application.kind === 'job' && <Link to={`/jobs/${application.jobId}`} className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800">Continue draft</Link>}

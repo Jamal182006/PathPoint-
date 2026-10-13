@@ -28,11 +28,9 @@ const AdminCompanies = () => {
 
   useEffect(() => {
     load();
-    const intervalId = window.setInterval(() => load(true), 10000);
     const refreshOnFocus = () => { if (document.visibilityState === 'visible') load(true); };
     document.addEventListener('visibilitychange', refreshOnFocus);
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
   }, [status, search, page]);

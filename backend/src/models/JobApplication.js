@@ -70,6 +70,7 @@ const jobApplicationSchema = new mongoose.Schema(
 );
 
 jobApplicationSchema.index({ jobId: 1, applicantId: 1 }, { unique: true });
+jobApplicationSchema.index({ jobId: 1, status: 1, createdAt: -1 });
 jobApplicationSchema.index({ applicantId: 1, updatedAt: -1 });
 jobApplicationSchema.index({ applicantId: 1, status: 1, updatedAt: -1 });
 jobApplicationSchema.index({ companyId: 1, status: 1, createdAt: -1 });

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Building2, Check, ChevronLeft, ChevronRight, LayoutDashboard, Menu, ShieldAlert, X } from 'lucide-react';
+import { BriefcaseBusiness, Building2, Check, ChevronLeft, ChevronRight, LayoutDashboard, Menu, ShieldAlert, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const ProviderSidebar = () => {
@@ -12,6 +12,7 @@ const ProviderSidebar = () => {
   const links = approved ? [
     { label: 'Overview', path: '/provider', icon: LayoutDashboard, exact: true },
     { label: 'Companies', path: '/provider/companies', icon: Building2 },
+    { label: 'Job listings', path: '/provider/jobs', icon: BriefcaseBusiness },
   ] : [
     { label: 'Business verification', path: '/provider', icon: ShieldAlert, exact: true },
   ];
@@ -29,9 +30,9 @@ const ProviderSidebar = () => {
       onClick={() => mobile && setDrawerOpen(false)}
       title={collapsed && !mobile ? link.label : undefined}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-colors ${active ? 'bg-indigo-50 text-indigo-800' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'} ${collapsed && !mobile ? 'justify-center px-2' : ''}`}
+      className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${active ? 'bg-blue-50 text-blue-900 border border-blue-200/60 shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'} ${collapsed && !mobile ? 'justify-center px-2' : ''}`}
     >
-      <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-indigo-700' : 'text-slate-400'}`} />
+      <Icon className={`h-5 w-5 shrink-0 ${active ? 'text-blue-600' : 'text-slate-400'}`} />
       {(!collapsed || mobile) && <span>{link.label}</span>}
     </Link>;
   });

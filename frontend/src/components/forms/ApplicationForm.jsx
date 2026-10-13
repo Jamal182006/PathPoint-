@@ -3,6 +3,7 @@ import { apiAdapter } from '../../services/apiAdapter';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
 import { Plus, Trash2, Calendar, FileText, DollarSign, Building, Briefcase, User, Loader2 } from 'lucide-react';
+import { safeDateString } from '../../utils/dateUtils';
 
 const STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
 
@@ -16,7 +17,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
     company: '',
     role: '',
     salaryRange: '',
-    dateApplied: new Date().toISOString().split('T')[0],
+    dateApplied: safeDateString(new Date()),
     status: 'Saved',
     jobDescriptionNotes: '',
     contactPerson: '',
@@ -32,16 +33,14 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
         company: initialData.company || '',
         role: initialData.role || '',
         salaryRange: initialData.salaryRange || '',
-        dateApplied: initialData.dateApplied
-          ? new Date(initialData.dateApplied).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0],
+        dateApplied: safeDateString(initialData.dateApplied, safeDateString(new Date())),
         status: initialData.status || 'Saved',
         jobDescriptionNotes: initialData.jobDescriptionNotes || '',
         contactPerson: initialData.contactPerson || '',
         resumeVersion: initialData.resumeVersion || '',
-        interviewDates: (initialData.interviewDates || []).map(
-          (d) => new Date(d).toISOString().split('T')[0]
-        ),
+        interviewDates: (initialData.interviewDates || [])
+          .map((d) => safeDateString(d))
+          .filter(Boolean),
       });
     } else {
       setFormData((prev) => ({

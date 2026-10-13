@@ -3,3 +3,5 @@ backend/private-uploads/
 .env
 .env.*
 !.env.example
+*.zip
+.zip

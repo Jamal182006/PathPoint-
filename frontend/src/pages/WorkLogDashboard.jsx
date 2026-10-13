@@ -7,8 +7,14 @@ import WorkLogWizardModal from '../components/forms/WorkLogWizardModal';
 const emptySummary = { totalEarnings: 0, totalHours: 0, unpaidBalance: 0, unpaidCount: 0 };
 const displayWorkDate = (value) => {
   if (!value) return '';
-  const dateKey = new Date(value).toISOString().slice(0, 10);
-  return new Date(`${dateKey}T00:00:00`).toLocaleDateString();
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const dateKey = d.toISOString().slice(0, 10);
+    return new Date(`${dateKey}T00:00:00`).toLocaleDateString();
+  } catch {
+    return '';
+  }
 };
 
 const WorkLogDashboard = () => {

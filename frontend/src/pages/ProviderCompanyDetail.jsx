@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
 import AddressMap from '../components/common/AddressMap';
+import { safeDateTimeString, safeIsoString, formatDateTimeDisplay } from '../utils/dateUtils';
 import {
   ArrowDownToLine,
   ArrowLeft,
@@ -68,7 +69,7 @@ const ProviderCompanyDetail = () => {
       setNoteDrafts(Object.fromEntries(applicationsData.map((application) => [application.id, application.providerNote || ''])));
       setInterviewDrafts(Object.fromEntries(applicationsData.map((application) => [
         application.id,
-        application.interviewDate ? new Date(application.interviewDate).toISOString().slice(0, 16) : '',
+        safeDateTimeString(application.interviewDate),
       ])));
     } catch (loadError) {
       setError(loadError.message || 'Unable to load company applicants.');
@@ -79,11 +80,9 @@ const ProviderCompanyDetail = () => {
 
   useEffect(() => {
     load();
-    const intervalId = window.setInterval(() => load(true), 10000);
     const refreshOnFocus = () => { if (document.visibilityState === 'visible') load(true); };
     document.addEventListener('visibilitychange', refreshOnFocus);
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
   }, [companyId]);
@@ -106,7 +105,7 @@ const ProviderCompanyDetail = () => {
       const updated = await apiAdapter.updateCompanyApplicationStatus(application.id, {
         status,
         interviewDate: status === 'interview_scheduled' && interviewDrafts[application.id]
-          ? new Date(interviewDrafts[application.id]).toISOString()
+          ? safeIsoString(interviewDrafts[application.id]) || undefined
           : undefined,
         providerNote: noteDrafts[application.id] ?? application.providerNote ?? '',
       });
@@ -233,8 +232,8 @@ const ProviderCompanyDetail = () => {
                 <div>
                   <h2 className="font-bold text-slate-900">{application.applicant?.name || 'Applicant'}</h2>
                   <a href={`mailto:${application.applicant?.email}`} className="text-xs text-indigo-700 hover:underline">{application.applicant?.email}</a>
-                  <p className="mt-1 text-[11px] text-slate-500">Applied {new Date(application.createdAt).toLocaleString()}</p>
-                  {application.interviewDate && <p className="mt-1 flex items-center gap-1 text-[11px] text-indigo-700"><CalendarClock className="h-3 w-3" />{new Date(application.interviewDate).toLocaleString()}</p>}
+                  <p className="mt-1 text-[11px] text-slate-500">Applied {formatDateTimeDisplay(application.createdAt)}</p>
+                  {application.interviewDate && <p className="mt-1 flex items-center gap-1 text-[11px] text-indigo-700"><CalendarClock className="h-3 w-3" />{formatDateTimeDisplay(application.interviewDate)}</p>}
                   {Object.entries(application.formData || {}).filter(([, value]) => String(value || '').trim()).map(([requirementId, value]) => {
                     const requirement = company.requirements?.find((item) => String(item._id) === requirementId);
                     return <p key={requirementId} className="mt-2 text-xs text-slate-600"><span className="font-semibold text-slate-800">{requirement?.title || 'Response'}:</span> {String(value)}</p>;

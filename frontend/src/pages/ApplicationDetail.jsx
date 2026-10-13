@@ -4,6 +4,7 @@ import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import StatusBadge from '../components/common/StatusBadge';
+import { safeDate, safeIsoString, formatDateTimeDisplay, formatDateDisplay } from '../utils/dateUtils';
 import Modal from '../components/common/Modal';
 import ApplicationForm from '../components/forms/ApplicationForm';
 import ResumeViewerModal from '../components/common/ResumeViewerModal';
@@ -79,8 +80,9 @@ export const ApplicationDetail = () => {
   };
 
   const handleRemoveInterviewDate = async (dateToRemove) => {
+    const targetIso = safeIsoString(dateToRemove);
     const updatedDates = (application.interviewDates || []).filter(
-      (d) => new Date(d).toISOString() !== new Date(dateToRemove).toISOString()
+      (d) => safeIsoString(d) !== targetIso
     );
     try {
       const updated = await apiAdapter.updateApplication(id, { interviewDates: updatedDates });
@@ -254,13 +256,7 @@ export const ApplicationDetail = () => {
               {application.statusHistory && application.statusHistory.length > 0 ? (
                 <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                   {application.statusHistory.map((item, index) => {
-                    const dateStr = new Date(item.changedAt).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    });
+                    const dateStr = formatDateTimeDisplay(item.changedAt);
 
                     return (
                       <div key={index} className="relative flex items-center justify-between text-xs">
@@ -313,7 +309,8 @@ export const ApplicationDetail = () => {
               {application.interviewDates && application.interviewDates.length > 0 ? (
                 <div className="space-y-2">
                   {application.interviewDates
-                    .map((d) => new Date(d))
+                    .map((d) => safeDate(d))
+                    .filter(Boolean)
                     .sort((a, b) => a - b)
                     .map((dateObj, idx) => {
                       const isUpcomingWithin7Days = dateObj >= now && dateObj <= next7Days;

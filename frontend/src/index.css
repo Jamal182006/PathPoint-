@@ -162,3 +162,101 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* =====================================================================
+   Role-Based Color Tokens (Phase 5)
+   Candidate (Ocean Teal), Provider (Royal Sapphire), Admin (Slate Indigo)
+   ===================================================================== */
+:root {
+  --role-accent: #0d9488;
+  --role-accent-light: #f0fdfa;
+  --role-accent-border: #99f6e4;
+  --role-accent-text: #115e59;
+}
+
+[data-role="user"] {
+  --role-accent: #0d9488;
+  --role-accent-light: #f0fdfa;
+  --role-accent-border: #99f6e4;
+  --role-accent-text: #115e59;
+}
+
+[data-role="provider"] {
+  --role-accent: #2563eb;
+  --role-accent-light: #eff6ff;
+  --role-accent-border: #bfdbfe;
+  --role-accent-text: #1e40af;
+}
+
+[data-role="admin"] {
+  --role-accent: #4f46e5;
+  --role-accent-light: #eef2ff;
+  --role-accent-border: #c7d2fe;
+  --role-accent-text: #3730a3;
+}
+
+/* =====================================================================
+   Purposeful Micro-Interactions & Animation System (Phase 6)
+   150ms-280ms durations, cubic-bezier easing, prefers-reduced-motion safe
+   ===================================================================== */
+@keyframes modal-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-modal-enter {
+  animation: modal-scale-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-toast-enter {
+  animation: toast-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Button & interactive press micro-interaction */
+button:not(:disabled):active,
+a:not([aria-disabled="true"]):active {
+  transform: scale(0.985);
+  transition: transform 60ms ease-out;
+}
+
+/* Smooth surface hover elevations */
+.card-hover {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-modal-enter,
+  .animate-toast-enter,
+  .card-hover {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  button:not(:disabled):active,
+  a:not([aria-disabled="true"]):active {
+    transform: none !important;
+  }
+}

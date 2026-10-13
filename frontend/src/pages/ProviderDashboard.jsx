@@ -42,10 +42,11 @@ export const ProviderDashboard = () => {
       }
     };
     loadOverview();
-    const intervalId = window.setInterval(loadOverview, 15000);
+    const refreshOnFocus = () => { if (document.visibilityState === 'visible') loadOverview(); };
+    document.addEventListener('visibilitychange', refreshOnFocus);
     return () => {
       active = false;
-      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
     };
   }, [providerApproved, overviewRefresh]);
 

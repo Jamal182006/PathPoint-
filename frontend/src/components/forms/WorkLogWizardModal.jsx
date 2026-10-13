@@ -8,11 +8,24 @@ const categories = [
   ['repair', 'Repair'], ['care', 'Care'], ['other', 'Other'],
 ];
 const localDate = (value = new Date()) => {
-  const date = new Date(value);
-  const timezoneOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const timezoneOffset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+  } catch {
+    return '';
+  }
 };
-const formatDateInput = (value) => value ? new Date(value).toISOString().slice(0, 10) : '';
+const formatDateInput = (value) => {
+  if (!value) return '';
+  try {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+  } catch {
+    return '';
+  }
+};
 const createForm = (record, recentRecord) => ({
   title: record?.title || recentRecord?.title || '',
   clientName: record?.clientName || recentRecord?.clientName || '',

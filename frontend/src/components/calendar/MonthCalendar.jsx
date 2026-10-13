@@ -44,7 +44,9 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
   // Map interviews to date keys e.g. "YYYY-MM-DD"
   const interviewMap = {};
   interviews.forEach((item) => {
-    const d = new Date(item.date);
+    if (!item?.date) return;
+    const d = item.date instanceof Date ? item.date : new Date(item.date);
+    if (Number.isNaN(d.getTime())) return;
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     if (!interviewMap[key]) {
       interviewMap[key] = [];
@@ -182,7 +184,7 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
                   return (
                     <Link
                       key={evIdx}
-                      to={`/applications/${ev.appId}`}
+                      to={ev.link || `/applications/${ev.appId}`}
                       className={`block p-1 rounded-md text-[11px] font-medium truncate transition border shadow-xs ${
                         isUrgent
                           ? 'bg-amber-50 border-amber-200 text-amber-900 hover:border-amber-400'

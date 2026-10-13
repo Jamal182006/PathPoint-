@@ -113,6 +113,7 @@ const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
   return (
     <div
       style={appStyle}
+      data-role={user?.role || (isAdmin ? 'admin' : 'guest')}
       className={`min-h-screen flex flex-col ${settings?.theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${settings?.compactMode ? 'text-[15px]' : ''}`}
     >
       {isAuthenticated && <Navbar />}

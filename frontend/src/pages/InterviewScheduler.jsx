@@ -4,6 +4,7 @@ import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/common/StatusBadge';
 import MonthCalendar from '../components/calendar/MonthCalendar';
+import { safeDate } from '../utils/dateUtils';
 import {
   Calendar,
   Clock,
@@ -18,6 +19,7 @@ import {
 export const InterviewScheduler = () => {
   const { user } = useAuth();
   const [applications, setApplications] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
@@ -30,8 +32,14 @@ export const InterviewScheduler = () => {
       setLoading(true);
       setError('');
       try {
-        const apps = await apiAdapter.getApplications(user.id);
-        if (active) setApplications(apps);
+        const [apps, subsResult] = await Promise.all([
+          apiAdapter.getApplications(user.id).catch(() => []),
+          apiAdapter.getApplicationSubmissions({ limit: 50 }).catch(() => ({ data: [] })),
+        ]);
+        if (active) {
+          setApplications(Array.isArray(apps) ? apps : []);
+          setSubmissions(Array.isArray(subsResult?.data) ? subsResult.data : []);
+        }
       } catch (loadError) {
         if (active) setError(loadError.message || 'Unable to load your interviews.');
       } finally {
@@ -47,24 +55,54 @@ export const InterviewScheduler = () => {
 
   const allInterviews = useMemo(() => {
     const list = [];
-    applications.forEach((app) => {
-      (app.interviewDates || []).forEach((dateStr) => {
-        const dateObj = new Date(dateStr);
+
+    // 1. User's personal tracker applications
+    (applications || []).forEach((app) => {
+      (app.interviewDates || []).forEach((dateEntry) => {
+        const raw = typeof dateEntry === 'object' && dateEntry?.date ? dateEntry.date : dateEntry;
+        const dateObj = safeDate(raw);
+        if (!dateObj) return;
+
+        const roundName = typeof dateEntry === 'object' && dateEntry?.round ? dateEntry.round : 'General Interview';
+        const interviewer = typeof dateEntry === 'object' && dateEntry?.interviewer ? dateEntry.interviewer : app.contactPerson;
+
         list.push({
           date: dateObj,
           appId: app._id,
           company: app.company,
           role: app.role,
+          round: roundName,
           status: app.status,
-          contactPerson: app.contactPerson,
+          contactPerson: interviewer,
+          link: `/applications/${app._id}`,
           isUpcomingWithin7Days: dateObj >= now && dateObj <= next7Days,
           isPast: dateObj < now,
         });
       });
     });
 
+    // 2. Direct platform applications to companies / job listings
+    (submissions || []).forEach((sub) => {
+      if (!sub.interviewDate) return;
+      const dateObj = safeDate(sub.interviewDate);
+      if (!dateObj) return;
+
+      list.push({
+        date: dateObj,
+        appId: sub.id,
+        company: sub.organization || 'Company',
+        role: sub.title || 'Role Interview',
+        round: 'Official Scheduled Round',
+        status: sub.displayStatus || 'Interview',
+        contactPerson: sub.providerNote ? `Note: ${sub.providerNote}` : '',
+        link: '/my-applications',
+        isUpcomingWithin7Days: dateObj >= now && dateObj <= next7Days,
+        isPast: dateObj < now,
+      });
+    });
+
     return list.sort((a, b) => a.date - b.date);
-  }, [applications, now, next7Days]);
+  }, [applications, submissions, now, next7Days]);
 
   const urgentInterviews = allInterviews.filter((i) => i.isUpcomingWithin7Days);
   const futureInterviews = allInterviews.filter((i) => i.date >= now && !i.isUpcomingWithin7Days);
@@ -152,7 +190,7 @@ export const InterviewScheduler = () => {
                   </div>
 
                   <Link
-                    to={`/applications/${item.appId}`}
+                    to={item.link || `/applications/${item.appId}`}
                     className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition block"
                   >
                     {item.role}
@@ -165,7 +203,7 @@ export const InterviewScheduler = () => {
                 </div>
 
                 <Link
-                  to={`/applications/${item.appId}`}
+                  to={item.link || `/applications/${item.appId}`}
                   className="p-2 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-lg transition"
                   title="Prepare notes"
                 >
@@ -212,7 +250,7 @@ export const InterviewScheduler = () => {
 
                       <div>
                         <Link
-                          to={`/applications/${item.appId}`}
+                          to={item.link || `/applications/${item.appId}`}
                           className="font-semibold text-slate-900 hover:text-indigo-600 text-sm transition"
                         >
                           {item.role}
@@ -227,7 +265,7 @@ export const InterviewScheduler = () => {
                     <div className="flex items-center gap-3 self-end sm:self-center">
                       <StatusBadge status={item.status} size="xs" />
                       <Link
-                        to={`/applications/${item.appId}`}
+                        to={item.link || `/applications/${item.appId}`}
                         className="text-xs font-medium text-indigo-600 hover:underline inline-flex items-center gap-1"
                       >
                         <span>Details</span>
@@ -273,7 +311,7 @@ export const InterviewScheduler = () => {
                         })}
                       </span>
                       <Link
-                        to={`/applications/${item.appId}`}
+                        to={item.link || `/applications/${item.appId}`}
                         className="font-medium text-slate-700 hover:text-indigo-600 truncate"
                       >
                         {item.role} @ {item.company}
