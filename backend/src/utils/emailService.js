@@ -23,6 +23,9 @@ const sendVerificationCodeEmail = async (email, code, { subject, title, descript
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS.replace(/\s+/g, ''),
     },
+    connectionTimeout: 12000,
+    greetingTimeout: 12000,
+    socketTimeout: 15000,
   });
 
   try {

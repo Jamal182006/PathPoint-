@@ -64,10 +64,12 @@ export const AdminSystem = () => {
     runDiagnostics();
   };
 
+  const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
   const handleResetDefaultUrl = async () => {
-    setInputUrl('http://localhost:5000/api');
-    await updateApiUrl('http://localhost:5000/api');
-    toast('API URL reset to http://localhost:5000/api', 'info');
+    setInputUrl(DEFAULT_API_URL);
+    await updateApiUrl(DEFAULT_API_URL);
+    toast(`API URL reset to ${DEFAULT_API_URL}`, 'info');
     runDiagnostics();
   };
 

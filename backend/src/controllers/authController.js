@@ -463,6 +463,9 @@ export const login = async (req, res) => {
     }
 
     const code = generateVerificationCode();
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[PathPoint Auth] 🔐 Verification code for ${user.email}: ${code}`);
+    }
     const emailResult = await sendLoginCodeEmail(user.email, code);
     user.loginCode = code;
     user.loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -668,6 +671,9 @@ export const requestLoginCode = async (req, res) => {
     }
 
     const code = generateVerificationCode();
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[PathPoint Auth] 🔐 Request login code for ${user.email}: ${code}`);
+    }
     const emailResult = await sendLoginCodeEmail(user.email, code);
     user.loginCode = code;
     user.loginCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -1036,6 +1042,9 @@ export const forgotPassword = async (req, res) => {
     }
 
     const resetCode = String(crypto.randomInt(100000, 1000000));
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[PathPoint Auth] 🔐 Password reset code for ${user.email}: ${resetCode}`);
+    }
     const delivery = await sendPasswordResetCodeEmail(user.email, resetCode);
 
     user.resetCode = resetCode;

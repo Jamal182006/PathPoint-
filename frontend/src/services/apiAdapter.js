@@ -108,12 +108,21 @@ export const apiAdapter = {
         persistAuthSession(res.data.user, res.data.token, rememberMe);
         return { user: res.data.user, token: res.data.token, source: 'backend' };
       }
+      if (res.data?.success && res.data.requiresCode) {
+        return { ...res.data, rememberMe, source: 'backend' };
+      }
       throw new Error(res.data?.message || 'Login failed');
     } catch (err) {
       if (err.response?.data?.message) {
         const error = new Error(err.response.data.message);
         error.lockoutSeconds = err.response.data.lockoutSeconds;
         throw error;
+      }
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        throw new Error('Connection timed out while contacting authentication server. Please try again.');
+      }
+      if (err.message && err.message !== 'Login failed') {
+        throw err;
       }
       throw new Error('Unable to reach the authentication server. Please try again.');
     }
@@ -149,6 +158,12 @@ export const apiAdapter = {
       if (err.response?.data?.message) {
         throw new Error(err.response.data.message);
       }
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        throw new Error('Connection timed out while sending verification code. Please try again.');
+      }
+      if (err.message && err.message !== 'Unable to send login verification code') {
+        throw err;
+      }
       throw new Error('Unable to reach the authentication server. Please try again.');
     }
   },
@@ -171,6 +186,12 @@ export const apiAdapter = {
     } catch (err) {
       if (err.response?.data?.message) {
         throw new Error(err.response.data.message);
+      }
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        throw new Error('Connection timed out while verifying the code. Please try again.');
+      }
+      if (err.message && err.message !== 'Login verification failed') {
+        throw err;
       }
       throw new Error('Unable to verify the login code. Please try again.');
     }
@@ -510,11 +531,6 @@ export const apiAdapter = {
   deleteAdminApplication: async (type, applicationId) => {
     const res = await withApiErrorMessage(adminApi.deleteApplication(type, applicationId));
     if (!res.data?.success) throw new Error(res.data?.message || 'Failed to delete application');
-    return res.data;
-  },
-
-  archiveAdminUser: async (userId, archived) => {
-    const res = await withApiErrorMessage(adminApi.archiveUser(userId, archived));
     return res.data;
   },
 

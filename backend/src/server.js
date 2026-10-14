@@ -38,8 +38,12 @@ const allowedOrigins = [
   'http://127.0.0.1:5174',
   'http://127.0.0.1:3000',
 ];
+// Support multiple CLIENT_URL values (comma or space separated)
 if (process.env.CLIENT_URL) {
-  allowedOrigins.push(process.env.CLIENT_URL);
+  process.env.CLIENT_URL.split(/[,\s]+/).forEach((url) => {
+    const trimmed = url.trim();
+    if (trimmed) allowedOrigins.push(trimmed);
+  });
 }
 
 app.use(
@@ -60,6 +64,16 @@ app.use(
 // Body parsers
 app.use(express.json({ limit: '8mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Security headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 // Request logging in development
 if (process.env.NODE_ENV !== 'test') {

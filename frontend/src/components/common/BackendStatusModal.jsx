@@ -55,10 +55,12 @@ export const BackendStatusModal = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
   const handleResetDefault = async () => {
-    setInputUrl('http://localhost:5000/api');
-    await updateApiUrl('http://localhost:5000/api');
-    toast('API endpoint reset to default http://localhost:5000/api', 'info');
+    setInputUrl(DEFAULT_API_URL);
+    await updateApiUrl(DEFAULT_API_URL);
+    toast(`API endpoint reset to default ${DEFAULT_API_URL}`, 'info');
   };
 
   return (
@@ -143,24 +145,38 @@ export const BackendStatusModal = ({ isOpen, onClose }) => {
           {/* Test Result Display */}
           {testResult && (
             <div
-              className={`p-3 rounded-xl border text-xs flex items-center justify-between ${
+              className={`p-3 rounded-xl border text-xs flex flex-col gap-1.5 ${
                 testResult.online
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                   : 'bg-rose-50 border-rose-200 text-rose-800'
               }`}
             >
-              <div className="flex items-center gap-2">
-                {testResult.online ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-rose-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {testResult.online ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                  )}
+                  <span className="font-medium">
+                    {testResult.online
+                      ? `API Responding (${testResult.latency}ms)`
+                      : `Connection refused: ${testResult.error || 'Server unreachable'}`}
+                  </span>
+                </div>
+                {testResult.online && (
+                  <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    HTTP 200
+                  </span>
                 )}
-                <span>
-                  {testResult.online
-                    ? `Status 200 OK — Roundtrip Latency: ${testResult.latency} ms`
-                    : `Connection refused: ${testResult.error || 'Server unreachable'}`}
-                </span>
               </div>
+              {testResult.online && testResult.data && (
+                <div className="text-[11px] text-emerald-700 pl-6 flex flex-wrap gap-x-4 gap-y-1">
+                  <span>Database: <strong>{testResult.data.database === 'connected' ? 'Connected' : testResult.data.database}</strong></span>
+                  {testResult.data.databaseName && <span>Target DB: <strong>{testResult.data.databaseName}</strong></span>}
+                  <span>Engine: <strong>{testResult.data.isMemoryFallback ? 'In-Memory Fallback' : 'MongoDB Atlas'}</strong></span>
+                </div>
+              )}
             </div>
           )}
         </div>

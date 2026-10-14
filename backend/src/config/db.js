@@ -81,7 +81,7 @@ export const connectDB = async () => {
     const maskedUri = uri.replace(/(mongodb(?:\+srv)?:\/\/[^:]+:)[^@]+@/, '$1****@');
     console.log(`[MongoDB] Connecting to: ${maskedUri}`);
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
     });
     console.log(`[MongoDB] Connected successfully to database: ${mongoose.connection.name} (${label})`);
     await ensureCollections();
@@ -124,6 +124,16 @@ export const getDBStatus = () => {
     3: 'disconnecting',
   };
   return states[mongoose.connection.readyState] || 'unknown';
+};
+
+export const getDBInfo = () => {
+  const status = getDBStatus();
+  return {
+    status,
+    databaseName: mongoose.connection.name || null,
+    isMemoryFallback: Boolean(memoryServer),
+    connectionType: memoryServer ? 'memory_fallback' : (mongoose.connection.readyState === 1 ? 'atlas_configured' : 'none'),
+  };
 };
 
 export default connectDB;

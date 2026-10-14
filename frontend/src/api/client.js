@@ -25,7 +25,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 8000,
+  timeout: 30000,
 });
 
 // Update baseURL before each request in case it was modified
