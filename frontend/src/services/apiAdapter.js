@@ -43,7 +43,7 @@ export const checkBackendStatus = async (force = false) => {
 
 export const isBackendOnline = () => backendAvailable;
 
-const persistAuthSession = (user, token, rememberMe = true) => {
+export const persistAuthSession = (user, token, rememberMe = true) => {
   if (rememberMe) {
     localStorage.setItem('pathpoint_token', token);
     localStorage.setItem('pathpoint_user', JSON.stringify(user));

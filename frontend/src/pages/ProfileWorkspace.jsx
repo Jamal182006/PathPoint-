@@ -6,7 +6,6 @@ import {
   GraduationCap,
   Loader2,
   LockKeyhole,
-  Palette,
   Plus,
   Trash2,
   UserRound,
@@ -27,9 +26,11 @@ import {
   X,
   Check,
   Upload,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
+import Modal from '../components/common/Modal';
 import ForgotPasswordModal from '../components/common/ForgotPasswordModal';
 import { apiAdapter } from '../services/apiAdapter';
 
@@ -38,32 +39,22 @@ const sections = [
   { id: 'experience', label: 'Experience', icon: BriefcaseBusiness, description: 'Work history, roles, and achievements' },
   { id: 'education', label: 'Education', icon: GraduationCap, description: 'Degrees, academic history, and qualifications' },
   { id: 'skills', label: 'Skills & Resume', icon: Wrench, description: 'Core capabilities and verified resume document' },
-  { id: 'preferences', label: 'Preferences', icon: Palette, description: 'Theme preset, accent colors, and privacy settings' },
+  { id: 'privacy', label: 'Privacy', icon: ShieldCheck, description: 'Control who can see your profile and resume' },
   { id: 'security', label: 'Security', icon: LockKeyhole, description: 'Password, authentication, and session security' },
 ];
 
-const POPULAR_SKILLS = [
-  'JavaScript', 'React', 'Node.js', 'TypeScript', 'Python',
-  'SQL', 'Project Management', 'UI/UX Design', 'Customer Service',
-  'Data Analysis', 'Git', 'Problem Solving', 'Communication',
-];
-
-const THEME_PRESETS = [
-  { id: 'light', label: 'Light', desc: 'Crisp, high-clarity daylight theme', bg: 'bg-white', text: 'text-slate-900', border: 'border-slate-300' },
-  { id: 'dark', label: 'Dark', desc: 'Deep obsidian for low-light focus', bg: 'bg-slate-900', text: 'text-white', border: 'border-slate-700' },
-  { id: 'dark_modern', label: 'Dark Modern', desc: 'Indigo-tinted sleek night mode', bg: 'bg-slate-950', text: 'text-indigo-200', border: 'border-indigo-800' },
-  { id: 'minimal', label: 'Minimal', desc: 'Monochrome simplicity and focus', bg: 'bg-neutral-100', text: 'text-neutral-900', border: 'border-neutral-300' },
-  { id: 'creative_tech', label: 'Creative Tech', desc: 'Electric accents & modern vibe', bg: 'bg-slate-900', text: 'text-cyan-300', border: 'border-cyan-700' },
-];
-
-const ACCENT_COLORS = [
-  { name: 'Indigo', hex: '#4F46E5' },
-  { name: 'Violet', hex: '#7C3AED' },
-  { name: 'Teal', hex: '#0D9488' },
-  { name: 'Rose', hex: '#E11D48' },
-  { name: 'Emerald', hex: '#059669' },
-  { name: 'Amber', hex: '#D97706' },
-  { name: 'Blue', hex: '#2563EB' },
+const SKILL_SUGGESTIONS = [
+  { label: 'IT related', skills: ['JavaScript', 'React', 'Node.js', 'TypeScript', 'Python', 'SQL', 'Git', 'Data Analysis', 'Cloud (AWS / Azure)', 'Cybersecurity'] },
+  { label: 'Accounting & Finance', skills: ['Bookkeeping', 'Financial Reporting', 'Payroll', 'Accounts Payable', 'Tax Preparation', 'Auditing', 'QuickBooks', 'Excel'] },
+  { label: 'Customer Service', skills: ['Customer Service', 'Call Handling', 'Chat Support', 'CRM', 'Conflict Resolution'] },
+  { label: 'Sales & Marketing', skills: ['Sales', 'Digital Marketing', 'SEO', 'Social Media Marketing', 'Lead Generation', 'Negotiation'] },
+  { label: 'Design', skills: ['UI/UX Design', 'Graphic Design', 'Figma', 'Adobe Photoshop', 'Wireframing', 'Video Editing'] },
+  { label: 'Project Management', skills: ['Project Management', 'Agile', 'Scrum', 'Time Management', 'Leadership', 'Documentation'] },
+  { label: 'Healthcare', skills: ['Patient Care', 'Medical Terminology', 'First Aid', 'Nursing', 'Phlebotomy'] },
+  { label: 'Education', skills: ['Teaching', 'Lesson Planning', 'Curriculum Development', 'Classroom Management', 'Tutoring'] },
+  { label: 'Skilled Trades', skills: ['Electrical Wiring', 'Plumbing', 'Carpentry', 'Welding', 'Machine Operation'] },
+  { label: 'Logistics & Driving', skills: ['Professional Driving', 'Delivery', 'Inventory Management', 'Warehouse Operations', 'Forklift Operation'] },
+  { label: 'General', skills: ['Problem Solving', 'Communication', 'Teamwork', 'Microsoft Office', 'Adaptability'] },
 ];
 
 const emptyExperience = () => ({
@@ -138,21 +129,6 @@ const normalizeProfile = (source) => ({
   },
 });
 
-const normalizePreferences = (source) => ({
-  themePreset: source?.themePreset || 'light',
-  accentColor: source?.accentColor || '#4F46E5',
-  compactMode: Boolean(source?.compactMode),
-  notifications: source?.notifications !== false,
-  showWelcomeBanner: source?.showWelcomeBanner !== false,
-  layoutBlocks: Array.isArray(source?.layoutBlocks) && source.layoutBlocks.length > 0
-    ? source.layoutBlocks
-    : [
-        { id: 'summary', order: 0, visible: true },
-        { id: 'skills', order: 1, visible: true },
-        { id: 'resumes', order: 2, visible: true },
-      ],
-});
-
 const normalizePrivacySettings = (source) => ({
   profileVisibility: ['private', 'counselors_only', 'public'].includes(source?.profileVisibility)
     ? source.profileVisibility
@@ -161,7 +137,7 @@ const normalizePrivacySettings = (source) => ({
 });
 
 const ProfileWorkspace = () => {
-  const { user, updateMyProfile, updateSettings, changePassword, logout } = useAuth();
+  const { user, updateMyProfile, changePassword, logout } = useAuth();
   const { toast } = useToast();
   const avatarInputRef = useRef(null);
   const resumeInputRef = useRef(null);
@@ -176,16 +152,13 @@ const ProfileWorkspace = () => {
   const [profile, setProfile] = useState(() => normalizeProfile(user));
   const [savedProfile, setSavedProfile] = useState(() => normalizeProfile(user));
 
-  // Preferences & customization
-  const [preferences, setPreferences] = useState(() => normalizePreferences(user?.customization));
-  const [savedPreferences, setSavedPreferences] = useState(() => normalizePreferences(user?.customization));
-
   // Privacy
   const [privacySettings, setPrivacySettings] = useState(() => normalizePrivacySettings(user?.privacySettings));
   const [savedPrivacySettings, setSavedPrivacySettings] = useState(() => normalizePrivacySettings(user?.privacySettings));
 
   // Skills interactive input
   const [skillInput, setSkillInput] = useState('');
+  const [skillCategory, setSkillCategory] = useState(null);
 
   // Async busy states
   const [resumeBusy, setResumeBusy] = useState(false);
@@ -233,10 +206,7 @@ const ProfileWorkspace = () => {
       }
 
       if (custData) {
-        const normPref = normalizePreferences(custData.customization);
         const normPriv = normalizePrivacySettings(custData.privacySettings);
-        setPreferences(normPref);
-        setSavedPreferences(normPref);
         setPrivacySettings(normPriv);
         setSavedPrivacySettings(normPriv);
       }
@@ -315,19 +285,15 @@ const ProfileWorkspace = () => {
     if (activeSection === 'skills') {
       return JSON.stringify(profile.skills) !== JSON.stringify(savedProfile.skills);
     }
-    if (activeSection === 'preferences') {
-      return (
-        JSON.stringify(preferences) !== JSON.stringify(savedPreferences) ||
-        JSON.stringify(privacySettings) !== JSON.stringify(savedPrivacySettings)
-      );
+    if (activeSection === 'privacy') {
+      return JSON.stringify(privacySettings) !== JSON.stringify(savedPrivacySettings);
     }
     return false;
-  }, [activeSection, profile, savedProfile, preferences, savedPreferences, privacySettings, savedPrivacySettings]);
+  }, [activeSection, profile, savedProfile, privacySettings, savedPrivacySettings]);
 
   // Cancel changes in section
   const handleCancelSection = () => {
     setProfile(savedProfile);
-    setPreferences(savedPreferences);
     setPrivacySettings(savedPrivacySettings);
     setEditingSection('');
   };
@@ -338,25 +304,10 @@ const ProfileWorkspace = () => {
     setSaving(true);
 
     try {
-      if (activeSection === 'preferences') {
-        const result = await apiAdapter.updateProfileCustomization({
-          customization: preferences,
-          privacySettings,
-        });
+      if (activeSection === 'privacy') {
+        const result = await apiAdapter.updateProfileCustomization({ privacySettings });
 
-        const updatedCust = normalizePreferences(result?.customization || preferences);
         const updatedPriv = normalizePrivacySettings(result?.privacySettings || privacySettings);
-
-        updateSettings({
-          theme: updatedCust.themePreset.includes('dark') ? 'dark' : 'light',
-          accent: updatedCust.accentColor,
-          compactMode: updatedCust.compactMode,
-          notifications: updatedCust.notifications,
-          showWelcomeBanner: updatedCust.showWelcomeBanner,
-        });
-
-        setPreferences(updatedCust);
-        setSavedPreferences(updatedCust);
         setPrivacySettings(updatedPriv);
         setSavedPrivacySettings(updatedPriv);
       } else {
@@ -939,7 +890,7 @@ const ProfileWorkspace = () => {
           {/* Form Content */}
           {activeSection === 'security' ? (
             /* SECURITY SECTION */
-            <div className="space-y-8 pt-6">
+            <div key={activeSection} className="animate-tab-panel space-y-8 pt-6">
               {/* Password update form */}
               <form onSubmit={handleUpdatePassword} className="space-y-5">
                 <div>
@@ -1084,7 +1035,7 @@ const ProfileWorkspace = () => {
               </div>
             </div>
           ) : (
-            <form id="profile-section-form" onSubmit={handleSaveSection} className="space-y-6 pt-6">
+            <form key={activeSection} id="profile-section-form" onSubmit={handleSaveSection} className="animate-tab-panel space-y-6 pt-6">
               {/* BASIC INFO */}
               {activeSection === 'basic' && (
                 <div className="space-y-6">
@@ -1132,7 +1083,7 @@ const ProfileWorkspace = () => {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700">
-                        Full Name <span className="text-rose-500">*</span>
+                        Full Name <span className="text-rose-600">*</span>
                       </label>
                       <input
                         required
@@ -1231,7 +1182,7 @@ const ProfileWorkspace = () => {
                         <label className="block text-xs font-semibold text-slate-700">
                           Professional Bio / Summary
                         </label>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-slate-500">
                           {profile.bio.length} / 2000
                         </span>
                       </div>
@@ -1301,7 +1252,7 @@ const ProfileWorkspace = () => {
 
                       <div className="sm:col-span-2">
                         <label className="block text-xs font-semibold text-slate-700">
-                          Target Roles <span className="font-normal text-slate-400">(comma separated)</span>
+                          Target Roles <span className="font-normal text-slate-500">(comma separated)</span>
                         </label>
                         <input
                           maxLength={900}
@@ -1678,7 +1629,7 @@ const ProfileWorkspace = () => {
                       <label className="block text-xs font-semibold text-slate-700">
                         Skills & Competencies ({profile.skills.length}/50)
                       </label>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[11px] text-slate-500">
                         Type and press Enter to add
                       </span>
                     </div>
@@ -1728,7 +1679,7 @@ const ProfileWorkspace = () => {
                         </span>
                       ))}
                       {profile.skills.length === 0 && (
-                        <p className="text-xs italic text-slate-400">
+                        <p className="text-xs italic text-slate-500">
                           No skills added yet. Use the suggestions below or type a skill above.
                         </p>
                       )}
@@ -1739,20 +1690,30 @@ const ProfileWorkspace = () => {
                       <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                         Quick Add Suggestions
                       </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {POPULAR_SKILLS.filter(
-                          (ps) => !profile.skills.some((s) => s.toLowerCase() === ps.toLowerCase())
-                        ).map((ps) => (
-                          <button
-                            key={ps}
-                            type="button"
-                            onClick={() => handleAddSkill(ps)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 shadow-2xs hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-800"
-                          >
-                            <Plus className="h-3 w-3 text-slate-400" />
-                            {ps}
-                          </button>
-                        ))}
+                      <p className="mt-1 text-xs text-slate-500">
+                        Choose an area to see the skills you can add.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {SKILL_SUGGESTIONS.map(({ label, skills }) => {
+                          const remaining = skills.filter(
+                            (ps) => !profile.skills.some((s) => s.toLowerCase() === ps.toLowerCase())
+                          );
+                          return (
+                            <button
+                              key={label}
+                              type="button"
+                              onClick={() => setSkillCategory(label)}
+                              disabled={!remaining.length}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {label}
+                              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                                {remaining.length}
+                              </span>
+                              <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1848,128 +1809,10 @@ const ProfileWorkspace = () => {
                 </div>
               )}
 
-              {/* PREFERENCES */}
-              {activeSection === 'preferences' && (
-                <div className="space-y-8">
-                  {/* Theme Presets */}
+              {/* PRIVACY */}
+              {activeSection === 'privacy' && (
+                <div className="space-y-6">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Appearance Theme</h3>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Select your preferred PathPoint visual style.
-                    </p>
-
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                      {THEME_PRESETS.map((preset) => {
-                        const isSelected = preferences.themePreset === preset.id;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() => {
-                              setPreferences({ ...preferences, themePreset: preset.id });
-                              setEditingSection('preferences');
-                            }}
-                            className={`group relative rounded-2xl border p-4 text-left transition-all ${
-                              isSelected
-                                ? 'border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-600/20'
-                                : 'border-slate-200 bg-white hover:border-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-slate-900">{preset.label}</span>
-                              {isSelected && <Check className="h-4 w-4 text-indigo-600" />}
-                            </div>
-                            <p className="mt-1 text-[11px] text-slate-500">{preset.desc}</p>
-                            <div
-                              className={`mt-3 h-5 w-full rounded-md border ${preset.bg} ${preset.border} shadow-2xs`}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Accent Colors */}
-                  <div className="border-t border-slate-100 pt-6">
-                    <h3 className="text-sm font-bold text-slate-900">Accent Highlight Color</h3>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Choose an accent color for interactive buttons and highlights.
-                    </p>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      {ACCENT_COLORS.map((color) => {
-                        const isSelected = preferences.accentColor.toLowerCase() === color.hex.toLowerCase();
-                        return (
-                          <button
-                            key={color.name}
-                            type="button"
-                            onClick={() => {
-                              setPreferences({ ...preferences, accentColor: color.hex });
-                              setEditingSection('preferences');
-                            }}
-                            className={`relative flex h-10 w-10 items-center justify-center rounded-xl shadow-xs transition-transform hover:scale-105 ${
-                              isSelected ? 'ring-2 ring-slate-900 ring-offset-2' : ''
-                            }`}
-                            style={{ backgroundColor: color.hex }}
-                            title={color.name}
-                          >
-                            {isSelected && <Check className="h-4 w-4 text-white" />}
-                          </button>
-                        );
-                      })}
-
-                      {/* Custom Color Input */}
-                      <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-                        <input
-                          type="color"
-                          value={preferences.accentColor}
-                          onChange={(e) => {
-                            setPreferences({ ...preferences, accentColor: e.target.value });
-                            setEditingSection('preferences');
-                          }}
-                          className="h-10 w-10 cursor-pointer rounded-xl border border-slate-300 p-1"
-                          title="Custom Accent"
-                        />
-                        <span className="font-mono text-xs text-slate-500">
-                          {preferences.accentColor}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Toggle Options */}
-                  <div className="border-t border-slate-100 pt-6">
-                    <h3 className="text-sm font-bold text-slate-900">Application Settings</h3>
-                    <div className="mt-3 divide-y divide-slate-100 rounded-2xl border border-slate-200">
-                      {[
-                        ['compactMode', 'Compact Mode', 'Reduced spacing for denser data tables and cards'],
-                        ['notifications', 'Activity Notifications', 'Receive reminders for upcoming interviews and submissions'],
-                        ['showWelcomeBanner', 'Welcome Banner', 'Show greeting banner on the primary dashboard view'],
-                      ].map(([key, title, subtitle]) => (
-                        <label
-                          key={key}
-                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/50"
-                        >
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">{title}</p>
-                            <p className="text-[11px] text-slate-500">{subtitle}</p>
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={Boolean(preferences[key])}
-                            onChange={(e) => {
-                              setPreferences({ ...preferences, [key]: e.target.checked });
-                              setEditingSection('preferences');
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Privacy Settings */}
-                  <div className="border-t border-slate-100 pt-6">
                     <h3 className="text-sm font-bold text-slate-900">Privacy & Visibility</h3>
                     <p className="mt-0.5 text-xs text-slate-500">
                       Control who can see your profile on PathPoint.
@@ -1984,7 +1827,7 @@ const ProfileWorkspace = () => {
                           value={privacySettings.profileVisibility}
                           onChange={(e) => {
                             setPrivacySettings({ ...privacySettings, profileVisibility: e.target.value });
-                            setEditingSection('preferences');
+                            setEditingSection('privacy');
                           }}
                           className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900"
                         >
@@ -2001,7 +1844,7 @@ const ProfileWorkspace = () => {
                             checked={Boolean(privacySettings.shareResumeToPublic)}
                             onChange={(e) => {
                               setPrivacySettings({ ...privacySettings, shareResumeToPublic: e.target.checked });
-                              setEditingSection('preferences');
+                              setEditingSection('privacy');
                             }}
                             className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                           />
@@ -2023,6 +1866,45 @@ const ProfileWorkspace = () => {
         onClose={() => setShowForgotPasswordModal(false)}
         defaultEmail={user?.email || user?.username || ''}
       />
+
+      {/* Skill category quick-add Modal */}
+      <Modal
+        isOpen={Boolean(skillCategory)}
+        onClose={() => setSkillCategory(null)}
+        title={skillCategory ? `${skillCategory} skills` : 'Skills'}
+        maxWidth="max-w-lg"
+      >
+        {(() => {
+          const category = SKILL_SUGGESTIONS.find((item) => item.label === skillCategory);
+          if (!category) return null;
+          const remaining = category.skills.filter(
+            (ps) => !profile.skills.some((s) => s.toLowerCase() === ps.toLowerCase())
+          );
+          if (!remaining.length) {
+            return <p className="text-sm text-slate-500">You&apos;ve added every skill in this area.</p>;
+          }
+          return (
+            <>
+              <p className="text-xs text-slate-500">
+                Click a skill to add it to your profile. {remaining.length} available.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {remaining.map((ps) => (
+                  <button
+                    key={ps}
+                    type="button"
+                    onClick={() => handleAddSkill(ps)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-800"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-slate-400" />
+                    {ps}
+                  </button>
+                ))}
+              </div>
+            </>
+          );
+        })()}
+      </Modal>
     </div>
   );
 };

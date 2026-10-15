@@ -194,10 +194,12 @@ export const ApplicationDetail = () => {
       </div>
 
       {activeTab === 'prep' ? (
-        <InterviewPrepChecklist company={application.company} role={application.role} />
+        <div key="prep" className="animate-tab-panel">
+          <InterviewPrepChecklist company={application.company} role={application.role} />
+        </div>
       ) : (
         /* Overview Grid */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div key="overview" className="animate-tab-panel grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left 2 Columns: Details, History, Notes */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
@@ -267,13 +269,13 @@ export const ApplicationDetail = () => {
                             {index === 0 ? 'Application initialized' : `Transitioned to ${item.status}`}
                           </span>
                         </div>
-                        <span className="text-slate-400 font-mono">{dateStr}</span>
+                        <span className="text-slate-500 font-mono">{dateStr}</span>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <p className="text-xs text-slate-400">No status transitions recorded yet.</p>
+                <p className="text-xs text-slate-500">No status transitions recorded yet.</p>
               )}
             </div>
           </div>
@@ -346,7 +348,7 @@ export const ApplicationDetail = () => {
 
                           <button
                             onClick={() => handleRemoveInterviewDate(dateObj)}
-                            className="text-slate-400 hover:text-rose-600 p-1 rounded transition"
+                            className="text-slate-500 hover:text-rose-600 p-1 rounded transition"
                             title="Remove date"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -357,7 +359,7 @@ export const ApplicationDetail = () => {
                 </div>
               ) : (
                 <div className="p-4 bg-slate-50 rounded-xl text-center border border-dashed border-slate-200">
-                  <p className="text-xs text-slate-400">No interviews scheduled yet.</p>
+                  <p className="text-xs text-slate-500">No interviews scheduled yet.</p>
                 </div>
               )}
             </div>

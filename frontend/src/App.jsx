@@ -26,6 +26,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
 const InterviewScheduler = lazy(() => import('./pages/InterviewScheduler'));
 const Profile = lazy(() => import('./pages/ProfileWorkspace'));
+const WebsiteSettings = lazy(() => import('./pages/WebsiteSettings'));
 const AdminMetrics = lazy(() => import('./pages/AdminMetrics'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminProviders = lazy(() => import('./pages/AdminProviders'));
@@ -280,6 +281,14 @@ export const App = () => {
                 element={
                   <ProtectedRoute>
                     <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <WebsiteSettings />
                   </ProtectedRoute>
                 }
               />

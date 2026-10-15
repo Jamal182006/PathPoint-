@@ -3,12 +3,171 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 selection:bg-brand-500 selection:text-white;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    @apply bg-slate-50 text-slate-800 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold text-slate-900;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Tabular numerals wherever data matters. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Browser surfaces belong to the palette. */
+  ::selection {
+    @apply bg-brand-600 text-white;
+  }
+
+  :focus-visible {
+    outline: 2px solid #4f46e5;
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+    background-clip: content-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
+@layer components {
+  /* ── Surfaces ─────────────────────────────────────────────────────── */
+  .ui-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .ui-card-interactive {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 ease-out;
+  }
+
+  .ui-card-interactive:hover {
+    @apply -translate-y-0.5 border-slate-300 shadow-card;
+  }
+
+  .ui-panel {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-card;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────────── */
+  .ui-btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold leading-none whitespace-nowrap;
+    @apply transition duration-150 ease-out;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
+    @apply disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
+  }
+
+  .ui-btn:not(:disabled):active {
+    transform: translateY(0.5px) scale(0.995);
+  }
+
+  .ui-btn-primary {
+    @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700;
+  }
+
+  .ui-btn-secondary {
+    @apply border border-slate-300 bg-white text-slate-700 shadow-xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900;
+  }
+
+  .ui-btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .ui-btn-danger {
+    @apply bg-danger-600 text-white shadow-sm hover:bg-danger-700;
+  }
+
+  .ui-btn-sm {
+    @apply gap-1.5 rounded-lg px-3 py-2 text-xs;
+  }
+
+  .ui-btn-lg {
+    @apply gap-2 rounded-xl px-5 py-3 text-sm;
+  }
+
+  /* ── Form controls ────────────────────────────────────────────────── */
+  .ui-label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+
+  .ui-input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 shadow-xs;
+    @apply transition duration-150 ease-out;
+    @apply placeholder:text-slate-500;
+    @apply focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/10;
+    @apply disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400;
+  }
+
+  .ui-input-error {
+    @apply border-danger-600 focus:border-danger-600 focus:ring-danger-600/10;
+  }
+
+  .ui-hint {
+    @apply mt-1.5 text-xs text-slate-500;
+  }
+
+  .ui-error-text {
+    @apply mt-1.5 flex items-center gap-1.5 text-xs font-medium text-danger-700;
+  }
+
+  /* ── Badges & status ──────────────────────────────────────────────── */
+  .ui-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  /* ── Page scaffolding ─────────────────────────────────────────────── */
+  .ui-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .ui-section-title {
+    @apply text-lg font-semibold tracking-tight text-slate-900;
+  }
+
+  .ui-empty {
+    @apply flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-14 text-center;
+  }
+}
+
+/* =====================================================================
+   Auth surfaces
+   ===================================================================== */
 @keyframes auth-drift {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
   50% { transform: translate3d(0, -12px, 0) scale(1.03); }
@@ -84,7 +243,18 @@
 }
 
 .animate-fade-in {
-  animation: page-enter 180ms ease-out both;
+  animation: page-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Tab switches: the incoming panel fades in and lifts slightly so
+   jumping between tabs reads as a transition, not a hard cut. */
+@keyframes tab-panel-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-tab-panel {
+  animation: tab-panel-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .auth-dark {
@@ -100,6 +270,24 @@
 .auth-dark > div > section {
   background-color: #111c2e;
   border-color: #334155;
+}
+
+.auth-dark .auth-surface header,
+.auth-dark .auth-surface footer {
+  border-color: #1e293b;
+}
+
+.auth-dark .auth-surface footer {
+  background-color: rgba(2, 8, 23, 0.4);
+}
+
+.auth-dark .auth-surface .divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b;
+}
+
+.auth-dark input[type='checkbox'] {
+  background-color: #0f172a;
+  border-color: #475569;
 }
 
 .auth-dark .text-slate-900,
@@ -122,49 +310,8 @@
   color: #f8fafc;
 }
 
-:focus-visible {
-  outline: 2px solid #6366f1;
-  outline-offset: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .auth-page::before,
-  .auth-page::after,
-  .auth-brand,
-  .auth-brand-mark,
-  .auth-card,
-  .auth-card form > div,
-  .animate-fade-in {
-    animation: none;
-  }
-
-  .auth-input,
-  .auth-submit {
-    transition: none;
-  }
-}
-
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
 /* =====================================================================
-   Role-Based Color Tokens (Phase 5)
+   Role-Based Color Tokens
    Candidate (Ocean Teal), Provider (Royal Sapphire), Admin (Slate Indigo)
    ===================================================================== */
 :root {
@@ -196,29 +343,16 @@
 }
 
 /* =====================================================================
-   Purposeful Micro-Interactions & Animation System (Phase 6)
-   150ms-280ms durations, cubic-bezier easing, prefers-reduced-motion safe
+   Micro-Interactions
    ===================================================================== */
 @keyframes modal-scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97) translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes toast-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .animate-modal-enter {
@@ -227,13 +361,6 @@
 
 .animate-toast-enter {
   animation: toast-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Button & interactive press micro-interaction */
-button:not(:disabled):active,
-a:not([aria-disabled="true"]):active {
-  transform: scale(0.985);
-  transition: transform 60ms ease-out;
 }
 
 /* Smooth surface hover elevations */
@@ -247,16 +374,24 @@ a:not([aria-disabled="true"]):active {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .auth-page::before,
+  .auth-page::after,
+  .auth-brand,
+  .auth-brand-mark,
+  .auth-card,
+  .auth-card form > div,
+  .animate-fade-in,
+  .animate-tab-panel,
   .animate-modal-enter,
-  .animate-toast-enter,
-  .card-hover {
+  .animate-toast-enter {
     animation: none !important;
-    transition: none !important;
-    transform: none !important;
   }
 
-  button:not(:disabled):active,
-  a:not([aria-disabled="true"]):active {
+  .auth-input,
+  .auth-submit,
+  .card-hover,
+  .ui-btn {
+    transition: none !important;
     transform: none !important;
   }
 }

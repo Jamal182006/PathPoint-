@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import ForgotPasswordModal from '../components/common/ForgotPasswordModal';
-import BackendStatusModal from '../components/common/BackendStatusModal';
 import LoginVerificationModal from '../components/common/LoginVerificationModal';
 import {
   Compass,
@@ -38,7 +37,6 @@ export const Login = () => {
 
   // Modals
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
-  const [backendModalOpen, setBackendModalOpen] = useState(false);
 
   const getRoleHome = (role) => role === 'admin' ? '/admin' : role === 'provider' ? '/provider' : '/dashboard';
 
@@ -167,7 +165,6 @@ export const Login = () => {
           </Link>
         </div>
         <div className="relative max-w-xl py-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">One workspace. Every next step.</p>
           <h1 className="mt-5 text-4xl font-bold leading-tight text-white xl:text-5xl">Bring your career journey into focus.</h1>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">Applicants, providers, and career teams move through one shared platform, with every application and review connected.</p>
           <div className="mt-10 grid gap-0 border-y border-white/15 sm:grid-cols-3">
@@ -211,9 +208,6 @@ export const Login = () => {
           )}
 
           <div className="mb-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">
-              Secure sign in
-            </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
               Welcome back
             </h2>
@@ -234,7 +228,7 @@ export const Login = () => {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="Email address or username"
-                  className="auth-input w-full pl-9 pr-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                  className="auth-input ui-input pl-9"
                 />
               </div>
             </div>
@@ -257,7 +251,7 @@ export const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="auth-input w-full pl-9 pr-10 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                  className="auth-input ui-input pl-9 pr-10"
                 />
                 <button
                   type="button"
@@ -277,7 +271,7 @@ export const Login = () => {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                 />
                 <span className="text-xs text-slate-600 select-none">Stay signed in for 30 days</span>
               </label>
@@ -295,7 +289,7 @@ export const Login = () => {
               <button
                 type="submit"
                 disabled={loading || loginCodeRequired || lockoutSeconds > 0}
-                className="auth-submit w-full flex items-center justify-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-md shadow-indigo-200 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition disabled:opacity-60 cursor-pointer"
+                className="auth-submit ui-btn ui-btn-primary w-full py-3 text-sm disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -309,11 +303,7 @@ export const Login = () => {
             </div>
           </form>
 
-          <div className="mt-8 flex items-center justify-between gap-3 border-t border-slate-200 pt-5 text-xs text-slate-500">
-            <button type="button" onClick={() => setBackendModalOpen(true)} className="inline-flex items-center gap-2 rounded-md py-1 font-medium hover:text-slate-900">
-              <span className={`h-2 w-2 rounded-full ${backendOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-              {backendOnline ? 'Services connected' : 'Connection status'}
-            </button>
+          <div className="mt-8 border-t border-slate-200 pt-5 text-center text-xs text-slate-500">
             <p>Don&apos;t have an account? <Link to="/register" className="font-semibold text-indigo-700 hover:text-indigo-900">Create one</Link></p>
           </div>
           </div>
@@ -325,10 +315,6 @@ export const Login = () => {
         isOpen={forgotPasswordOpen}
         onClose={() => setForgotPasswordOpen(false)}
         defaultEmail={identifier}
-      />
-      <BackendStatusModal
-        isOpen={backendModalOpen}
-        onClose={() => setBackendModalOpen(false)}
       />
       <LoginVerificationModal
         isOpen={loginCodeRequired}

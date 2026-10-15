@@ -243,7 +243,7 @@ export const InterviewScheduler = () => {
                             day: 'numeric',
                           })}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-500">
                           {item.date.getFullYear()}
                         </div>
                       </div>
@@ -279,12 +279,12 @@ export const InterviewScheduler = () => {
               <div className="text-center py-8">
                 <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm font-medium text-slate-700">No upcoming interviews scheduled</p>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Add interview dates in any application detail card to track them here!
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-slate-400">All upcoming interviews are in the next 7 days above.</p>
+              <p className="text-xs text-slate-500">All upcoming interviews are in the next 7 days above.</p>
             )}
           </div>
 
@@ -303,7 +303,7 @@ export const InterviewScheduler = () => {
                     className="py-2.5 flex items-center justify-between text-xs text-slate-500"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-slate-400">
+                      <span className="font-mono text-slate-500">
                         {item.date.toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',

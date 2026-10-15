@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { apiAdapter, checkBackendStatus } from '../services/apiAdapter';
+import { apiAdapter, checkBackendStatus, persistAuthSession } from '../services/apiAdapter';
 import { getBaseURL, setBaseURL } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -67,10 +67,36 @@ export const AuthProvider = ({ children }) => {
           if (userData) {
             setUser(userData);
             setToken(storedToken);
+            // Keep the cached profile fresh so the session can survive a brief
+            // backend outage without forcing a re-login.
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            storage.setItem('pathpoint_user', JSON.stringify(userData));
           } else {
             logout();
           }
-        } catch {
+        } catch (err) {
+          const status = err?.response?.status;
+          const authRejected = status === 401 || status === 403;
+
+          // A transient network/backend failure (no HTTP response, a 5xx, or the
+          // "backend unavailable" guard) must NOT sign the user out. Fall back to
+          // the cached profile so the workspace keeps rendering; only a definitive
+          // auth rejection or an expired token ends the session.
+          if (!authRejected) {
+            const cachedUser =
+              localStorage.getItem('pathpoint_user') ||
+              sessionStorage.getItem('pathpoint_user');
+            if (cachedUser) {
+              try {
+                setUser(JSON.parse(cachedUser));
+                setToken(storedToken);
+                setLoading(false);
+                return;
+              } catch {
+                // malformed cache -> fall through to logout
+              }
+            }
+          }
           logout();
         }
       } else {
@@ -118,13 +144,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (userData, rememberMe = true) => {
     const result = await apiAdapter.register(userData, rememberMe);
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('pathpoint_token');
-    sessionStorage.removeItem('pathpoint_token');
-    localStorage.removeItem('pathpoint_user');
-    sessionStorage.removeItem('pathpoint_user');
-    localStorage.removeItem('pathpoint_token_expires_at');
+    // Sign the new account in immediately so the user lands in their workspace
+    // instead of being asked to re-enter the credentials they just chose.
+    if (result?.user && result?.token) {
+      persistAuthSession(result.user, result.token, rememberMe);
+      setUser(result.user);
+      setToken(result.token);
+    }
     return result;
   }, []);
 

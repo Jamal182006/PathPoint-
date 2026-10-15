@@ -53,7 +53,7 @@ export const KanbanColumn = ({ status, applications = [], onAddClick }) => {
         {onAddClick && (
           <button
             onClick={() => onAddClick(status)}
-            className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-white transition"
+            className="p-1 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-white transition"
             title={`Add application to ${status}`}
           >
             <Plus className="w-4 h-4" />
@@ -77,9 +77,9 @@ export const KanbanColumn = ({ status, applications = [], onAddClick }) => {
             {provided.placeholder}
 
             {applications.length === 0 && !snapshot.isDraggingOver && (
-              <div className="h-32 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-xs">
+              <div className="h-32 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-xs">
                 <span>No applications</span>
-                <span className="text-[11px] text-slate-400 mt-0.5">Drag cards here</span>
+                <span className="text-[11px] text-slate-500 mt-0.5">Drag cards here</span>
               </div>
             )}
           </div>

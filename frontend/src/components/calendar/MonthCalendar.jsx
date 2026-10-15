@@ -152,7 +152,7 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
               key={idx}
               className={`min-h-[105px] sm:min-h-[120px] p-2 flex flex-col justify-between transition-colors ${
                 !cell.isCurrentMonth
-                  ? 'bg-slate-50/50 text-slate-400'
+                  ? 'bg-slate-50/50 text-slate-500'
                   : 'bg-white hover:bg-slate-50/40 text-slate-800'
               }`}
             >
@@ -164,7 +164,7 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
                       ? 'bg-indigo-600 text-white shadow-sm'
                       : cell.isCurrentMonth
                       ? 'text-slate-700'
-                      : 'text-slate-400'
+                      : 'text-slate-500'
                   }`}
                 >
                   {cell.day}

@@ -154,7 +154,7 @@ const MyApplications = () => {
   };
 
   return <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-    <header className="border-b border-slate-200 pb-5"><p className="text-xs font-semibold uppercase text-indigo-700">Applicant portal</p><h1 className="mt-1 text-2xl font-bold text-slate-900">My Applications</h1><p className="mt-1 text-sm text-slate-500">Review submissions, statuses, and employer feedback.</p></header>
+    <header className="border-b border-slate-200 pb-5"><h1 className="mt-1 text-2xl font-bold text-slate-900">My Applications</h1><p className="mt-1 text-sm text-slate-500">Review submissions, statuses, and employer feedback.</p></header>
     <section aria-label="Filter applications" className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_160px_160px_180px_180px]">
       <label className="relative"><span className="sr-only">Search applications</span><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={search} onChange={(event) => updateFilter(setSearch, event.target.value)} placeholder="Search company or role" className="w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm" /></label>
       <label className="sr-only" htmlFor="my-applications-type">Application type</label><select id="my-applications-type" value={type} onChange={(event) => updateFilter(setType, event.target.value)} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs"><option value="all">All types</option><option value="job">Jobs</option><option value="company">Companies</option></select>

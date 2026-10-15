@@ -142,7 +142,6 @@ const JobsDirectory = () => {
       <header className="relative overflow-hidden rounded-lg bg-slate-950 px-6 py-8 text-white sm:px-9 sm:py-10">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-25" style={{ backgroundImage: 'radial-gradient(circle at 80% 15%, #34d399 0, transparent 32%), radial-gradient(circle at 8% 100%, #6366f1 0, transparent 38%)' }} />
         <div className="relative max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">Opportunities</p>
           <h1 className="mt-2 text-3xl font-bold text-white">Find your next move.</h1>
           <p className="mt-3 text-sm leading-6 text-slate-300">Browse businesses and open roles from providers. Verification status and application requirements come from the platform.</p>
         </div>

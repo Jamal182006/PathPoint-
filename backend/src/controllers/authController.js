@@ -273,10 +273,10 @@ export const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Choose a valid gender option.' });
     }
 
-    if (role === 'provider' && (!String(businessName).trim() || !String(businessType).trim() || !String(contactPerson).trim())) {
+    if (role === 'provider' && (!String(businessName).trim() || !String(businessType).trim())) {
       return res.status(400).json({
         success: false,
-        message: 'Providers must provide a business name, business type, and contact person.',
+        message: 'Providers must provide a business name and business type.',
       });
     }
 
@@ -289,8 +289,10 @@ export const register = async (req, res) => {
       normalizedAvatar = String(avatar);
     }
 
-    let businessVerification;
-    if (role === 'provider') {
+    // Providers may register first and submit their verification document later
+    // from the provider dashboard, so only parse the document when one is supplied.
+    let businessVerification = { status: 'not_submitted' };
+    if (role === 'provider' && businessDocument) {
       try {
         businessVerification = {
           ...parseBusinessDocument(businessDocument),
@@ -350,7 +352,7 @@ export const register = async (req, res) => {
       businessType: role === 'provider' ? String(businessType).trim().slice(0, 100) : '',
       businessAddress: role === 'provider' ? String(businessAddress).trim().slice(0, 300) : '',
       businessRegistrationNumber: role === 'provider' ? String(businessRegistrationNumber).trim().slice(0, 100) : '',
-      contactPerson: role === 'provider' ? String(contactPerson).trim().slice(0, 160) : '',
+      contactPerson: role === 'provider' ? (String(contactPerson).trim() || normalizedName).slice(0, 160) : '',
       password,
       role,
       careerTrack: careerTrack || 'General',

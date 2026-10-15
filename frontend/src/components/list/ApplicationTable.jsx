@@ -20,18 +20,18 @@ export const ApplicationTable = ({
 
   if (applications.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3">
-          <FileText className="w-6 h-6" />
-        </div>
-        <h3 className="text-sm font-semibold text-slate-900">No applications match your filter</h3>
-        <p className="text-xs text-slate-500 mt-1">Try resetting search or status filters.</p>
+      <div className="ui-empty">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+          <FileText className="h-6 w-6" />
+        </span>
+        <h3 className="mt-4 text-sm font-semibold text-slate-900">No applications match your filter</h3>
+        <p className="mt-1 text-sm text-slate-500">Try resetting your search or stage filter.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="ui-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
@@ -80,7 +80,7 @@ export const ApplicationTable = ({
                     <select
                       value={app.status}
                       onChange={(e) => onStatusChange(app._id, e.target.value)}
-                      className="text-xs font-medium border border-slate-200 rounded-lg px-2.5 py-1 bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm"
+                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium shadow-xs transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       {['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'].map(
                         (st) => (
@@ -98,7 +98,7 @@ export const ApplicationTable = ({
                         {app.salaryRange}
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-500">—</span>
                     )}
                   </td>
 
@@ -139,7 +139,7 @@ export const ApplicationTable = ({
                         </span>
                       </span>
                     ) : (
-                      <span className="text-slate-400">None scheduled</span>
+                      <span className="text-slate-500">None scheduled</span>
                     )}
                   </td>
 
@@ -150,7 +150,7 @@ export const ApplicationTable = ({
                         <span className="max-w-[120px] truncate">{app.resumeVersion}</span>
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-500">—</span>
                     )}
                   </td>
 
@@ -167,7 +167,7 @@ export const ApplicationTable = ({
                       {onDelete && (
                         <button
                           onClick={() => onDelete(app._id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
                           title="Delete Application"
                         >
                           <Trash2 className="w-4 h-4" />

@@ -103,9 +103,9 @@ export const ProviderDashboard = () => {
 
   if (providerApproved) {
     return <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
-        <div><p className="text-xs font-semibold uppercase text-indigo-700">Provider portal</p><h1 className="mt-1 text-2xl font-bold text-slate-900">Overview</h1><p className="mt-1 text-sm text-slate-500">Company profiles, job listings, and applicant activity in one place.</p></div>
-        <div className="flex flex-wrap gap-2"><Link to="/provider/companies" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Companies &amp; businesses</Link><Link to="/provider/jobs" className="rounded-md bg-indigo-700 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-800">Job listings</Link></div>
+      <header className="border-b border-slate-200 pb-5">
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">Overview</h1>
+        <p className="mt-1 text-sm text-slate-500">Company profiles, job listings, and applicant activity in one place.</p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3"><div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800"><span className="h-2 w-2 rounded-full bg-emerald-500" />Provider verified</div><button type="button" onClick={() => { setOverview((current) => ({ ...current, loading: true, error: '' })); setOverviewRefresh((value) => value + 1); }} disabled={overview.loading} className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${overview.loading ? 'animate-spin' : ''}`} />Refresh stats</button></div>
@@ -121,8 +121,6 @@ export const ProviderDashboard = () => {
           { label: 'Awaiting review', value: overviewStats.jobReviews + overviewStats.organizationReviews, icon: FileText, href: '/provider/companies' },
         ].map(({ label, value, icon: Icon, href }) => <Link key={label} to={href} className="group flex items-center justify-between border-b border-slate-200 py-4 hover:bg-slate-50"><div><p className="text-xs font-semibold uppercase text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{overview.loading ? <span className="inline-block h-7 w-8 animate-pulse bg-slate-200" /> : value}</p></div><Icon className="h-5 w-5 text-indigo-700" /></Link>)}
       </section>
-
-      <section className="flex flex-wrap items-center justify-between gap-3 border-y border-slate-200 py-4"><div><h2 className="text-sm font-semibold text-slate-900">Manage your organization listings</h2><p className="mt-1 text-xs text-slate-500">Create or edit company and business profiles from Companies &amp; businesses.</p></div><Link to="/provider/companies" className="text-sm font-semibold text-indigo-700 hover:underline">Open company dashboard</Link></section>
     </div>;
   }
 
@@ -130,7 +128,6 @@ export const ProviderDashboard = () => {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Provider Portal</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Business listing</h1>
         </div>
         <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${

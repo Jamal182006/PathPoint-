@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
@@ -18,10 +18,11 @@ import {
   Plus,
   Briefcase,
   Calendar,
-  Award,
+  CalendarCheck,
   Bookmark,
   Download,
   HelpCircle,
+  Sparkles,
 } from 'lucide-react';
 
 export const Dashboard = ({
@@ -34,6 +35,10 @@ export const Dashboard = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [applications, setApplications] = useState([]);
+
+  // Applications submitted through /jobs and company listings (separate store)
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const [platformInterviews, setPlatformInterviews] = useState([]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,7 +61,26 @@ export const Dashboard = ({
       console.error('Failed to load applications:', err);
       toast('Failed to load applications', 'error');
     }
-  }, [user?.id, toast]);
+
+    // Platform submissions (job / company listings) are stored separately from the manual tracker.
+    if (user.role !== 'user') {
+      setSubmissionCount(0);
+      setPlatformInterviews([]);
+      return;
+    }
+    try {
+      const [totals, scheduled] = await Promise.all([
+        apiAdapter.getApplicationSubmissions({ limit: 1 }),
+        apiAdapter.getApplicationSubmissions({ status: 'interview', limit: 50 }),
+      ]);
+      setSubmissionCount(Number(totals?.count) || 0);
+      setPlatformInterviews((scheduled?.data || []).map((sub) => sub.interviewDate).filter(Boolean));
+    } catch (err) {
+      console.error('Failed to load platform applications:', err);
+      setSubmissionCount(0);
+      setPlatformInterviews([]);
+    }
+  }, [user?.id, user?.role, toast]);
 
 
   useEffect(() => {
@@ -117,85 +141,119 @@ export const Dashboard = ({
     });
   }, [applications, searchTerm, statusFilter]);
 
-  // Quick summary counts
+  // Quick summary counts — manual tracker plus applications submitted through the platform
   const counts = useMemo(() => {
+    const now = Date.now();
+    const interviewTimes = [];
+    applications.forEach((app) => {
+      (app.interviewDates || []).forEach((raw) => {
+        const time = new Date(raw).getTime();
+        if (!Number.isNaN(time)) interviewTimes.push(time);
+      });
+    });
+    platformInterviews.forEach((raw) => {
+      const time = new Date(raw).getTime();
+      if (!Number.isNaN(time)) interviewTimes.push(time);
+    });
+    const currentInterviews = interviewTimes.filter((time) => time >= now).length;
     return {
-      total: applications.length,
+      total: applications.length + submissionCount,
       saved: applications.filter((a) => a.status === 'Saved').length,
-      interviewing: applications.filter((a) => a.status === 'Interviewing').length,
-      offered: applications.filter((a) => a.status === 'Offered').length,
+      currentInterviews,
+      completedInterviews: interviewTimes.length - currentInterviews,
     };
-  }, [applications]);
+  }, [applications, submissionCount, platformInterviews]);
+
+  // Completeness of the details a candidate can defer past signup.
+  const profileCompletion = useMemo(() => {
+    const items = [
+      { label: 'your phone number', complete: Boolean(user?.phone?.trim()) },
+      { label: 'a professional summary', complete: Boolean(user?.bio?.trim()) },
+      { label: 'your target role', complete: Boolean(user?.profileInfo?.headline?.trim() || (user?.profileInfo?.targetRoles?.length > 0)) },
+      { label: 'your work experience', complete: Boolean(user?.experience?.length) },
+      { label: 'your education', complete: Boolean(user?.educationHistory?.length || user?.education?.trim()) },
+      { label: 'your skills', complete: Boolean(user?.skills?.length) },
+      { label: 'your resume', complete: Boolean(user?.resume) },
+    ];
+    const done = items.filter((item) => item.complete).length;
+    return {
+      percentage: Math.round((done / items.length) * 100),
+      next: items.find((item) => !item.complete)?.label || 'the last details',
+    };
+  }, [user]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
+        </h1>
+        <p className="mt-1.5 text-sm text-slate-500">Here's where your search stands today.</p>
+      </header>
+
+      {profileCompletion.percentage < 100 && (
+        <section aria-label="Profile completion" className="ui-card mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+              <h2 className="text-sm font-semibold text-slate-900">Finish your profile</h2>
+              <span className="ml-auto text-xs font-semibold tabular-nums text-indigo-600 sm:ml-0">{profileCompletion.percentage}%</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Add {profileCompletion.next} so providers and recruiters can understand your background.</p>
+            <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-indigo-600 transition-all duration-500" style={{ width: `${profileCompletion.percentage}%` }} />
+            </div>
+          </div>
+          <Link to="/profile" className="ui-btn ui-btn-primary ui-btn-sm shrink-0 justify-center">Complete profile</Link>
+        </section>
+      )}
+
       {/* Metrics Header Summary Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-indigo-50 text-indigo-600">
-            <Briefcase className="w-5 h-5" />
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: 'Total tracked', value: counts.total, icon: Briefcase, tint: 'bg-brand-50 text-brand-600' },
+          { label: 'Interviews', value: counts.currentInterviews, icon: Calendar, tint: 'bg-amber-50 text-amber-600' },
+          { label: 'Interviews completed', value: counts.completedInterviews, icon: CalendarCheck, tint: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Saved / wishlist', value: counts.saved, icon: Bookmark, tint: 'bg-slate-100 text-slate-600' },
+        ].map(({ label, value, icon: Icon, tint }) => (
+          <div key={label} className="ui-card flex items-center gap-3 p-4">
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+              <Icon className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <div className="text-2xl font-semibold leading-none tabular-nums text-slate-900">{value}</div>
+              <div className="mt-1.5 truncate text-xs font-medium text-slate-500">{label}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-xl font-bold text-slate-900">{counts.total}</div>
-            <div className="text-xs text-slate-500 font-medium">Total Tracked</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-amber-50 text-amber-600">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-slate-900">{counts.interviewing}</div>
-            <div className="text-xs text-slate-500 font-medium">Interviewing</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600">
-            <Award className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-slate-900">{counts.offered}</div>
-            <div className="text-xs text-slate-500 font-medium">Offers Received</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-slate-100 text-slate-600">
-            <Bookmark className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="text-xl font-bold text-slate-900">{counts.saved}</div>
-            <div className="text-xs text-slate-500 font-medium">Saved / Wishlist</div>
-          </div>
-        </div>
+        ))}
       </div>
 
       <TrackedItemsWidget />
 
       {/* Action and Filter Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="ui-card mb-6 flex flex-col items-stretch justify-between gap-3 p-3 sm:flex-row sm:items-center">
         <div className="flex flex-1 items-center gap-2">
           <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <input
               id="dashboard-search-input"
               data-global-search
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Filter by company, role, recruiter... (or press /)"
-              className="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Filter by company, role, recruiter… (or press /)"
+              aria-label="Filter applications"
+              className="ui-input pl-9"
             />
           </div>
 
           <div className="flex items-center gap-1">
-            <Filter className="w-4 h-4 text-slate-400 hidden sm:block" />
+            <Filter className="hidden h-4 w-4 text-slate-400 sm:block" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="text-xs sm:text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Filter by stage"
+              className="ui-input w-auto py-2 text-sm"
             >
               <option value="All">All Stages ({applications.length})</option>
               <option value="Saved">Saved</option>
@@ -208,33 +266,35 @@ export const Dashboard = ({
         </div>
 
         {/* View Switcher & Action Buttons */}
-        <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center justify-end gap-2">
           {/* Export / Backup button */}
           <button
             onClick={() => setExportModalOpen(true)}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
             title="Export to CSV or backup JSON"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export / Import</span>
           </button>
 
           {/* Shortcuts button */}
           <button
             onClick={() => setShortcutsModalOpen(true)}
-            className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-500 text-xs transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm px-2.5"
             title="Keyboard shortcuts (or press ?)"
+            aria-label="Keyboard shortcuts"
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="h-4 w-4" />
           </button>
 
           {/* Board vs List toggle */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100 p-1">
             <button
               onClick={() => handleViewChange('board')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition ${
+              aria-pressed={currentView === 'board'}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
                 currentView === 'board'
-                  ? 'bg-white text-indigo-700 shadow-sm font-semibold'
+                  ? 'bg-white font-semibold text-brand-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -244,9 +304,10 @@ export const Dashboard = ({
 
             <button
               onClick={() => handleViewChange('list')}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition ${
+              aria-pressed={currentView === 'list'}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
                 currentView === 'list'
-                  ? 'bg-white text-indigo-700 shadow-sm font-semibold'
+                  ? 'bg-white font-semibold text-brand-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -260,14 +321,18 @@ export const Dashboard = ({
 
       {/* Main View Area */}
       {applications.length === 0 ? (
-        <div className="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-12 text-center max-w-lg mx-auto mt-8">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4">
-            <Briefcase className="w-7 h-7" />
-          </div>
-          <h3 className="text-base font-semibold text-slate-900">No applications logged yet</h3>
-          <p className="text-xs text-slate-500 mt-1.5 mb-5 max-w-sm mx-auto">
-            Log your target companies, track interview stages, attach resumes, and monitor outcomes.
+        <div className="ui-empty mx-auto mt-8 max-w-lg">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+            <Briefcase className="h-7 w-7" />
+          </span>
+          <h3 className="mt-4 text-base font-semibold text-slate-900">No applications logged yet</h3>
+          <p className="mt-1.5 max-w-sm text-sm text-slate-500">
+            Log your target companies, track interview stages, attach resumes, and monitor outcomes — all in one board.
           </p>
+          <button onClick={() => setModalOpen(true)} className="ui-btn ui-btn-primary mt-5">
+            <Plus className="h-4 w-4" />
+            Log your first application
+          </button>
         </div>
       ) : currentView === 'board' ? (
         <KanbanBoard

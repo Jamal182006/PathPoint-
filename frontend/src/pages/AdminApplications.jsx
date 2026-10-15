@@ -61,7 +61,6 @@ export const AdminApplications = () => {
   return (
     <div className="space-y-6">
       <header className="border-b border-slate-200 pb-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Administration</p>
         <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-slate-900"><FileText className="h-6 w-6 text-indigo-600" />Applications</h1>
         <p className="mt-1 text-sm text-slate-500">Review applicant submissions and legacy tracker records across the platform.</p>
       </header>

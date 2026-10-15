@@ -66,14 +66,10 @@ const ProviderCompanies = () => {
     <div className="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <p className="text-xs font-semibold uppercase text-indigo-700">Provider Portal</p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Company &amp; business dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">Manage organization listings and review applicants.</p>
         </div>
-        <div className="flex gap-2">
-          <Link to="/provider" className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Verification & profile</Link>
-          <button type="button" aria-expanded={addOptionsOpen} aria-controls="add-organization-options" onClick={() => setAddOptionsOpen((open) => !open)} className="inline-flex items-center gap-2 rounded-md bg-indigo-700 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-800"><FilePlus2 className="h-4 w-4" /> Add listing <ChevronDown className={`h-4 w-4 transition-transform ${addOptionsOpen ? 'rotate-180' : ''}`} /></button>
-        </div>
+        <button type="button" aria-expanded={addOptionsOpen} aria-controls="add-organization-options" onClick={() => setAddOptionsOpen((open) => !open)} className="inline-flex items-center gap-2 rounded-md bg-indigo-700 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-800"><FilePlus2 className="h-4 w-4" /> Add listing <ChevronDown className={`h-4 w-4 transition-transform ${addOptionsOpen ? 'rotate-180' : ''}`} /></button>
       </header>
 
       {addOptionsOpen && <section id="add-organization-options" aria-label="Choose what to add" className="flex flex-col justify-between gap-4 border-b border-indigo-200 bg-indigo-50/60 px-4 py-4 sm:flex-row sm:items-center"><div><h2 className="text-sm font-semibold text-slate-900">What would you like to add?</h2><p className="mt-1 text-xs text-slate-600">Choose the type of organization to create a listing.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => openAddForm('company')} className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:border-indigo-300 hover:text-indigo-800"><Building2 className="h-4 w-4 text-indigo-700" />Company</button><button type="button" onClick={() => openAddForm('business')} className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:border-indigo-300 hover:text-indigo-800"><Store className="h-4 w-4 text-indigo-700" />Business</button></div></section>}

@@ -40,7 +40,7 @@ const ProviderSidebar = () => {
   return <>
     <aside className={`sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 border-r border-slate-200 bg-white transition-[width] duration-200 md:block ${collapsed ? 'w-[72px]' : 'w-60'}`}>
       <div className={`flex h-16 items-center ${collapsed ? 'justify-center' : 'justify-between px-4'}`}>
-        {!collapsed && <p className="text-xs font-bold uppercase text-slate-400">Provider workspace</p>}
+        {!collapsed && <p className="text-xs font-bold uppercase text-slate-500">Provider workspace</p>}
         <button type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Expand provider sidebar' : 'Collapse provider sidebar'} className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900">
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
@@ -55,7 +55,7 @@ const ProviderSidebar = () => {
       <button type="button" onClick={() => setDrawerOpen(true)} className="inline-flex items-center gap-2 rounded-md px-2 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"><Menu className="h-4 w-4" />Workspace menu</button>
       {drawerOpen && <div className="fixed inset-0 z-50 bg-slate-950/40" onClick={() => setDrawerOpen(false)}>
         <aside role="dialog" aria-modal="true" aria-label="Provider navigation" className="h-full w-[min(20rem,85vw)] bg-white p-4 shadow-xl" onClick={(event) => event.stopPropagation()}>
-          <div className="mb-5 flex items-center justify-between"><p className="text-xs font-bold uppercase text-slate-400">Provider workspace</p><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+          <div className="mb-5 flex items-center justify-between"><p className="text-xs font-bold uppercase text-slate-500">Provider workspace</p><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
           <nav className="space-y-1">{items(true)}</nav>
         </aside>
       </div>}

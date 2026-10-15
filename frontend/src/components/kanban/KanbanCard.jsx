@@ -37,7 +37,7 @@ export const KanbanCard = ({ application, index }) => {
           {...provided.dragHandleProps}
           className={`group relative bg-white p-3.5 rounded-xl border transition-all duration-200 shadow-sm hover:shadow-md ${
             snapshot.isDragging
-              ? 'border-indigo-500 ring-2 ring-indigo-300 shadow-lg scale-102 bg-indigo-50/20'
+              ? 'border-indigo-500 ring-2 ring-indigo-300 shadow-lg scale-[1.02] bg-indigo-50/20'
               : hasUrgentInterview
               ? 'border-amber-300 bg-amber-50/10 hover:border-amber-400'
               : 'border-slate-200 hover:border-slate-300'
@@ -69,7 +69,7 @@ export const KanbanCard = ({ application, index }) => {
 
             <Link
               to={`/applications/${application._id}`}
-              className="text-slate-400 hover:text-indigo-600 p-1 rounded hover:bg-slate-100 transition"
+              className="text-slate-500 hover:text-indigo-600 p-1 rounded hover:bg-slate-100 transition"
               title="View details"
             >
               <ChevronRight className="w-4 h-4" />

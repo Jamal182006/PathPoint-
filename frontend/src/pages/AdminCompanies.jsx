@@ -70,7 +70,6 @@ const AdminCompanies = () => {
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase text-indigo-700">Admin suite</p>
           <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold text-slate-900"><Building2 className="h-6 w-6 text-indigo-700" />Company review</h1>
           <p className="mt-1 text-sm text-slate-500">Verify provider eligibility and review company listings before publishing.</p>
         </div>

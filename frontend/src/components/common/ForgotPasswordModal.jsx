@@ -116,7 +116,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose, defaultEmail = '' }) => {
         {/* Close Button */}
         <button
           onClick={handleReset}
-          className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+          className="absolute right-4 top-4 p-1.5 rounded-lg text-slate-500 hover:text-slate-600 hover:bg-slate-100 transition"
         >
           <X className="w-5 h-5" />
         </button>

@@ -1,208 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../components/common/Toast';
-import { systemApi } from '../api/systemApi';
+import React, { useEffect, useState } from 'react';
 import adminApi from '../api/adminApi';
-import {
-  Activity,
-  Server,
-  Database,
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  Key,
-  ShieldCheck,
-  CheckCircle2,
-  XCircle,
-  FileCode,
-  Sliders,
-  Terminal,
-  ExternalLink,
-  Users,
-} from 'lucide-react';
+import { Activity, RefreshCw, ScrollText } from 'lucide-react';
 
 export const AdminSystem = () => {
-  const { backendOnline, apiUrl, updateApiUrl, recheckBackend, token, user } = useAuth();
-  const { toast } = useToast();
-
-  const [inputUrl, setInputUrl] = useState(apiUrl);
-  const [testing, setTesting] = useState(false);
-  const [pingData, setPingData] = useState(null);
-  const [lastChecked, setLastChecked] = useState(null);
   const [activity, setActivity] = useState([]);
+  const [logLoading, setLogLoading] = useState(true);
 
-  const runDiagnostics = async () => {
-    setTesting(true);
-    try {
-      const result = await systemApi.checkHealth();
-      setPingData(result);
-      setLastChecked(new Date().toLocaleTimeString());
-      await recheckBackend();
-      if (result.online) {
-        toast(`Backend online (${result.latency} ms)`, 'success');
-      } else {
-        toast('Backend offline or unreachable. Database-backed features are unavailable.', 'info');
-      }
-    } catch (err) {
-      setPingData({ online: false, error: err.message });
-    } finally {
-      setTesting(false);
-    }
+  const loadActivity = () => {
+    setLogLoading(true);
+    adminApi
+      .getActivityLog({ limit: 30 })
+      .then((result) => setActivity(result.data?.data || []))
+      .catch(() => {})
+      .finally(() => setLogLoading(false));
   };
 
   useEffect(() => {
-    runDiagnostics();
-    adminApi.getActivityLog({ limit: 30 }).then((result) => setActivity(result.data?.data || [])).catch(() => {});
+    loadActivity();
   }, []);
 
-  const handleSaveUrl = async () => {
-    const isOnline = await updateApiUrl(inputUrl);
-    toast(
-      isOnline ? 'Connected to backend URL!' : 'API URL saved. Server currently offline.',
-      isOnline ? 'success' : 'info'
-    );
-    runDiagnostics();
-  };
-
-  const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-  const handleResetDefaultUrl = async () => {
-    setInputUrl(DEFAULT_API_URL);
-    await updateApiUrl(DEFAULT_API_URL);
-    toast(`API URL reset to ${DEFAULT_API_URL}`, 'info');
-    runDiagnostics();
-  };
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Navigation Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Server className="w-7 h-7 text-indigo-600" />
-            <span>Backend Integration & System Health</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Monitor REST API connectivity, test roundtrip latency, and inspect JWT bearer session security.
-          </p>
-        </div>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <header className="border-b border-slate-200 pb-5">
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
+          <ScrollText className="h-7 w-7 text-indigo-600" />
+          <span>System log</span>
+        </h1>
+        <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+          Audit trail of recent activity across provider, company, job, and application workflows.
+        </p>
+      </header>
 
-      </div>
-
-      {/* Grid: Server Health + API Configuration */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Status Overview Card */}
-
-        {/* API Base URL Configuration Card */}
-        <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">API Endpoint Configuration</h3>
-            <span className="text-xs text-indigo-600 font-semibold">Dynamic Switcher</span>
-          </div>
-          <p className="text-xs text-slate-500">
-            Set the backend host URL. This allows testing against a local Express / FastAPI server (`http://localhost:5000/api`) or a deployed staging server.
-          </p>
-
-          <div className="space-y-3 pt-2">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inputUrl}
-                onChange={(e) => setInputUrl(e.target.value)}
-                placeholder="http://localhost:5000/api"
-                className="flex-1 px-3 py-2.5 text-xs font-mono border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="button"
-                onClick={handleSaveUrl}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition"
-              >
-                Apply & Connect
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between text-xs pt-1">
-              <button
-                onClick={handleResetDefaultUrl}
-                className="text-slate-500 hover:text-slate-800 underline"
-              >
-                Reset to default (http://localhost:5000/api)
-              </button>
-              <span className="text-[11px] text-slate-400">Auto-appends `/api/health` for diagnostics</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Security & JWT Session Inspection Card */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-            <Key className="w-4 h-4 text-indigo-600" />
-            <span>Active Administrative Authentication Session</span>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-            Admin Bearer Session
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="text-slate-400 font-semibold mb-1">Authenticated Account</div>
-            <div className="font-bold text-slate-800">{user?.name}</div>
-            <div className="text-slate-500 text-[11px]">{user?.email}</div>
-          </div>
-
-          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="text-slate-400 font-semibold mb-1">Assigned Role</div>
-            <div className="font-bold text-indigo-700 capitalize">{user?.role}</div>
-            <div className="text-slate-500 text-[11px]">Full Administrative Privileges</div>
-          </div>
-
-          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-            <div className="text-slate-400 font-semibold mb-1">Authorization Token</div>
-            <div className="font-mono text-[11px] text-slate-700 truncate">
-              {token ? `${token.slice(0, 24)}...` : 'No token present'}
-            </div>
-            <div className="text-emerald-600 font-medium text-[11px]">Attached to all Axios requests</div>
-          </div>
-        </div>
-      </div>
-
-      {/* API Specification Banner */}
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <div><h2 className="flex items-center gap-2 text-sm font-bold text-slate-900"><Activity className="h-4 w-4 text-indigo-600" />Platform activity</h2><p className="mt-1 text-xs text-slate-500">Recent changes recorded across provider, company, and application workflows.</p></div>
-          <span className="text-xs font-medium text-slate-500">{activity.length} events</span>
-        </header>
-        {activity.length ? <ol className="divide-y divide-slate-100">
-          {activity.map((item) => <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs">
-            <span className="text-slate-800"><strong className="font-semibold">{item.actorId?.name || 'System'}</strong> {item.action}</span>
-            <time className="text-slate-500">{new Date(item.createdAt).toLocaleString()}</time>
-          </li>)}
-        </ol> : <p className="px-5 py-8 text-center text-sm text-slate-500">No recorded activity yet.</p>}
-      </section>
-
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 rounded-2xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-xl bg-white/10 text-indigo-300">
-            <FileCode className="w-6 h-6" />
-          </div>
+      <section aria-labelledby="activity-log-title" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-4">
           <div>
-            <h4 className="font-bold text-sm">Need to build or connect the backend server?</h4>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Review the complete REST API specification and Mongoose schemas in <code>BACKEND_SPECIFICATION.md</code>.
-            </p>
+            <h2 id="activity-log-title" className="flex items-center gap-2 text-sm font-bold text-slate-900">
+              <Activity className="h-4 w-4 text-indigo-600" />
+              Recent activity
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">Newest first. Each entry records the actor and the action performed.</p>
           </div>
-        </div>
-
-        <button
-          onClick={() => toast('Specification file located at: /BACKEND_SPECIFICATION.md', 'info')}
-          className="px-4 py-2 rounded-xl bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition whitespace-nowrap"
-        >
-          View Contract Specs
-        </button>
-      </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-slate-500">{activity.length} events</span>
+            <button type="button" onClick={loadActivity} className="ui-btn ui-btn-secondary ui-btn-sm">
+              <RefreshCw className={`h-3.5 w-3.5 ${logLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+        </header>
+        {logLoading && !activity.length ? (
+          <p className="px-5 py-8 text-center text-sm text-slate-500">Loading activity…</p>
+        ) : activity.length ? (
+          <ol className="divide-y divide-slate-100">
+            {activity.map((item) => (
+              <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-xs">
+                <span className="text-slate-800">
+                  <strong className="font-semibold">{item.actorId?.name || 'System'}</strong> {item.action}
+                </span>
+                <time className="text-slate-500" dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="px-5 py-8 text-center text-sm text-slate-500">No recorded activity yet.</p>
+        )}
+      </section>
     </div>
   );
 };

@@ -110,7 +110,7 @@ export const ExportImportModal = ({
       </div>
 
       {activeTab === 'export' ? (
-        <div className="space-y-4 text-slate-700">
+        <div key="export" className="animate-tab-panel space-y-4 text-slate-700">
           <p className="text-xs text-slate-500">
             Export all <strong>{applications.length}</strong> tracked job applications to use in spreadsheets or save as an archival backup.
           </p>
@@ -158,7 +158,7 @@ export const ExportImportModal = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-4 text-slate-700">
+        <div key="import" className="animate-tab-panel space-y-4 text-slate-700">
           <p className="text-xs text-slate-500">
             Restore a previous JSON backup or import a list of job applications:
           </p>

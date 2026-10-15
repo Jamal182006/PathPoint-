@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Calendar,
   ShieldAlert,
-  Server,
   BriefcaseBusiness,
   FileText,
   Menu,
@@ -17,11 +16,20 @@ import {
   User,
   ChevronDown,
   Building2,
-  ShieldCheck,
+  Palette,
 } from 'lucide-react';
 
 export const Navbar = () => {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, logout, backendOnline, recheckBackend } = useAuth();
+  const [rechecking, setRechecking] = useState(false);
+  const handleRecheck = async () => {
+    setRechecking(true);
+    try {
+      await recheckBackend();
+    } finally {
+      setRechecking(false);
+    }
+  };
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -77,12 +85,9 @@ export const Navbar = () => {
         avatarClass: 'bg-slate-900 text-white',
         rolePillClass: 'bg-indigo-100 text-indigo-900',
         brandIcon: ShieldAlert,
-        links: [
-          { label: 'Overview', path: '/admin', icon: LayoutDashboard },
-          { label: 'Providers', path: '/admin/providers', icon: ShieldCheck },
-          { label: 'Companies', path: '/admin/companies', icon: Building2 },
-          { label: 'Jobs', path: '/admin/jobs', icon: BriefcaseBusiness },
-        ],
+        // Admin workspace navigation lives in AdminLayout (left rail). The top bar
+        // intentionally carries no duplicate workspace links.
+        links: [],
       };
     }
     if (user?.role === 'provider') {
@@ -97,12 +102,9 @@ export const Navbar = () => {
         avatarClass: 'bg-blue-600 text-white',
         rolePillClass: 'bg-blue-100 text-blue-900',
         brandIcon: Building2,
-        links: [
-          { label: 'Overview', path: '/provider', icon: LayoutDashboard },
-          { label: 'Companies', path: '/provider/companies', icon: Building2 },
-          { label: 'Job Listings', path: '/provider/jobs', icon: BriefcaseBusiness },
-          { label: 'Directory', path: '/jobs', icon: Compass },
-        ],
+        // Provider workspace navigation lives in ProviderSidebar (left rail). The
+        // top bar intentionally carries no duplicate workspace links.
+        links: [],
       };
     }
     return {
@@ -149,7 +151,23 @@ export const Navbar = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-[0_4px_18px_-16px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+        {user && !backendOnline && (
+          <div className="border-b border-amber-200 bg-amber-50">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 text-xs text-amber-800 sm:px-6 lg:px-8 sm:text-sm">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" aria-hidden="true" />
+              <span>Reconnecting to the server — your saved session is still active.</span>
+              <button
+                type="button"
+                onClick={handleRecheck}
+                disabled={rechecking}
+                className="font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950 disabled:opacity-60"
+              >
+                {rechecking ? 'Checking…' : 'Retry'}
+              </button>
+            </div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Brand */}
@@ -291,18 +309,16 @@ export const Navbar = () => {
                         <span>My Account Settings</span>
                       </Link>
 
-                      {user?.role === 'user' && <Link to="/my-applications" onClick={() => setUserDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"><FileText className="h-4 w-4 text-slate-400" /><span>My Applications</span></Link>}
-
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          setBackendModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
+                      <Link
+                        to="/settings"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
                       >
-                        <Server className="w-4 h-4 text-slate-400" />
-                        <span>Backend Connection</span>
-                      </button>
+                        <Palette className="w-4 h-4 text-slate-400" />
+                        <span>Website Settings</span>
+                      </Link>
+
+                      {user?.role === 'user' && <Link to="/my-applications" onClick={() => setUserDropdownOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50"><FileText className="h-4 w-4 text-slate-400" /><span>My Applications</span></Link>}
 
                       <button
                         onClick={handleLogout}
@@ -380,6 +396,11 @@ export const Navbar = () => {
             <Link to="/profile" onClick={() => setMobileMenuOpen(false)} aria-current={location.pathname.startsWith('/profile') ? 'page' : undefined} className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
               <User className="h-4 w-4 text-slate-400" />
               <span>My account settings</span>
+            </Link>
+
+            <Link to="/settings" onClick={() => setMobileMenuOpen(false)} aria-current={location.pathname.startsWith('/settings') ? 'page' : undefined} className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              <Palette className="h-4 w-4 text-slate-400" />
+              <span>Website settings</span>
             </Link>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">

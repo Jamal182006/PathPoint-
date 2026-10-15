@@ -206,7 +206,7 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               <button
                 type="button"
                 onClick={() => handleRemoveQuestion(idx)}
-                className="text-slate-400 hover:text-rose-600 p-1 transition"
+                className="text-slate-500 hover:text-rose-600 p-1 transition"
                 title="Remove question"
               >
                 <Trash2 className="w-3.5 h-3.5" />

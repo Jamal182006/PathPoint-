@@ -180,7 +180,7 @@ export const AdminProviders = () => {
                           className="inline-flex items-center gap-1 rounded-md border border-rose-200 bg-white px-2.5 py-2 font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                         ><X className="h-3.5 w-3.5" /> Reject</button>
                       </div>
-                    ) : <span className="text-slate-400">Reviewed</span>}
+                    ) : <span className="text-slate-500">Reviewed</span>}
                   </td>
                 </tr>
               );

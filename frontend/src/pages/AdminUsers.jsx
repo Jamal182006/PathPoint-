@@ -313,7 +313,7 @@ export const AdminUsers = () => {
                             className={`p-1.5 rounded-lg border transition ${
                               u.status === 'suspended'
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200'
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200'
                             }`}
                             title={u.status === 'suspended' ? 'Re-activate profile' : 'Suspend account'}
                           >
@@ -338,7 +338,7 @@ export const AdminUsers = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan="8" className="px-6 py-12 text-center text-slate-500">
                     No candidates matched your search criteria.
                   </td>
                 </tr>
@@ -375,7 +375,7 @@ export const AdminUsers = () => {
               </div>
               <button
                 onClick={() => setInspectedUser(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-600 hover:bg-slate-100 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -389,7 +389,7 @@ export const AdminUsers = () => {
               </div>
 
               {loadingApps ? (
-                <div className="py-12 text-center text-slate-400">Loading portfolio...</div>
+                <div className="py-12 text-center text-slate-500">Loading portfolio...</div>
               ) : inspectedApps.length > 0 ? (
                 inspectedApps.map((app) => (
                   <div
@@ -437,7 +437,7 @@ export const AdminUsers = () => {
                   </div>
                 ))
               ) : (
-                <div className="py-12 text-center text-slate-400">
+                <div className="py-12 text-center text-slate-500">
                   This candidate has not logged any job applications yet.
                 </div>
               )}

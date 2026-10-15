@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { BarChart3, BriefcaseBusiness, Building2, ChevronLeft, ChevronRight, FileText, Menu, Server, ShieldCheck, Users, X } from 'lucide-react';
+import { BarChart3, BriefcaseBusiness, Building2, ChevronLeft, ChevronRight, FileText, Menu, ScrollText, ShieldCheck, Users, X } from 'lucide-react';
 
 const links = [
   { to: '/admin', label: 'Overview', icon: BarChart3, end: true },
@@ -9,7 +9,7 @@ const links = [
   { to: '/admin/jobs', label: 'Job listings', icon: BriefcaseBusiness },
   { to: '/admin/applications', label: 'Applications', icon: FileText },
   { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/system', label: 'System health', icon: Server },
+  { to: '/admin/system', label: 'System log', icon: ScrollText },
 ];
 
 const AdminLayout = ({ children }) => {
@@ -25,7 +25,7 @@ const AdminLayout = ({ children }) => {
   return <div className="mx-auto flex max-w-[1600px] flex-1 gap-4 px-4 py-6 sm:px-6 lg:gap-7 lg:px-8">
     <aside className={`sticky top-24 hidden h-[calc(100vh-7rem)] shrink-0 border-r border-slate-200 pr-3 transition-[width] duration-200 lg:block ${collapsed ? 'w-[64px]' : 'w-56'}`}>
       <div className={`mb-3 flex items-center ${collapsed ? 'justify-center' : 'justify-between px-3'}`}>
-        {!collapsed && <p className="text-[10px] font-bold uppercase text-slate-400">Administration</p>}
+        {!collapsed && <p className="text-[10px] font-bold uppercase text-slate-500">Administration</p>}
         <button type="button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? 'Expand admin sidebar' : 'Collapse admin sidebar'} className="rounded-md p-2 text-slate-500 hover:bg-slate-100">{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button>
       </div>
       <nav aria-label="Admin navigation" className="space-y-1">{renderLinks()}</nav>
@@ -36,7 +36,7 @@ const AdminLayout = ({ children }) => {
       </div>
       {drawerOpen && <div className="fixed inset-0 z-50 bg-slate-950/40 lg:hidden" onClick={() => setDrawerOpen(false)}>
         <aside role="dialog" aria-modal="true" aria-label="Admin navigation" className="h-full w-[min(20rem,85vw)] bg-white p-4 shadow-xl" onClick={(event) => event.stopPropagation()}>
-          <div className="mb-5 flex items-center justify-between"><p className="text-xs font-bold uppercase text-slate-400">Administration</p><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
+          <div className="mb-5 flex items-center justify-between"><p className="text-xs font-bold uppercase text-slate-500">Administration</p><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button></div>
           <nav className="space-y-1">{renderLinks(true)}</nav>
         </aside>
       </div>}
