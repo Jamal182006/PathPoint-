@@ -99,11 +99,6 @@ export const apiAdapter = {
   // AUTHENTICATION
   // ==========================================
   login: async (identifier, password, rememberMe = true) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
-    }
-
     try {
       const res = await authApi.login({ identifier, password, rememberMe, deviceToken: getTrustedDeviceToken() });
       if (res.data?.success && res.data.token) {
@@ -131,11 +126,6 @@ export const apiAdapter = {
   },
 
   requestLoginCode: async (identifier, password, rememberMe = true) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
-    }
-
     try {
       const res = await authApi.requestLoginCode({ identifier, password, rememberMe, deviceToken: getTrustedDeviceToken() });
       if (res.data?.success) {
@@ -171,11 +161,6 @@ export const apiAdapter = {
   },
 
   verifyLoginCode: async (identifier, password, code, rememberMe = true) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The server is unavailable. Start the backend and connect MongoDB before signing in.');
-    }
-
     try {
       const deviceToken = getTrustedDeviceToken();
       const res = await authApi.verifyLoginCode({ identifier, password, code, rememberMe, deviceToken });
@@ -200,11 +185,6 @@ export const apiAdapter = {
   },
 
   register: async (userData, rememberMe = true) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The server is unavailable. Start the backend and connect MongoDB before creating an account.');
-    }
-
     try {
       const res = await authApi.register(userData);
       if (res.data?.success && res.data.user) {
@@ -230,8 +210,6 @@ export const apiAdapter = {
   },
 
   getMe: async () => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Your session could not be verified.');
     try {
       const res = await authApi.getMe();
       if (res.data?.success && res.data.user) return res.data.user;
@@ -252,29 +230,21 @@ export const apiAdapter = {
   },
 
   getProfileCustomization: async () => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Profile settings require a database connection.');
     const res = await withApiErrorMessage(authApi.getProfileCustomization());
     return res.data?.data || res.data;
   },
 
   updateProfileCustomization: async (payload) => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Profile settings require a database connection.');
     const res = await withApiErrorMessage(authApi.updateProfileCustomization(payload));
     return res.data?.data || res.data;
   },
 
   getMyResume: async (inline = false) => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Resume downloads require a database connection.');
     const res = await withApiErrorMessage(authApi.getMyResume(inline));
     return res.data;
   },
 
   uploadMyResume: async (fileOrFormData) => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Resume uploads require a database connection.');
     let formData = fileOrFormData;
     if (!(fileOrFormData instanceof FormData)) {
       formData = new FormData();
@@ -285,19 +255,12 @@ export const apiAdapter = {
   },
 
   deleteMyResume: async () => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Resume deletion requires a database connection.');
     const res = await withApiErrorMessage(authApi.deleteMyResume());
     return res.data;
   },
 
 
   forgotPassword: async (identifier) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The backend is unavailable. Please try again later.');
-    }
-
     try {
       const res = await authApi.forgotPassword(identifier);
       return res.data;
@@ -310,11 +273,6 @@ export const apiAdapter = {
   },
 
   verifyResetCode: async (identifier, code) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The backend is unavailable. Please try again later.');
-    }
-
     try {
       const res = await authApi.verifyResetCode(identifier, code);
       return res.data;
@@ -327,11 +285,6 @@ export const apiAdapter = {
   },
 
   resetPassword: async (identifier, code, newPassword) => {
-    const online = await checkBackendStatus(true);
-    if (!online) {
-      throw new Error('The backend is unavailable. Please try again later.');
-    }
-
     try {
       const res = await authApi.resetPassword(identifier, code, newPassword);
       return res.data;
@@ -344,8 +297,6 @@ export const apiAdapter = {
   },
 
   changePassword: async (currentPassword, newPassword) => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The backend is unavailable. Password changes require a database connection.');
     const res = await authApi.changePassword({ currentPassword, newPassword });
     return res.data;
   },
@@ -354,8 +305,6 @@ export const apiAdapter = {
   // APPLICATIONS
   // ==========================================
   getApplicationSubmissions: async (params = {}) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     const res = await withApiErrorMessage(applicationsApi.getSubmissions(params));
     if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load applications');
     return res.data;
@@ -398,8 +347,6 @@ export const apiAdapter = {
   },
 
   getApplications: async (userId, filters = {}) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     try {
       const res = await applicationsApi.getAll(filters);
       if (res.data?.success) {
@@ -412,8 +359,6 @@ export const apiAdapter = {
   },
 
   getApplicationById: async (id) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     try {
       const res = await applicationsApi.getById(id);
       if (res.data?.success) {
@@ -426,8 +371,6 @@ export const apiAdapter = {
   },
 
   createApplication: async (userId, data) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     try {
       const res = await applicationsApi.create(data);
       if (res.data?.success) {
@@ -440,8 +383,6 @@ export const apiAdapter = {
   },
 
   updateApplication: async (id, data) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     try {
       const res = await applicationsApi.update(id, data);
       if (res.data?.success) {
@@ -454,8 +395,6 @@ export const apiAdapter = {
   },
 
   updateStatus: async (id, status) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     try {
       const res = await applicationsApi.updateStatus(id, status);
       if (res.data?.success) {
@@ -468,8 +407,6 @@ export const apiAdapter = {
   },
 
   deleteApplication: async (id) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Applications require a database connection.');
     try {
       const res = await applicationsApi.delete(id);
       if (res.data?.success) {
@@ -482,8 +419,6 @@ export const apiAdapter = {
   },
 
   uploadResume: async (id, file) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Resume uploads require a database connection.');
     try {
       const formData = new FormData();
       formData.append('resume', file);
@@ -502,24 +437,18 @@ export const apiAdapter = {
   // ADMIN & COUNSELOR SUITE
   // ==========================================
   getAdminMetrics: async () => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Admin metrics require a database connection.');
     const res = await withApiErrorMessage(adminApi.getAggregateMetrics());
     if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load admin metrics');
     return res.data.data;
   },
 
   getAdminUsers: async (params = {}) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. User management requires a database connection.');
     const res = await withApiErrorMessage(adminApi.getUsers(params));
     if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load users');
     return res.data.data;
   },
 
   getAdminUsersPage: async (params = {}) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Connect to the server to manage users.');
     const res = await withApiErrorMessage(adminApi.getUsers(params));
     return res.data;
   },
@@ -666,32 +595,23 @@ export const apiAdapter = {
   },
 
   updateUserStatus: async (userId, status) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. User management requires a database connection.');
     const res = await withApiErrorMessage(adminApi.updateUserStatus(userId, status));
     if (!res.data?.success) throw new Error(res.data?.message || 'Failed to update user status');
     return res.data;
   },
 
   archiveAdminUser: async (userId, archived) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Connect to the server to manage accounts.');
     const res = await withApiErrorMessage(adminApi.archiveUser(userId, archived));
     return res.data;
   },
 
   getUserApplications: async (userId) => {
-    const online = await checkBackendStatus(true);
-    if (!online) throw new Error('The backend is unavailable. Portfolio review requires a database connection.');
     const res = await withApiErrorMessage(adminApi.getUserApplications(userId));
     if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load user applications');
     return res.data.applications;
   },
 
   getProviders: async () => {
-    const online = await checkBackendStatus();
-    if (!online) return [];
-
     try {
       const res = await providersApi.getAll();
       return res.data?.success ? res.data.data : [];
@@ -775,9 +695,6 @@ export const apiAdapter = {
   },
 
   updateBusinessProfile: async (businessProfile) => {
-    const online = await checkBackendStatus();
-    if (!online) throw new Error('The server is unavailable. Connect to the backend to update your listing.');
-
     try {
       const res = await providersApi.updateMine(businessProfile);
       if (res.data?.success) return { ...res.data.data, verification: res.data.verification };
