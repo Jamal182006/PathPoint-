@@ -84,7 +84,13 @@ export const connectDB = async () => {
     });
     console.log(`[MongoDB] Connected successfully to database: ${mongoose.connection.name} (${label})`);
     await ensureCollections();
-    await ensureDefaultAdmin();
+    try {
+      await ensureDefaultAdmin();
+    } catch (error) {
+      // A bootstrap-admin conflict (e.g. duplicate username) must never take down
+      // the whole API: the database connection itself is still healthy.
+      console.warn(`[MongoDB] Bootstrap administrator could not be applied: ${error.message}`);
+    }
     return mongoose.connection;
   };
 
