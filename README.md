@@ -150,6 +150,22 @@ npm run build
 npm run preview
 ```
 
+## Deploying frontend and backend to Vercel
+
+Deploy the two folders as separate Vercel projects from the same Git repository:
+
+1. Create the API project with **Root Directory** set to `backend`. Vercel detects `api/[...path].js` as the serverless API entrypoint. The project uses `npm install` and `npm start` for local development; Vercel runs the API function directly.
+2. Add the API environment variables in the Vercel project settings: `MONGODB_URI`, `MONGODB_ALLOW_MEMORY_FALLBACK=false`, and `JWT_SECRET` (at least 32 characters). Add the production SMTP variables if password recovery email is needed. `PORT` is supplied by the host and should not be set manually.
+	Configure MongoDB Atlas network access to allow connections from the deployed API. To bootstrap the initial administrator, also set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`; `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_USERNAME` are optional.
+	On Vercel Hobby, function egress IPs are dynamic; the no-cost Atlas allowlist option is `0.0.0.0/0`, which permits connection attempts from any IPv4 address. Use a dedicated database user with only the required database permissions and a strong password. Narrower static egress IP allowlisting requires Vercel Pro or Enterprise networking.
+3. After deploying the API, confirm `https://<api-project>.vercel.app/api/health` reports a connected database.
+4. Create the frontend project with **Root Directory** set to `frontend`, framework **Vite**, build command `npm run build`, and output directory `dist`. Set `VITE_API_URL=/api` as a frontend environment variable. The Vercel rewrite proxies `/api/*` to the backend so browser sign-in requests remain same-origin.
+5. Set the API project's `CLIENT_URL` to the exact frontend origin, such as `https://<frontend-project>.vercel.app`. For a custom domain, include each allowed origin as a comma-separated value. Redeploy the API after changing it.
+
+The `backend` Vercel project connects to MongoDB on cold starts and reuses the connection for warm requests. Keep `MONGODB_ALLOW_MEMORY_FALLBACK` disabled in production. Do not put backend secrets in frontend variables; only `VITE_API_URL` belongs in the frontend project.
+
+**File storage limitation:** company application documents currently use local filesystem storage. Vercel functions only provide temporary `/tmp` storage, so those files may disappear between function instances or deployments. Use durable object storage for company documents before relying on uploads in production. Vercel Functions also impose request-size limits, so large multipart uploads may need direct-to-object-storage uploads.
+
 ## Manual end-to-end checklist
 
 1. Confirm `/api/health` reports `database: connected`, then register a real user and provider account through the app.

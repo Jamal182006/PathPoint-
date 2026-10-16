@@ -1,5 +1,4 @@
 import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import Application from '../models/Application.js';
 import Company from '../models/Company.js';
 import CompanyApplication from '../models/CompanyApplication.js';
@@ -89,14 +88,18 @@ export const connectDB = async () => {
     return mongoose.connection;
   };
 
+  const startMemoryFallback = async () => {
+    const { MongoMemoryServer } = await import('mongodb-memory-server');
+    memoryServer = await MongoMemoryServer.create();
+    return tryConnect(memoryServer.getUri(), 'memory-server fallback');
+  };
+
   try {
     if (!configuredUri) {
       if (!fallbackEnabled) {
         throw new Error('MONGODB_URI must be configured with a MongoDB connection string.');
       }
-      memoryServer = await MongoMemoryServer.create();
-      process.env.MONGODB_URI = memoryServer.getUri();
-      return await tryConnect(process.env.MONGODB_URI, 'memory-server fallback');
+      return await startMemoryFallback();
     }
 
     try {
@@ -106,9 +109,7 @@ export const connectDB = async () => {
         throw err;
       }
       console.warn(`[MongoDB] Configured connection failed (${err.message}). Falling back to in-memory MongoDB.`);
-      memoryServer = await MongoMemoryServer.create();
-      process.env.MONGODB_URI = memoryServer.getUri();
-      return await tryConnect(process.env.MONGODB_URI, 'memory-server fallback');
+      return await startMemoryFallback();
     }
   } catch (err) {
     console.error(`[MongoDB] Connection failed: ${err.message}`);

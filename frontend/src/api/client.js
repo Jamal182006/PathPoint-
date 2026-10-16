@@ -2,13 +2,23 @@ import axios from 'axios';
 
 // Resolve API base URL dynamically (supports custom user override from UI)
 export const getBaseURL = () => {
+  const isProduction = import.meta.env.PROD;
+  const productionApiURL = '/api';
+  const isLocalhostURL = (url) => /^https?:\/\/localhost(?::\d+)?(?:\/|$)/i.test(url);
   if (typeof window !== 'undefined') {
     const customURL = localStorage.getItem('pathpoint_api_url');
     if (customURL && customURL.trim()) {
-      return customURL.trim().replace(/\/+$/, '');
+      const normalizedCustomURL = customURL.trim().replace(/\/+$/, '');
+      // A local development override can persist in browser storage after deploy.
+      // Never send a production user's requests to their own localhost.
+      if (!isProduction || !isLocalhostURL(normalizedCustomURL)) {
+        return normalizedCustomURL;
+      }
     }
   }
-  return import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const configuredURL = import.meta.env.VITE_API_URL?.trim();
+  if (configuredURL && (!isProduction || !isLocalhostURL(configuredURL))) return configuredURL;
+  return isProduction ? productionApiURL : 'http://localhost:5000/api';
 };
 
 export const setBaseURL = (newUrl) => {

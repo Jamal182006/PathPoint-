@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 import multer from 'multer';
 
 const backendDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const uploadDirectory = path.resolve(backendDirectory, 'private-uploads', 'company-applications');
+const uploadDirectory = process.env.VERCEL
+  ? path.resolve('/tmp/pathpoint/private-uploads/company-applications')
+  : path.resolve(backendDirectory, 'private-uploads', 'company-applications');
 fs.mkdirSync(uploadDirectory, { recursive: true });
 
 const extensionByMimeType = {

@@ -872,6 +872,111 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "Deploy PathPoint frontend to Vercel",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"exec",
+				"--yes",
+				"--package=vercel",
+				"--",
+				"vercel",
+				"deploy",
+				"--prod",
+				"--yes",
+				"--cwd",
+				"frontend"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Point short PathPoint domain to latest production",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"exec",
+				"--yes",
+				"--package=vercel",
+				"--",
+				"vercel",
+				"alias",
+				"set",
+				"pathpoint-frontend-c5noig1n5-path-point.vercel.app",
+				"pathpoint.vercel.app",
+				"--cwd",
+				"frontend"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Deploy PathPoint backend CORS fix",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"exec",
+				"--yes",
+				"--package=vercel",
+				"--",
+				"vercel",
+				"deploy",
+				"--prod",
+				"--yes",
+				"--cwd",
+				"backend"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Check PathPoint login CORS preflight",
+			"type": "shell",
+			"command": "curl.exe",
+			"args": [
+				"-i",
+				"--max-time",
+				"20",
+				"-X",
+				"OPTIONS",
+				"https://backend-cyan-eight-57.vercel.app/api/auth/request-login-code",
+				"-H",
+				"Origin: https://pathpoint.vercel.app",
+				"-H",
+				"Access-Control-Request-Method: POST",
+				"-H",
+				"Access-Control-Request-Headers: content-type"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Use same-origin frontend API proxy",
+			"type": "shell",
+			"command": "C:\\Program Files\\nodejs\\npm.cmd",
+			"args": [
+				"exec",
+				"--yes",
+				"--package=vercel",
+				"--",
+				"vercel",
+				"env",
+				"add",
+				"VITE_API_URL",
+				"production",
+				"--value",
+				"/api",
+				"--type",
+				"config",
+				"--force",
+				"--yes",
+				"--cwd",
+				"frontend"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

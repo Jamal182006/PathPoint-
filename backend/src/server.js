@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import morgan from 'morgan';
-import connectDB from './config/db.js';
 import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import applicationRoutes from './routes/applicationRoutes.js';
@@ -17,20 +16,21 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import pinRoutes from './routes/pinRoutes.js';
 
-// Load the backend environment regardless of the process working directory.
-dotenv.config({
-  path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env'),
-});
+if (!process.env.VERCEL) {
+  dotenv.config({
+    path: resolve(dirname(fileURLToPath(import.meta.url)), '../.env'),
+  });
+}
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   throw new Error('JWT_SECRET must be configured with at least 32 characters before the API can start.');
 }
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
 // CORS setup
 const allowedOrigins = [
+  'https://pathpoint.vercel.app',
+  'https://pathpoint-frontend-ewtr2s31q-path-point.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
@@ -67,6 +67,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Security headers
 app.use((_req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -116,23 +117,6 @@ app.use((err, req, res, next) => {
     success: false,
     message: err.message || 'Internal Server Error',
   });
-});
-
-// Start the API only after MongoDB is ready.
-const server = await connectDB()
-  .then(() => app.listen(PORT, () => {
-    console.log(`\n🚀 PathPoint API server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    console.log(`📡 Base API URL: http://localhost:${PORT}/api`);
-    console.log(`🩺 Health Check: http://localhost:${PORT}/api/health\n`);
-  }))
-  .catch((err) => {
-    console.error(`[MongoDB] API startup stopped: ${err.message}`);
-    process.exitCode = 1;
-  });
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('[Unhandled Rejection]:', err);
 });
 
 export default app;

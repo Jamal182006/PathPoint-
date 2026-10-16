@@ -1,12 +1,11 @@
-import fs from 'fs/promises';
 import path from 'path';
-import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 
 const backendDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const uploadDirectory = path.resolve(backendDirectory, 'private-uploads', 'job-applications');
-await fs.mkdir(uploadDirectory, { recursive: true });
+const uploadDirectory = process.env.VERCEL
+  ? path.resolve('/tmp/pathpoint/private-uploads/job-applications')
+  : path.resolve(backendDirectory, 'private-uploads', 'job-applications');
 
 const extensionByMimeType = {
   'application/pdf': '.pdf',
