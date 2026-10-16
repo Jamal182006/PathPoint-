@@ -27,7 +27,9 @@ export const checkBackendStatus = async (force = false) => {
   checkPromise = (async () => {
     try {
       const health = await systemApi.checkHealth();
-      backendAvailable = Boolean(health?.online);
+      // "Available" means the API server answered at all -- a 503 (database
+      // briefly reconnecting) is still reachable, so it must not block sign-in.
+      backendAvailable = Boolean(health?.reachable ?? health?.online);
       return backendAvailable;
     } catch {
       backendAvailable = false;
