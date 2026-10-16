@@ -12,7 +12,7 @@ This project is split into two folders:
 
 Before running the project, make sure you have:
 
-- Node.js 18+ installed
+- Node.js 20 or later installed
 - npm installed
 - A MongoDB Atlas cluster and database user
 
@@ -24,62 +24,46 @@ The backend uses Mongoose and the database name is `pathpoint`. On startup, the 
 
 ### MongoDB Atlas
 
-Create a free cluster at MongoDB Atlas, create a database user, add the backend server IP under **Network Access**, and put the connection string in `backend/.env`:
+Create a MongoDB Atlas cluster and database user, allow the backend to connect under **Network Access**, and put the connection string in `backend/.env`:
 
 ```env
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/pathpoint?retryWrites=true&w=majority
 MONGODB_ALLOW_MEMORY_FALLBACK=false
 ```
 
-Use the live `backend/.env` file as the source of truth. Populate the real MongoDB URI, JWT secret, SMTP settings, and demo account passwords directly in that file. URL-encode special characters in the MongoDB username or password. Keep `.env` local and never commit its values.
+Copy `backend/.env.example` to `backend/.env` and fill in the real MongoDB URI, JWT secret, and any SMTP settings you use. URL-encode special characters in the MongoDB username or password. Keep `.env` local and never commit its values.
 
 ## Quick start
 
-From the project root, run:
+From the project root, install the dependencies and copy the environment templates:
 
 ```bash
-npm install
-npm run dev
+npm run install:all
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-This starts both the backend and frontend together automatically.
-
-## 1) Install backend dependencies
-
-Open a terminal and run:
-
-```bash
-cd backend
-npm install
-```
-
-## 2) Start the backend
+Only copy an example when its corresponding `.env` file does not already exist; this avoids overwriting configured credentials. Set `VITE_API_URL=http://localhost:5000/api` in `frontend/.env` for local development. Configure `backend/.env` with your MongoDB URI and a JWT secret at least 32 characters long. Then start both services:
 
 ```bash
 npm run dev
 ```
 
-or:
+Open <http://localhost:5173>. The API health endpoint is <http://localhost:5000/api/health>.
+
+### Run services separately
+
+If you prefer separate terminals, run these commands from the repository root:
 
 ```bash
-npm start
+npm run dev:backend
 ```
 
-The backend will start on:
-
-- http://localhost:5000
-- API health check: http://localhost:5000/api/health
-
-Configure `backend/.env` with the MongoDB connection string and SMTP settings supplied by your database and email providers:
-
-```env
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-host>/pathpoint?retryWrites=true&w=majority
-MONGODB_ALLOW_MEMORY_FALLBACK=false
+```bash
+npm run dev:frontend
 ```
 
-The backend environment file is server-only and contains database and SMTP settings. The frontend uses a separate `frontend/.env` containing only `VITE_API_URL`. For Gmail or Google Workspace, use an authorized app password and the SMTP settings enabled by the organization.
-
-To test backend SMTP authentication without sending an email or displaying credentials, run `npm --prefix backend run check:smtp` after configuring `backend/.env`.
+The backend environment file is server-only and contains database and SMTP settings. The frontend uses a separate `frontend/.env` containing only `VITE_API_URL`. For Gmail or Google Workspace, use an authorized app password and the SMTP settings enabled by the organization. To check SMTP authentication without sending email or displaying credentials, run `npm --prefix backend run check:smtp`.
 
 ### Company applications
 
@@ -98,33 +82,6 @@ Applicants discover provider companies and open job listings together at **Jobs*
 Providers manage job listings at `/provider/jobs`. New listings remain drafts until an admin approves them; applicants can only see open jobs from approved companies/providers. Job application files are stored privately under `backend/private-uploads/job-applications` and served through ownership-checked endpoints. Applicant job submissions and local work records use the MongoDB `jobapplications` and `worklogs` collections. Admin job review is at `/admin/jobs`; cross-pipeline application review and deletion is at `/admin/applications`. The normal backend startup creates all required collections and indexes.
 
 Admin overview metrics now include active job listings and recent database activity. Its pending provider verification count links directly to the verification queue. Applicant interviews and work logs use API data; the frontend does not silently switch to browser-only application records when the backend is unavailable. The retired applicant `/analytics` URL redirects to the dashboard; admin aggregate metrics remain available at `/admin`.
-
-## 3) Install frontend dependencies
-
-In a second terminal, run:
-
-```bash
-cd frontend
-npm install
-```
-
-## 4) Start the frontend
-
-```bash
-npm run dev
-```
-
-The frontend will run on:
-
-- http://localhost:5173
-
-## 5) Open the app
-
-Visit this URL in your browser:
-
-```text
-http://localhost:5173
-```
 
 ## Database-backed accounts
 
@@ -155,9 +112,9 @@ npm run preview
 Deploy the two folders as separate Vercel projects from the same Git repository:
 
 1. Create the API project with **Root Directory** set to `backend`. Vercel detects `api/[...path].js` as the serverless API entrypoint. The project uses `npm install` and `npm start` for local development; Vercel runs the API function directly.
-2. Add the API environment variables in the Vercel project settings: `MONGODB_URI`, `MONGODB_ALLOW_MEMORY_FALLBACK=false`, and `JWT_SECRET` (at least 32 characters). Add the production SMTP variables if password recovery email is needed. `PORT` is supplied by the host and should not be set manually.
-	Configure MongoDB Atlas network access to allow connections from the deployed API. To bootstrap the initial administrator, also set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`; `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_USERNAME` are optional.
-	On Vercel Hobby, function egress IPs are dynamic; the no-cost Atlas allowlist option is `0.0.0.0/0`, which permits connection attempts from any IPv4 address. Use a dedicated database user with only the required database permissions and a strong password. Narrower static egress IP allowlisting requires Vercel Pro or Enterprise networking.
+2. Add the API environment variables in the Vercel project settings: `MONGODB_URI`, `MONGODB_ALLOW_MEMORY_FALLBACK=false`, and `JWT_SECRET` (at least 32 characters). Add production SMTP variables if password recovery email is needed. `PORT` is supplied by the host and should not be set manually.
+   - Configure MongoDB Atlas Network Access to allow connections from the deployed API. To bootstrap an administrator, set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`; `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_USERNAME` are optional.
+   - Vercel Hobby functions use dynamic egress IPs. If your Atlas setup requires an IP allowlist, configure it for the deployed environment. Use a dedicated database user with only the permissions the app needs and a strong password.
 3. After deploying the API, confirm `https://<api-project>.vercel.app/api/health` reports a connected database.
 4. Create the frontend project with **Root Directory** set to `frontend`, framework **Vite**, build command `npm run build`, and output directory `dist`. Set `VITE_API_URL=/api` as a frontend environment variable. The Vercel rewrite proxies `/api/*` to the backend so browser sign-in requests remain same-origin.
 5. Set the API project's `CLIENT_URL` to the exact frontend origin, such as `https://<frontend-project>.vercel.app`. For a custom domain, include each allowed origin as a comma-separated value. Redeploy the API after changing it.
@@ -191,30 +148,26 @@ The `backend` Vercel project connects to MongoDB on cold starts and reuses the c
 ### Frontend can't connect to the backend
 
 - Confirm the backend is running on port 5000
-- Check that the frontend API base URL is set correctly in the app config
+- For local development, check that `VITE_API_URL` in `frontend/.env` is `http://localhost:5000/api`
 - If needed, verify the backend is responding at `http://localhost:5000/api/health`
+- For Vercel, confirm the backend project's Root Directory is `backend` and that `backend/api/[...path].js` is included in the deployed commit. The production health endpoint should report `database: connected`; an `/api/auth/*` `404` means the route is not deployed or routed correctly.
+- Check `MONGODB_URI` and `JWT_SECRET` in the backend project's Production environment. Redeploy after changing environment variables.
 
 ## Project structure
 
 ```text
-Projects/
+PathPoint/
 ├── backend/
+│   ├── api/
 │   ├── src/
-│   ├── package.json
-│   └── .env (optional)
+│   └── package.json
 ├── frontend/
+│   ├── api/
 │   ├── src/
-│   ├── package.json
-│   └── vite.config.js
-├── README.md
-└── ...
+│   └── package.json
+└── README.md
 ```
 
 ## Notes
 
-This project is designed for local development. To make it production-ready, you would usually:
-
-- add a real MongoDB Atlas or self-hosted MongoDB instance
-- configure secure environment variables
-- add deployment settings for frontend and backend
-- enable production build and hosting configuration
+The local development setup and Vercel deployment setup are documented above. Keep production credentials in the Vercel backend project's environment settings and redeploy after changing them.
