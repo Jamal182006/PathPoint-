@@ -383,3 +383,34 @@ test('profile sections and resume persist in MongoDB without exposing resume byt
   assert.equal(deleteResponse.statusCode, 200);
   assert.equal((await User.findById(user._id)).resume, undefined);
 });
+
+test('profile updates can add or change a username and reject duplicates', async () => {
+  const user = await User.create({
+    name: 'Handle Owner',
+    email: 'handle.owner@example.com',
+    password: 'StrongPass8',
+    role: 'user',
+  });
+  await User.create({ username: 'taken_handle', name: 'Other User', email: 'other.user@example.com', password: 'StrongPass8' });
+
+  const added = response();
+  await updateMyProfile({ user, body: { name: 'Handle Owner', username: 'Fresh_Handle' } }, added);
+  assert.equal(added.statusCode, 200);
+  assert.equal(added.body.user.username, 'fresh_handle');
+  assert.equal((await User.findById(user._id)).username, 'fresh_handle');
+
+  const duplicate = response();
+  await updateMyProfile({ user, body: { username: 'taken_handle' } }, duplicate);
+  assert.equal(duplicate.statusCode, 409);
+  assert.match(duplicate.body.message, /already taken/i);
+  assert.equal((await User.findById(user._id)).username, 'fresh_handle');
+
+  const invalid = response();
+  await updateMyProfile({ user, body: { username: 'No Spaces!' } }, invalid);
+  assert.equal(invalid.statusCode, 400);
+
+  const unchanged = response();
+  await updateMyProfile({ user, body: { username: 'FRESH_HANDLE' } }, unchanged);
+  assert.equal(unchanged.statusCode, 200);
+  assert.equal(unchanged.body.user.username, 'fresh_handle');
+});

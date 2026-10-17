@@ -930,12 +930,28 @@ export const updateProfileCustomization = async (req, res) => {
 
 export const updateMyProfile = async (req, res) => {
   try {
-    const { name, phone, address, avatar, bio, education, occupation, employmentStatus, skills, experience, educationHistory, profileInfo } = req.body;
+    const { name, username, phone, address, avatar, bio, education, occupation, employmentStatus, skills, experience, educationHistory, profileInfo } = req.body;
     const normalizedName = String(name ?? req.user.name).trim();
     if (normalizedName.length < 2 || normalizedName.length > 100 || !namePattern.test(normalizedName)) {
       return res.status(400).json({ success: false, message: 'Enter a valid full name' });
     }
     req.user.name = normalizedName;
+    if (username !== undefined) {
+      const normalizedUsername = normalizeIdentifier(username);
+      if (!normalizedUsername) {
+        return res.status(400).json({ success: false, message: 'Enter a username to save.' });
+      }
+      if (!usernamePattern.test(normalizedUsername)) {
+        return res.status(400).json({ success: false, message: 'Username must be 3–20 characters using letters, numbers, or underscores.' });
+      }
+      if (normalizedUsername !== req.user.username) {
+        const taken = await User.exists({ username: normalizedUsername, _id: { $ne: req.user._id } });
+        if (taken) {
+          return res.status(409).json({ success: false, message: 'That username is already taken.' });
+        }
+        req.user.username = normalizedUsername;
+      }
+    }
     if (phone !== undefined) req.user.phone = String(phone).trim().slice(0, 40);
     if (address !== undefined) req.user.address = String(address).trim().slice(0, 300);
     if (avatar !== undefined) {
@@ -990,6 +1006,13 @@ export const updateMyProfile = async (req, res) => {
     await req.user.save();
     return res.status(200).json({ success: true, message: 'Profile updated', user: req.user.toJSON() });
   } catch (error) {
+    if (error?.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern || error.keyValue || {})[0];
+      return res.status(409).json({
+        success: false,
+        message: duplicateField === 'username' ? 'That username is already taken.' : 'That value is already in use.',
+      });
+    }
     if (error.statusCode || error.name === 'ValidationError') return res.status(error.statusCode || 400).json({ success: false, message: error.message });
     console.error('[Auth Error - Update Profile]:', error);
     return res.status(500).json({ success: false, message: 'Failed to update profile' });

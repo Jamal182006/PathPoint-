@@ -34,6 +34,8 @@ import Modal from '../components/common/Modal';
 import ForgotPasswordModal from '../components/common/ForgotPasswordModal';
 import { apiAdapter } from '../services/apiAdapter';
 
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+
 const sections = [
   { id: 'basic', label: 'Basic Info', icon: UserRound, description: 'Personal details, contact, and career preferences' },
   { id: 'experience', label: 'Experience', icon: BriefcaseBusiness, description: 'Work history, roles, and achievements' },
@@ -88,6 +90,7 @@ const formatDateInput = (value) => {
 
 const normalizeProfile = (source) => ({
   name: source?.name || '',
+  username: source?.username || '',
   phone: source?.phone || '',
   address: source?.address || '',
   bio: source?.bio || '',
@@ -170,6 +173,56 @@ const ProfileWorkspace = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+
+  // Account handle (username) — debounced availability check while editing.
+  const currentUsername = (user?.username || '').toLowerCase();
+  const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '' });
+
+  useEffect(() => {
+    const value = (profile.username || '').trim().toLowerCase();
+    if (!value) {
+      setUsernameStatus({ state: 'idle', message: '', value });
+      return undefined;
+    }
+    if (value === currentUsername) {
+      setUsernameStatus({ state: 'current', message: `Currently signed in as @${value}.`, value });
+      return undefined;
+    }
+    if (!USERNAME_PATTERN.test(value)) {
+      setUsernameStatus({ state: 'invalid', message: 'Use 3–20 characters: lowercase letters, numbers, or underscores.', value });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setUsernameStatus({ state: 'checking', message: 'Checking availability…', value });
+    const timer = setTimeout(async () => {
+      try {
+        const result = await apiAdapter.checkUsernameAvailability(value);
+        if (cancelled) return;
+        setUsernameStatus(result?.available
+          ? { state: 'available', message: `@${value} is available.`, value }
+          : { state: 'taken', message: result?.message || `@${value} is already taken.`, value });
+      } catch (err) {
+        if (cancelled) return;
+        setUsernameStatus({ state: 'error', message: err.message || 'Unable to check availability right now.', value });
+      }
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [profile.username, currentUsername]);
+
+  const usernameStatusTone = {
+    available: 'text-emerald-600',
+    current: 'text-slate-500',
+    checking: 'text-slate-500',
+    idle: 'text-slate-500',
+    invalid: 'text-rose-600',
+    taken: 'text-rose-600',
+    error: 'text-rose-600',
+  }[usernameStatus.state] || 'text-slate-500';
 
   // Load profile and customization data safely
   const loadProfileData = useCallback(async (isSilent = false) => {
@@ -264,6 +317,7 @@ const ProfileWorkspace = () => {
     if (activeSection === 'basic') {
       return (
         profile.name !== savedProfile.name ||
+        profile.username !== savedProfile.username ||
         profile.phone !== savedProfile.phone ||
         profile.address !== savedProfile.address ||
         profile.bio !== savedProfile.bio ||
@@ -319,6 +373,20 @@ const ProfileWorkspace = () => {
             setSaving(false);
             return;
           }
+          const normalizedUsername = (profile.username || '').trim().toLowerCase();
+          const usernameChanged = normalizedUsername !== currentUsername;
+          if (usernameChanged) {
+            if (!USERNAME_PATTERN.test(normalizedUsername)) {
+              toast('Username must be 3–20 characters using lowercase letters, numbers, or underscores.', 'error');
+              setSaving(false);
+              return;
+            }
+            if (usernameStatus.state === 'taken') {
+              toast(usernameStatus.message || 'That username is already taken.', 'error');
+              setSaving(false);
+              return;
+            }
+          }
           payload = {
             name: profile.name.trim(),
             phone: profile.phone.trim(),
@@ -329,6 +397,7 @@ const ProfileWorkspace = () => {
             avatar: profile.avatar,
             profileInfo: profile.profileInfo,
           };
+          if (usernameChanged) payload.username = normalizedUsername;
         } else if (activeSection === 'experience') {
           const cleanedExperience = profile.experience.map((entry) => ({
             ...entry,
@@ -1106,6 +1175,41 @@ const ProfileWorkspace = () => {
                         value={user?.email || ''}
                         className="mt-1 block w-full rounded-xl border border-slate-200 bg-slate-100/70 px-3.5 py-2 text-sm text-slate-600 cursor-not-allowed"
                       />
+                    </div>
+
+                    <div>
+                      <label htmlFor="profile-username" className="block text-xs font-semibold text-slate-700">
+                        Username
+                      </label>
+                      <div className="relative mt-1">
+                        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-400">@</span>
+                        <input
+                          id="profile-username"
+                          name="username"
+                          type="text"
+                          inputMode="text"
+                          autoComplete="username"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          maxLength={20}
+                          value={profile.username}
+                          onChange={(e) => {
+                            setProfile({ ...profile, username: e.target.value });
+                            setEditingSection('basic');
+                          }}
+                          placeholder="your_handle"
+                          aria-describedby="profile-username-status"
+                          className={`block w-full rounded-xl border px-3.5 py-2 pl-8 text-sm text-slate-900 transition focus:outline-hidden focus:ring-1 ${
+                            ['taken', 'invalid', 'error'].includes(usernameStatus.state)
+                              ? 'border-rose-400 focus:border-rose-600 focus:ring-rose-600'
+                              : 'border-slate-300 focus:border-indigo-600 focus:ring-indigo-600'
+                          }`}
+                        />
+                      </div>
+                      <p id="profile-username-status" aria-live="polite" className={`mt-1 text-[11px] font-medium ${usernameStatusTone}`}>
+                        {usernameStatus.message || 'Your public handle. You can sign in with it instead of your email address.'}
+                      </p>
                     </div>
 
                     <div>

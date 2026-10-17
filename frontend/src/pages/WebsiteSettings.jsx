@@ -120,7 +120,7 @@ const WebsiteSettings = () => {
           </p>
           <h1 className="mt-1 text-2xl font-bold text-slate-900">Website Settings</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Appearance and application preferences for your PathPoint workspace.
+            Appearance, accent, and interface preferences for your PathPoint workspace.
           </p>
         </div>
 
@@ -274,7 +274,7 @@ const WebsiteSettings = () => {
 
           {/* Footer note */}
           <p className="text-center text-xs text-slate-500">
-            Looking to update your name, resume, or password? Visit{' '}
+            Looking to update your username, name, resume, or password? Visit{' '}
             <Link to="/profile" className="font-semibold text-indigo-700 hover:text-indigo-900">
               My Account Settings
             </Link>
