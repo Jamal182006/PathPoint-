@@ -515,6 +515,16 @@ export const apiAdapter = {
     return res.data?.data;
   },
 
+  getJobApplicationDraft: async (jobId) => {
+    const res = await withApiErrorMessage(jobsApi.getApplicationDraft(jobId));
+    return res.data?.data || null;
+  },
+
+  saveJobApplicationDraft: async (jobId, formData) => {
+    const res = await withApiErrorMessage(jobsApi.saveApplicationDraft(jobId, formData));
+    return res.data?.data;
+  },
+
   getMyJobApplications: async () => {
     const res = await withApiErrorMessage(jobsApi.getMyApplications());
     return res.data?.data || [];

@@ -59,10 +59,22 @@ const JobApplicationWizard = () => {
 
   useEffect(() => {
     let active = true;
-    Promise.all([apiAdapter.getJob(jobId), apiAdapter.getJobApplicationDraft(jobId)])
-      .then(([jobData, application]) => {
+    (async () => {
+      try {
+        // The job detail is required; the saved draft is best-effort. A draft
+        // failure must never stop a candidate from reaching the apply form.
+        const jobData = await apiAdapter.getJob(jobId);
         if (!active) return;
         setJob(jobData);
+
+        let application = null;
+        try {
+          application = await apiAdapter.getJobApplicationDraft(jobId);
+        } catch (draftLoadError) {
+          application = null;
+        }
+        if (!active) return;
+
         setPersonal({
           name: application?.applicant?.name || user?.name || '',
           email: application?.applicant?.email || user?.email || '',
@@ -91,9 +103,12 @@ const JobApplicationWizard = () => {
           setDraftStep(Math.min(4, Math.max(1, application.draftStep || 1)));
         } else setExperience(profileExperience || user?.profileInfo?.bio || user?.bio || '');
         setHydrated(true);
-      })
-      .catch((loadError) => { if (active) setError(loadError.message || 'Unable to load this job.'); })
-      .finally(() => { if (active) setLoading(false); });
+      } catch (loadError) {
+        if (active) setError(loadError.message || 'Unable to load this job.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
     return () => { active = false; };
   }, [jobId, user?.id]);
 
