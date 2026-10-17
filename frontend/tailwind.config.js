@@ -10,8 +10,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', ...defaultTheme.fontFamily.sans],
-        display: ['Inter', ...defaultTheme.fontFamily.sans],
+        sans: ['Inter Variable', 'Inter', ...defaultTheme.fontFamily.sans],
+        display: ['Inter Variable', 'Inter', ...defaultTheme.fontFamily.sans],
       },
       colors: {
         brand: {
