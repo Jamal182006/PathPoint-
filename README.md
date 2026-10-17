@@ -118,14 +118,7 @@ Deploy the two folders as separate Vercel projects from the same Git repository:
 3. After deploying the API, confirm `https://<api-project>.vercel.app/api/health` reports a connected database.
 4. Create the frontend project with **Root Directory** set to `frontend`, framework **Vite**, build command `npm run build`, and output directory `dist`. Set `VITE_API_URL=/api` as a frontend environment variable. The Vercel rewrite proxies `/api/*` to the backend so browser sign-in requests remain same-origin.
 5. Set the API project's `CLIENT_URL` to the exact frontend origin, such as `https://<frontend-project>.vercel.app`. For a custom domain, include each allowed origin as a comma-separated value. Redeploy the API after changing it.
-6. The short domain `pathpoint.vercel.app` is a Vercel **alias**, which pins to a single deployment and does **not** follow new production builds. Re-point it after every frontend deploy, or the short domain keeps serving the previous build:
-
-   ```bash
-   cd frontend
-   npx vercel alias set pathpoint-frontend.vercel.app pathpoint.vercel.app
-   ```
-
-   The VS Code task **Point short PathPoint domain to latest production** runs the same command.
+6. `pathpoint.vercel.app` is attached to the frontend project as a production domain, so it follows every production deploy automatically. Leave it attached: re-pointing it with `vercel alias set` instead creates a pinned alias that keeps serving the previous build.
 
 The `backend` Vercel project connects to MongoDB on cold starts and reuses the connection for warm requests. Keep `MONGODB_ALLOW_MEMORY_FALLBACK` disabled in production. Do not put backend secrets in frontend variables; only `VITE_API_URL` belongs in the frontend project.
 
