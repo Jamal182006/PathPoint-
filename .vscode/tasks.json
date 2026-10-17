@@ -893,26 +893,6 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Point short PathPoint domain to latest production",
-			"type": "shell",
-			"command": "C:\\Program Files\\nodejs\\npm.cmd",
-			"args": [
-				"exec",
-				"--yes",
-				"--package=vercel",
-				"--",
-				"vercel",
-				"alias",
-				"set",
-				"pathpoint-frontend.vercel.app",
-				"pathpoint.vercel.app",
-				"--cwd",
-				"frontend"
-			],
-			"isBackground": false,
-			"problemMatcher": []
-		},
-		{
 			"label": "Deploy PathPoint backend CORS fix",
 			"type": "shell",
 			"command": "C:\\Program Files\\nodejs\\npm.cmd",
