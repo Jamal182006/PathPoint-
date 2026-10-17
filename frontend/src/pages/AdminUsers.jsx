@@ -6,8 +6,10 @@ import {
   Search,
   Filter,
   ShieldCheck,
-  UserCheck,
-  UserX,
+  Archive,
+  ArchiveRestore,
+  Ban,
+  CircleCheck,
   ExternalLink,
   Download,
   Briefcase,
@@ -316,19 +318,21 @@ export const AdminUsers = () => {
                                 : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200'
                             }`}
                             title={u.status === 'suspended' ? 'Re-activate profile' : 'Suspend account'}
+                            aria-label={u.status === 'suspended' ? `Re-activate ${u.name}` : `Suspend ${u.name}`}
                           >
                             {u.status === 'suspended' ? (
-                              <UserCheck className="w-3.5 h-3.5" />
+                              <CircleCheck className="w-3.5 h-3.5" />
                             ) : (
-                              <UserX className="w-3.5 h-3.5" />
+                              <Ban className="w-3.5 h-3.5" />
                             )}
                           </button>
                           <button
                             onClick={() => handleArchiveUser(u)}
                             className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                             title={u.isArchived ? 'Restore account' : 'Archive account'}
+                            aria-label={u.isArchived ? `Restore ${u.name}` : `Archive ${u.name}`}
                           >
-                            {u.isArchived ? <UserCheck className="h-3.5 w-3.5" /> : <UserX className="h-3.5 w-3.5" />}
+                            {u.isArchived ? <ArchiveRestore className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
                           </button>
                           </>
                         )}
