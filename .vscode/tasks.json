@@ -904,7 +904,7 @@
 				"vercel",
 				"alias",
 				"set",
-				"pathpoint-frontend-c5noig1n5-path-point.vercel.app",
+				"pathpoint-frontend.vercel.app",
 				"pathpoint.vercel.app",
 				"--cwd",
 				"frontend"
