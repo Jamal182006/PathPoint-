@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
@@ -7,6 +7,10 @@ import { apiAdapter } from '../services/apiAdapter';
 
 const usernamePattern = /^[a-z0-9_]{3,20}$/i;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Unicode-aware: accepts accented names (e.g. "José", "Peña") in line with the API.
+const namePattern = /^\p{L}[\p{L}\p{M} .'-]*$/u;
+const MAX_PASSWORD_BYTES = 72;
+const byteLength = (value) => new TextEncoder().encode(String(value || '')).length;
 
 const getAge = (dateValue) => {
   if (!dateValue) return null;
@@ -57,9 +61,10 @@ const RegisterWizard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '' });
+  const [usernameStatus, setUsernameStatus] = useState({ state: 'idle', message: '', username: '' });
   const [usernameTouched, setUsernameTouched] = useState(false);
   const [form, setForm] = useState({
     role: '', username: '', email: '', password: '',
@@ -98,19 +103,19 @@ const RegisterWizard = () => {
   useEffect(() => {
     const username = form.username.trim().toLowerCase();
     if (!usernamePattern.test(username)) {
-      setUsernameStatus({ state: 'idle', message: '' });
+      setUsernameStatus({ state: 'idle', message: '', username: '' });
       return undefined;
     }
     let active = true;
-    setUsernameStatus({ state: 'checking', message: 'Checking availability…' });
+    setUsernameStatus({ state: 'checking', message: 'Checking availability…', username });
     const timer = window.setTimeout(async () => {
       try {
         const result = await apiAdapter.checkUsernameAvailability(username);
         if (active) setUsernameStatus(result.available
-          ? { state: 'available', message: 'Username is available.' }
-          : { state: 'taken', message: 'That username is already taken.' });
+          ? { state: 'available', message: 'Username is available.', username }
+          : { state: 'taken', message: 'That username is already taken.', username });
       } catch (error) {
-        if (active) setUsernameStatus({ state: 'error', message: error.message || 'Could not check this username.' });
+        if (active) setUsernameStatus({ state: 'error', message: error.message || 'Could not check this username.', username });
       }
     }, 400);
     return () => { active = false; window.clearTimeout(timer); };
@@ -129,27 +134,44 @@ const RegisterWizard = () => {
   const validate = async () => {
     const nextErrors = {};
     if (!['user', 'provider'].includes(form.role)) nextErrors.role = 'Choose an account type.';
-    if (!form.firstName.trim()) nextErrors.firstName = 'First name is required.';
-    if (!form.lastName.trim()) nextErrors.lastName = 'Last name is required.';
+
+    const firstName = form.firstName.trim();
+    const lastName = form.lastName.trim();
+    if (!firstName) nextErrors.firstName = 'First name is required.';
+    else if (!namePattern.test(firstName)) nextErrors.firstName = 'Use letters, spaces, apostrophes, periods, or hyphens.';
+    if (!lastName) nextErrors.lastName = 'Last name is required.';
+    else if (!namePattern.test(lastName)) nextErrors.lastName = 'Use letters, spaces, apostrophes, periods, or hyphens.';
+
     if (!form.dateOfBirth) nextErrors.dateOfBirth = 'Enter your date of birth.';
     else if (age === null) nextErrors.dateOfBirth = 'Enter a valid date of birth.';
     else if (age < 18) nextErrors.dateOfBirth = 'You must be at least 18 years old to use PathPoint.';
+    else if (age > 130) nextErrors.dateOfBirth = 'Enter a valid date of birth.';
 
     const username = form.username.trim().toLowerCase();
     if (!usernamePattern.test(username)) {
       nextErrors.username = 'Use 3–20 letters, numbers, or underscores.';
-    } else {
+    } else if (usernameStatus.username === username && usernameStatus.state === 'taken') {
+      // Reuse the debounced check's result instead of firing another request.
+      nextErrors.username = 'That username is already taken.';
+    } else if (!(usernameStatus.username === username && usernameStatus.state === 'available')) {
       try {
         const result = await apiAdapter.checkUsernameAvailability(username);
-        setUsernameStatus(result.available ? { state: 'available', message: 'Username is available.' } : { state: 'taken', message: 'That username is already taken.' });
+        setUsernameStatus(result.available
+          ? { state: 'available', message: 'Username is available.', username }
+          : { state: 'taken', message: 'That username is already taken.', username });
         if (!result.available) nextErrors.username = 'That username is already taken.';
       } catch (error) {
-        setUsernameStatus({ state: 'idle', message: 'Username will be confirmed when you create the account.' });
+        setUsernameStatus({ state: 'idle', message: 'Username will be confirmed when you create the account.', username: '' });
       }
     }
 
-    if (!emailPattern.test(form.email.trim())) nextErrors.email = 'Enter a valid email address.';
+    const email = form.email.trim();
+    if (!emailPattern.test(email)) nextErrors.email = 'Enter a valid email address.';
+    else if (email.length > 254) nextErrors.email = 'That email address is too long.';
+
     if (!Object.values(passwordRules).every(Boolean)) nextErrors.password = 'Use at least 8 characters with uppercase, lowercase, and a number.';
+    else if (byteLength(form.password) > MAX_PASSWORD_BYTES) nextErrors.password = 'Password is too long.';
+
     if (form.role === 'provider') {
       if (!form.businessName.trim()) nextErrors.businessName = 'Business name is required.';
       if (!form.businessType.trim()) nextErrors.businessType = 'Business type is required.';
@@ -162,10 +184,12 @@ const RegisterWizard = () => {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!(await validate())) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setErrors({});
     try {
+      if (!(await validate())) return;
       await register({
         role: form.role,
         firstName: form.firstName.trim(),
@@ -189,6 +213,7 @@ const RegisterWizard = () => {
       setErrors({ submit: message });
       toast(message, 'error');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -305,9 +330,9 @@ const RegisterWizard = () => {
                   )}
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <TextInput label="Email" name="email" type="email" value={form.email} onChange={handleInput} error={errors.email} required autoComplete="email" />
+                    <TextInput label="Email" name="email" type="email" value={form.email} onChange={handleInput} error={errors.email} required autoComplete="email" maxLength={254} />
                     <TextInput label="Date of birth" name="dateOfBirth" type="date" value={form.dateOfBirth} onChange={handleInput} error={errors.dateOfBirth} required
-                      max={maxDob} hint={age !== null && age >= 0 ? `You are ${age} years old.` : 'You must be at least 18.'} />
+                      min="1900-01-01" max={maxDob} hint={age !== null && age >= 0 ? `You are ${age} years old.` : 'You must be at least 18.'} />
                   </div>
 
                   <div>

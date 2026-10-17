@@ -27,6 +27,10 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
+// Behind Vercel/servers the client IP arrives via X-Forwarded-For. Trusting a
+// single proxy hop lets req.ip resolve to the real client so login lockouts and
+// rate limiting key on the right value instead of one shared edge address.
+app.set('trust proxy', 1);
 // CORS setup
 const allowedOrigins = [
   'https://pathpoint.vercel.app',
@@ -113,10 +117,17 @@ app.use((req, res) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[Unhandled Error]:', err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal Server Error',
-  });
+
+  // Malformed JSON bodies arrive as a SyntaxError with status 400.
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({ success: false, message: 'Invalid request body.' });
+  }
+
+  const status = err.status || err.statusCode || 500;
+  // Never leak internal error messages on server errors; keep 4xx messages
+  // because they are written for the client (e.g. CORS rejections).
+  const message = status >= 500 ? 'Internal Server Error' : (err.message || 'Request failed');
+  return res.status(status).json({ success: false, message });
 });
 
 export default app;

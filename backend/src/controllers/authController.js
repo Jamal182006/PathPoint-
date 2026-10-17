@@ -12,8 +12,13 @@ import {
 } from '../utils/loginLockout.js';
 
 const MAX_PASSWORD_LENGTH = 72;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_AGE = 130;
+const MIN_BIRTH_YEAR = 1900;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const namePattern = /^[a-zA-Z][a-zA-Z .'-]*$/;
+// Unicode-aware so names such as "Jose" with accents, "Peña", or "Ñoño" are
+// accepted instead of only ASCII letters. `\p{M}` allows combining marks.
+const namePattern = /^\p{L}[\p{L}\p{M} .'-]*$/u;
 const usernamePattern = /^[a-z0-9_]{3,20}$/;
 const normalizeIdentifier = (value) => String(value || '').trim().toLowerCase();
 const profileInputError = (message) => Object.assign(new Error(message), { statusCode: 400 });
@@ -243,6 +248,13 @@ export const register = async (req, res) => {
       });
     }
 
+    if (normalizedEmail.length > MAX_EMAIL_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address',
+      });
+    }
+
     if (Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_LENGTH) {
       return res.status(400).json({
         success: false,
@@ -267,6 +279,12 @@ export const register = async (req, res) => {
     const age = calculateAge(birthTimestamp);
     if (age < 18) {
       return res.status(400).json({ success: false, message: 'You must be at least 18 years old to create an account.' });
+    }
+
+    // Guard against absurd dates that would otherwise trip Mongoose's `age`
+    // maximum and surface as an opaque 500 error.
+    if (age > MAX_AGE || birthTimestamp.getFullYear() < MIN_BIRTH_YEAR) {
+      return res.status(400).json({ success: false, message: 'Enter a valid date of birth.' });
     }
 
     if (gender && !['female', 'male', 'non_binary', 'prefer_not_to_say'].includes(gender)) {
@@ -315,11 +333,18 @@ export const register = async (req, res) => {
     }
 
     const normalizedPhoneCountryCode = /^\+[1-9]\d{0,3}$/.test(String(phoneCountryCode)) ? String(phoneCountryCode) : '';
+    const normalizedPhone = String(phone || '').replace(/[^\d+()\-\s]/g, '').trim().slice(0, 30);
+    const normalizedBusinessName = sanitizeTextField(businessName, { maxLength: 120, fallback: '' });
+    const normalizedBusinessType = sanitizeTextField(businessType, { maxLength: 100, fallback: '' });
+    const normalizedBusinessAddress = sanitizeTextField(businessAddress, { maxLength: 300, fallback: '' });
+    // Whitelist nested business fields so unexpected keys cannot be injected
+    // into the profile document via the raw request body.
     const normalizedBusinessProfile = role === 'provider' ? {
-      ...businessProfile,
-      companyName: String(businessName).trim(),
-      industry: String(businessType).trim(),
-      location: String(businessAddress).trim(),
+      companyName: normalizedBusinessName,
+      industry: normalizedBusinessType,
+      location: normalizedBusinessAddress,
+      description: sanitizeTextField(businessProfile?.description, { maxLength: 1000, fallback: '' }),
+      website: sanitizeTextField(businessProfile?.website, { maxLength: 200, fallback: '' }),
     } : undefined;
     const fullAddress = [streetAddress, barangay, city, province, country, postalCode].map((part) => String(part || '').trim()).filter(Boolean).join(', ');
 
@@ -335,27 +360,27 @@ export const register = async (req, res) => {
       age,
       gender,
       avatar: normalizedAvatar,
-      phone: `${normalizedPhoneCountryCode}${String(phone).trim()}`.slice(0, 40),
+      phone: `${normalizedPhoneCountryCode}${normalizedPhone}`.slice(0, 40),
       phoneCountryCode: normalizedPhoneCountryCode,
-      country: String(country).trim().slice(0, 100),
-      province: String(province).trim().slice(0, 100),
-      city: String(city).trim().slice(0, 100),
-      barangay: String(barangay).trim().slice(0, 100),
-      streetAddress: String(streetAddress).trim().slice(0, 200),
-      postalCode: String(postalCode).trim().slice(0, 20),
+      country: sanitizeTextField(country, { maxLength: 100, fallback: '' }),
+      province: sanitizeTextField(province, { maxLength: 100, fallback: '' }),
+      city: sanitizeTextField(city, { maxLength: 100, fallback: '' }),
+      barangay: sanitizeTextField(barangay, { maxLength: 100, fallback: '' }),
+      streetAddress: sanitizeTextField(streetAddress, { maxLength: 200, fallback: '' }),
+      postalCode: sanitizeTextField(postalCode, { maxLength: 20, fallback: '' }),
       address: fullAddress.slice(0, 300),
-      education: String(education).trim().slice(0, 100),
-      occupation: String(occupation).trim().slice(0, 120),
-      employmentStatus: String(employmentStatus).trim().slice(0, 80),
-      bio: String(bio).trim().slice(0, 2000),
-      businessName: role === 'provider' ? String(businessName).trim().slice(0, 120) : '',
-      businessType: role === 'provider' ? String(businessType).trim().slice(0, 100) : '',
-      businessAddress: role === 'provider' ? String(businessAddress).trim().slice(0, 300) : '',
-      businessRegistrationNumber: role === 'provider' ? String(businessRegistrationNumber).trim().slice(0, 100) : '',
-      contactPerson: role === 'provider' ? (String(contactPerson).trim() || normalizedName).slice(0, 160) : '',
+      education: sanitizeTextField(education, { maxLength: 100, fallback: '' }),
+      occupation: sanitizeTextField(occupation, { maxLength: 120, fallback: '' }),
+      employmentStatus: sanitizeTextField(employmentStatus, { maxLength: 80, fallback: '' }),
+      bio: sanitizeTextField(bio, { maxLength: 2000, fallback: '' }),
+      businessName: role === 'provider' ? normalizedBusinessName : '',
+      businessType: role === 'provider' ? normalizedBusinessType : '',
+      businessAddress: role === 'provider' ? normalizedBusinessAddress : '',
+      businessRegistrationNumber: role === 'provider' ? sanitizeTextField(businessRegistrationNumber, { maxLength: 100, fallback: '' }) : '',
+      contactPerson: role === 'provider' ? (sanitizeTextField(contactPerson, { maxLength: 160, fallback: '' }) || normalizedName) : '',
       password,
       role,
-      careerTrack: careerTrack || 'General',
+      careerTrack: sanitizeTextField(careerTrack, { maxLength: 80, fallback: 'General' }) || 'General',
       businessProfile: normalizedBusinessProfile,
       businessVerification,
     });
@@ -373,10 +398,18 @@ export const register = async (req, res) => {
       const field = Object.keys(error.keyPattern || {})[0];
       return res.status(409).json({ success: false, message: field === 'username' ? 'That username is already in use.' : 'An account with this email address already exists.' });
     }
+    // Surface schema validation problems as a friendly 400 rather than an
+    // opaque 500 with an internal Mongoose message.
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Please check the information you entered and try again.',
+      });
+    }
     console.error('[Auth Error - Register]:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Server error during registration',
+      message: 'We could not create your account right now. Please try again in a moment.',
     });
   }
 };

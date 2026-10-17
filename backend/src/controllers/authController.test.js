@@ -101,6 +101,52 @@ test('registration rejects underage accounts and weak passwords on the server', 
   assert.match(mismatchedConfirmation.body.message, /passwords do not match/i);
 });
 
+test('registration accepts unicode names, rejects absurd dates and long emails, and whitelists business fields', async () => {
+  // Accented names (common in the Philippines) are accepted.
+  const accented = response();
+  await register({ body: validRegistration({
+    email: 'jose.pena@example.com',
+    username: 'jose_pena',
+    firstName: 'José',
+    lastName: 'Peña',
+  }) }, accented);
+  assert.equal(accented.statusCode, 201);
+  assert.equal(accented.body.user.firstName, 'José');
+  assert.equal(accented.body.user.lastName, 'Peña');
+
+  // Numbers / symbols in names are still rejected with a clear 400.
+  const badName = response();
+  await register({ body: validRegistration({ email: 'bad.name@example.com', username: 'bad_name', firstName: 'Bad9' }) }, badName);
+  assert.equal(badName.statusCode, 400);
+  assert.match(badName.body.message, /letters, spaces/i);
+
+  // Impossible dates return a clean 400 instead of a Mongoose validation 500.
+  const absurdDob = response();
+  await register({ body: validRegistration({ email: 'old.user@example.com', username: 'old_user', dateOfBirth: '1899-01-01' }) }, absurdDob);
+  assert.equal(absurdDob.statusCode, 400);
+  assert.match(absurdDob.body.message, /valid date of birth/i);
+
+  // Overly long email addresses are rejected.
+  const longEmail = response();
+  await register({ body: validRegistration({ email: `${'a'.repeat(250)}@example.com`, username: 'long_email' }) }, longEmail);
+  assert.equal(longEmail.statusCode, 400);
+
+  // Unexpected nested business-profile keys are dropped, and markup is stripped.
+  const provider = response();
+  await register({ body: validRegistration({
+    role: 'provider',
+    username: 'provider_whitelist',
+    email: 'provider.whitelist@example.com',
+    businessName: 'Northstar <script>alert(1)</script>',
+    businessType: 'Education',
+    businessProfile: { description: 'Fine', injected: 'nope' },
+  }) }, provider);
+  assert.equal(provider.statusCode, 201);
+  const storedProvider = await User.findOne({ username: 'provider_whitelist' });
+  assert.equal(storedProvider.businessProfile.injected, undefined);
+  assert.equal(storedProvider.businessName, 'Northstar');
+});
+
 test('provider signup flows through verification and publishes its company into the applicant directory', async () => {
   const registration = response();
   const businessDocument = Buffer.from('%PDF-1.4\nDemo verification document').toString('base64');
