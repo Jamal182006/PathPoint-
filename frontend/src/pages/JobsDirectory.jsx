@@ -1,6 +1,6 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { BadgeCheck, BriefcaseBusiness, Building2, MapPin, Search, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { apiAdapter } from '../services/apiAdapter';
 import PinButton from '../components/common/PinButton';
@@ -27,6 +27,8 @@ const JobsDirectory = () => {
   const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(search);
+  // Respect the OS "reduce motion" preference for the card entrance animation.
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim().toLowerCase()), 300);
@@ -164,7 +166,7 @@ const JobsDirectory = () => {
       {error && <div role="alert" className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</div>}
       {loading ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Loading listings">{Array.from({ length: 6 }, (_, index) => <div key={index} className="h-60 animate-pulse rounded-lg border border-slate-200 bg-white p-5"><div className="flex gap-3"><div className="h-11 w-11 rounded-md bg-slate-100" /><div className="flex-1"><div className="h-3 w-20 rounded bg-slate-100" /><div className="mt-2 h-4 w-2/3 rounded bg-slate-100" /></div></div><div className="mt-6 h-3 w-full rounded bg-slate-100" /><div className="mt-2 h-3 w-4/5 rounded bg-slate-100" /><div className="mt-8 h-8 w-28 rounded bg-slate-100" /></div>)}</div>
         : pageListings.length ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {pageListings.map((item, index) => <motion.article key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, delay: Math.min(index * 0.035, 0.18) }} className="group flex min-h-60 flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-900/5">
+          {pageListings.map((item, index) => <motion.article key={item.id} initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { duration: 0.22, delay: Math.min(index * 0.035, 0.18) }} className="group flex min-h-60 flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg hover:shadow-slate-900/5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">{item.logo ? <img src={item.logo} alt={`${item.companyName} logo`} className="h-11 w-11 shrink-0 rounded-md border border-slate-200 object-contain" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-700">{item.kind === 'job' ? <BriefcaseBusiness className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}</span>}<div className="min-w-0"><p className="truncate text-xs font-semibold text-indigo-700">{item.kind === 'job' ? item.companyName : item.category}</p><h2 className="mt-1 truncate font-bold text-slate-900">{item.title}</h2></div></div>
               <div className="flex shrink-0 items-start gap-2"><span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold ${item.kind === 'job' || item.verified ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>{item.kind === 'job' || item.verified ? <BadgeCheck className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}{item.kind === 'job' ? 'Open' : item.verified ? 'Verified' : 'Pending review'}</span><PinButton itemType={item.kind} itemId={item.entityId} details={{ title: item.title, subtitle: item.companyName, status: item.kind === 'job' ? 'Open' : item.verified ? 'Verified' : 'Pending review', latestUpdate: item.kind === 'job' ? `Posted ${formatDateDisplay(item.createdAt)}` : 'Company listing', href: item.kind === 'job' ? `/jobs/${item.entityId}` : `/companies/${item.entityId}` }} /></div>

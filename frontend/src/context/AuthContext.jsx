@@ -49,9 +49,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      // 1. Check live backend health
-      const online = await checkBackendStatus(true);
-      setBackendOnline(online);
+      // Kick off the health probe without awaiting it: the first paint must not
+      // block on a network round-trip. `backendOnline` updates when it lands.
+      checkBackendStatus(true).then(setBackendOnline);
 
       // Authenticate an active token with the backend; cached profile data is never authoritative.
       const storedToken =

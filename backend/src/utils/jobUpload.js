@@ -19,7 +19,11 @@ const upload = multer({
     if (!extensionByMimeType[file.mimetype]) return callback(new Error('Only PDF, JPG, and PNG documents are accepted'));
     return callback(null, true);
   },
-  limits: { fileSize: 10 * 1024 * 1024, files: 25, fields: 30, fieldSize: 6000 },
+  // Each text answer (cover letter, experience, question responses) is sent as
+  // its own multipart field and may contain up to 5000 characters. A tight
+  // fieldSize rejected valid unicode answers, so allow the same headroom as the
+  // company application upload.
+  limits: { fileSize: 10 * 1024 * 1024, files: 25, fields: 60, fieldSize: 128 * 1024 },
 });
 
 export const getJobUploadDirectory = () => uploadDirectory;

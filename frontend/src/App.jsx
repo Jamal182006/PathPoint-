@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense, lazy, useMemo, useCallback } from 'react';
-import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TrackedItemsProvider } from './context/TrackedItemsContext';
@@ -121,18 +120,12 @@ const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
       {isAuthenticated && <Navbar />}
       <div className="flex flex-1">
         {isProvider && <ProviderSidebar />}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.main
-            key={location.pathname}
-            className={`app-main min-w-0 flex-1 ${isAuthPage ? 'pb-0' : 'pb-12'}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-          >
-            {children}
-          </motion.main>
-        </AnimatePresence>
+        <main
+          key={location.pathname}
+          className={`app-main animate-fade-in min-w-0 flex-1 ${isAuthPage ? 'pb-0' : 'pb-12'}`}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -183,7 +176,6 @@ export const App = () => {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <MotionConfig reducedMotion="user">
           <AuthProvider>
             <TrackedItemsProvider>
             <ToastProvider>
@@ -346,7 +338,6 @@ export const App = () => {
             </ToastProvider>
             </TrackedItemsProvider>
           </AuthProvider>
-        </MotionConfig>
       </ErrorBoundary>
     </BrowserRouter>
   );
