@@ -11,6 +11,11 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const validId = (id) => /^[a-f\d]{24}$/i.test(String(id));
 const safeName = (name) => path.basename(String(name || 'document')).replace(/[\r\n"\\]/g, '_').slice(0, 255);
 const cleanText = (value, maxLength) => String(value || '').trim().slice(0, maxLength);
+// A job can ask for the resume as one of its document requirements. Detect it so
+// the single resume control on the form can satisfy that requirement instead of
+// making the applicant upload the same file twice.
+const resumeRequirementPattern = /resume|curriculum\s*vitae|\bcv\b/i;
+const isResumeRequirement = (requirement) => requirement?.type === 'file' && resumeRequirementPattern.test(String(requirement.title || ''));
 
 const serializeApplication = (application, isPopulated = false) => ({
   id: String(application._id),
@@ -94,6 +99,7 @@ const getApplicationPayload = async (req, job, existing, draft) => {
   const files = req.files || [];
   const filesByName = new Map();
   const requirementsById = new Map(job.requirements.map((requirement) => [String(requirement._id), requirement]));
+  const resumeRequirement = job.requirements.find(isResumeRequirement) || null;
 
   for (const file of files) {
     if (filesByName.has(file.fieldname)) throw requestError('Only one file may be uploaded for each document field');
@@ -106,9 +112,25 @@ const getApplicationPayload = async (req, job, existing, draft) => {
         allowedFileTypes: requirement.allowedFileTypes,
       }));
     } else {
-      filesByName.set('resume', await validateUploadedDocument(file, { title: 'Resume/CV' }));
+      // Validate the resume against the resume requirement's rules when one exists.
+      filesByName.set('resume', await validateUploadedDocument(file, resumeRequirement ? {
+        title: resumeRequirement.title,
+        maxSizeMB: Math.min(resumeRequirement.maxSizeMB || 5, 10),
+        allowedFileTypes: resumeRequirement.allowedFileTypes,
+      } : { title: 'Resume/CV' }));
     }
   }
+
+  const useProfileResume = req.body.useProfileResume === 'true';
+  const removeResume = req.body.removeResume === 'true';
+  let profileResume;
+  if (useProfileResume && !filesByName.has('resume')) {
+    const profile = await User.findById(req.user._id).select('+resume.documentData');
+    profileResume = profile?.resume?.toObject();
+  }
+  const uploadedResume = filesByName.get('resume');
+  const previousResume = existing?.resume?.toObject?.() || existing?.resume || null;
+  const resumeSource = removeResume ? null : (uploadedResume || profileResume || previousResume);
 
   const oldResponses = new Map((existing?.responses || []).map((response) => [String(response.requirementId), response]));
   const responses = [];
@@ -116,12 +138,14 @@ const getApplicationPayload = async (req, job, existing, draft) => {
     const requirementId = String(requirement._id);
     const previous = oldResponses.get(requirementId);
     if (requirement.type === 'file') {
-      const uploaded = filesByName.get(requirementId);
+      const uploaded = filesByName.get(requirementId) || (isResumeRequirement(requirement) ? uploadedResume : undefined);
       const value = uploaded
         ? { requirementId: requirement._id, requirementTitle: requirement.title, responseType: 'file', ...uploaded }
         : previous
           ? { ...previous.toObject(), requirementId: requirement._id, requirementTitle: requirement.title }
-          : null;
+          : (isResumeRequirement(requirement) && resumeSource
+            ? { requirementId: requirement._id, requirementTitle: requirement.title, responseType: 'file', ...resumeSource }
+            : null);
       if (!draft && requirement.isRequired && !value) throw requestError(`Upload the required document: ${requirement.title}`);
       if (value) responses.push(value);
       continue;
@@ -133,16 +157,9 @@ const getApplicationPayload = async (req, job, existing, draft) => {
     if (value) responses.push({ requirementId: requirement._id, requirementTitle: requirement.title, responseType: 'text', value });
   }
 
-  const useProfileResume = req.body.useProfileResume === 'true';
-  const removeResume = req.body.removeResume === 'true';
-  let profileResume;
-  if (useProfileResume && !filesByName.has('resume')) {
-    const profile = await User.findById(req.user._id).select('+resume.documentData');
-    profileResume = profile?.resume?.toObject();
-  }
-  const resume = filesByName.get('resume')
-    || (useProfileResume ? profileResume : null)
-    || (removeResume ? null : existing?.resume?.toObject?.() || existing?.resume);
+  // When a resume requirement exists it owns the resume, so no second identical
+  // copy is stored on the application (which duplicated the resume in the UI).
+  const resume = resumeRequirement ? null : resumeSource;
   const storedBytes = [...responses, ...(resume ? [resume] : [])]
     .reduce((total, item) => total + (item.documentData?.length || 0), 0);
   if (storedBytes > 12 * 1024 * 1024) throw requestError('All application documents together must be 12 MB or smaller');

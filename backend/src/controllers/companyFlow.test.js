@@ -698,6 +698,73 @@ test('legacy tracker update preserves ownership and rejects other users', async 
   assert.equal(deniedResponse.statusCode, 404);
 });
 
+const createResumeRequirementJob = async () => {
+  const provider = await createUser('provider', 'Resume Req Provider', 'approved');
+  const applicant = await createUser('user', 'Resume Req Applicant');
+  const company = await Company.create({ providerId: provider._id, name: 'Resume Req Employer', category: 'Technology', status: 'approved' });
+  const job = await JobListing.create({
+    providerId: provider._id,
+    companyId: company._id,
+    title: 'Barista',
+    description: 'Serve coffee.',
+    employmentType: 'full_time',
+    status: 'open',
+    reviewStatus: 'approved',
+    slots: 1,
+    requirements: [{ type: 'file', title: 'Resume / CV', isRequired: true, allowedFileTypes: ['application/pdf'], maxSizeMB: 5 }],
+  });
+  return { provider, applicant, job, resumeRequirement: job.requirements[0] };
+};
+
+test('a single resume upload fills a resume-type document requirement without a duplicate copy', async () => {
+  const { applicant, job, resumeRequirement } = await createResumeRequirementJob();
+  const resumeBuffer = Buffer.from('%PDF-1.7\nUploaded resume content');
+
+  const draftResponse = response();
+  await saveJobApplicationDraft({
+    user: applicant,
+    params: { jobId: String(job._id) },
+    body: { applicantName: applicant.name, applicantEmail: applicant.email, draftStep: '1' },
+    files: [{ fieldname: 'resume', originalname: 'resume.pdf', mimetype: 'application/pdf', size: resumeBuffer.length, buffer: resumeBuffer }],
+  }, draftResponse);
+  assert.equal(draftResponse.statusCode, 200);
+  const fileResponse = draftResponse.body.data.responses.find((item) => item.responseType === 'file');
+  assert.equal(fileResponse.requirementId, String(resumeRequirement._id));
+  assert.equal(fileResponse.fileName, 'resume.pdf');
+  // The requirement owns the resume, so no second copy is stored on the application.
+  assert.equal(draftResponse.body.data.resume, null);
+  const stored = await JobApplication.findById(draftResponse.body.data.id).select('+resume.documentData +responses.documentData');
+  assert.equal(stored.resume, null);
+  assert.equal(stored.responses.find((item) => item.responseType === 'file').documentData.toString(), resumeBuffer.toString());
+});
+
+test('a required resume-type requirement is satisfied by the profile resume', async () => {
+  const { applicant, job, resumeRequirement } = await createResumeRequirementJob();
+  const profileBuffer = Buffer.from('%PDF-1.7\nProfile resume content');
+  applicant.resume = {
+    fileName: 'profile-resume.pdf',
+    mimeType: 'application/pdf',
+    fileSize: profileBuffer.length,
+    uploadedAt: new Date(),
+    documentData: profileBuffer,
+  };
+  await applicant.save();
+
+  const submitResponse = response();
+  await submitJobApplication({
+    user: applicant,
+    params: { jobId: String(job._id) },
+    body: { applicantName: applicant.name, applicantEmail: applicant.email, useProfileResume: 'true' },
+    files: [],
+  }, submitResponse);
+  assert.equal(submitResponse.statusCode, 201);
+  assert.equal(submitResponse.body.data.resume, null);
+  const fileResponse = submitResponse.body.data.responses.find((item) => item.responseType === 'file');
+  assert.equal(fileResponse.requirementId, String(resumeRequirement._id));
+  assert.equal(fileResponse.fileName, 'profile-resume.pdf');
+  assert.equal(submitResponse.body.data.responses.filter((item) => item.kind === 'resume').length, 0);
+});
+
 test('admin application oversight lists all pipelines and deletes selected records', async () => {
   const admin = await createUser('admin', 'Application Admin');
   const applicant = await createUser('user', 'Application Owner');
