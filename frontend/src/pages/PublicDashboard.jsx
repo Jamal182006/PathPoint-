@@ -8,12 +8,94 @@ import {
   Building2,
   ShieldCheck,
   Check,
-  Search,
   FileText,
-  CalendarCheck,
   ArrowRight,
   BadgeCheck,
+  Clock,
 } from 'lucide-react';
+
+// Two role viewpoints of the same workspace, shown in the hero. The applicant
+// panel is the visitor-facing value; the administrator panel makes the
+// verification step visible instead of asserting it. Sample data only.
+const applicantPipeline = [
+  { stage: 'Saved', role: 'UX Researcher', company: 'Harbor Studio', tone: 'bg-slate-100 text-slate-600' },
+  { stage: 'Applied', role: 'Product Designer', company: 'Cedar Health', tone: 'bg-sky-50 text-sky-700' },
+  { stage: 'Interview', role: 'Frontend Engineer', company: 'Northstar', tone: 'bg-amber-50 text-amber-700', meta: 'Thu, 2:30 PM · Technical round' },
+  { stage: 'Offer', role: 'Data Analyst', company: 'Brightpath', tone: 'bg-emerald-50 text-emerald-700' },
+];
+
+const verificationQueue = [
+  { company: 'Northstar', status: 'Pending review', icon: Clock, tone: 'bg-warning-50 text-warning-700', meta: 'Submitted Sep 12' },
+  { company: 'Cedar Health', status: 'Approved', icon: BadgeCheck, tone: 'bg-success-50 text-success-700', meta: 'Reviewed Sep 14' },
+  { company: 'Brightpath', status: 'Pending review', icon: Clock, tone: 'bg-warning-50 text-warning-700', meta: 'Submitted Sep 13' },
+];
+
+const HeroPreview = () => (
+  <figure className="relative">
+    <div aria-hidden="true" className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-tr from-brand-100/60 via-transparent to-teal-100/50 blur-2xl" />
+    <div className="space-y-4">
+      {/* Applicant workspace */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-teal-700">
+            <Briefcase className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+          <p className="text-xs font-semibold text-slate-700">Applicant workspace</p>
+        </div>
+        <div className="space-y-3 p-4">
+          {applicantPipeline.map((item) => (
+            <div key={item.stage} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 shadow-xs">
+                <FileText className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">{item.role}</p>
+                <p className="truncate text-xs text-slate-500">{item.company}</p>
+                {item.meta && <p className="mt-0.5 truncate text-xs text-slate-500">{item.meta}</p>}
+              </div>
+              <span className={`ui-badge ${item.tone}`}>{item.stage}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Administrator verification queue */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-50 text-indigo-700">
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+            <p className="text-xs font-semibold text-slate-700">Administrator — verification queue</p>
+          </div>
+        </div>
+        <div className="space-y-3 p-4">
+          {verificationQueue.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.company} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 shadow-xs">
+                  <Building2 className="h-4 w-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-800">{item.company}</p>
+                  <p className="truncate text-xs text-slate-500">{item.meta}</p>
+                </div>
+                <span className={`ui-badge ${item.tone}`}>
+                  <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                  {item.status}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+    <figcaption className="mt-3 text-center text-xs text-slate-500">
+      Illustrative views — sample data for the applicant workspace and the administrator’s verification queue.
+    </figcaption>
+  </figure>
+);
 
 const roles = [
   {
@@ -45,54 +127,6 @@ const roles = [
   },
 ];
 
-const pipeline = [
-  { stage: 'Saved', role: 'UX Researcher', company: 'Harbor Studio', tone: 'bg-slate-100 text-slate-600' },
-  { stage: 'Applied', role: 'Product Designer', company: 'Cedar Health', tone: 'bg-sky-50 text-sky-700' },
-  { stage: 'Interview', role: 'Frontend Engineer', company: 'Northstar', tone: 'bg-amber-50 text-amber-700' },
-  { stage: 'Offer', role: 'Data Analyst', company: 'Brightpath', tone: 'bg-emerald-50 text-emerald-700' },
-];
-
-const ProductPreview = () => (
-  <div aria-hidden="true" className="relative">
-    <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-tr from-brand-100/60 via-transparent to-teal-100/50 blur-2xl" />
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-      <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3">
-        <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-        <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-        <span className="ml-3 truncate text-xs font-medium text-slate-500">pathpoint / my applications</span>
-      </div>
-      <div className="space-y-3 p-4">
-        <div className="flex items-center justify-between">
-          <div className="h-2.5 w-28 rounded-full bg-slate-200" />
-          <div className="h-2.5 w-16 rounded-full bg-slate-100" />
-        </div>
-        {pipeline.map((item) => (
-          <div key={item.stage} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-brand-600 shadow-xs">
-              <FileText className="h-4 w-4" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-800">{item.role}</p>
-              <p className="truncate text-xs text-slate-500">{item.company}</p>
-            </div>
-            <span className={`ui-badge ${item.tone}`}>{item.stage}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-    <div className="absolute -bottom-5 -right-4 hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 shadow-elevated sm:flex">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-        <CalendarCheck className="h-4 w-4" />
-      </span>
-      <div>
-        <p className="text-xs font-semibold text-slate-800">Interview scheduled</p>
-        <p className="text-[11px] text-slate-500">Thu, 2:30 PM · Technical round</p>
-      </div>
-    </div>
-  </div>
-);
-
 const PublicDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50">
@@ -117,7 +151,7 @@ const PublicDashboard = () => {
         </div>
       </header>
 
-      <main>
+      <div>
         {/* Hero */}
         <section className="relative overflow-hidden">
           <div className="ui-container grid items-center gap-14 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:py-24">
@@ -129,14 +163,16 @@ const PublicDashboard = () => {
                 PathPoint connects applicants, providers, and administrators in one verified hiring workflow. Track applications,
                 manage interviews, and measure your progress from one focused workspace.
               </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
+              <div className="mt-8 flex flex-wrap items-center gap-5">
                 <Link to="/register" className="ui-btn ui-btn-primary ui-btn-lg">
-                  Get started
+                  Create account
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link to="/login" className="ui-btn ui-btn-secondary ui-btn-lg">
-                  <LogIn className="h-4 w-4" />
-                  Sign in to your workspace
+                <Link
+                  to="/login"
+                  className="text-sm font-semibold text-slate-700 underline-offset-4 transition hover:text-indigo-700 hover:underline"
+                >
+                  Sign in
                 </Link>
               </div>
               <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
@@ -150,7 +186,7 @@ const PublicDashboard = () => {
                 </li>
               </ul>
             </div>
-            <ProductPreview />
+            <HeroPreview />
           </div>
         </section>
 
@@ -207,17 +243,17 @@ const PublicDashboard = () => {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
                 <Link to="/register" className="ui-btn ui-btn-primary ui-btn-lg">
                   <UserPlus className="h-4 w-4" />
-                  Create an account
+                  Create account
                 </Link>
                 <Link to="/login" className="ui-btn ui-btn-secondary ui-btn-lg">
-                  <Search className="h-4 w-4" />
+                  <LogIn className="h-4 w-4" />
                   Sign in
                 </Link>
               </div>
             </div>
           </div>
         </section>
-      </main>
+      </div>
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="ui-container flex flex-col items-center justify-between gap-4 py-8 sm:flex-row">
