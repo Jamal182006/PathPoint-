@@ -5,12 +5,18 @@ import JobApplication from '../models/JobApplication.js';
 import JobListing from '../models/JobListing.js';
 import User from '../models/User.js';
 import { getJobUploadDirectory } from '../utils/jobUpload.js';
+import { notifyUser, recordActivity } from '../utils/platformEvents.js';
 
 const supportedTypes = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const validId = (id) => /^[a-f\d]{24}$/i.test(String(id));
 const safeName = (name) => path.basename(String(name || 'document')).replace(/[\r\n"\\]/g, '_').slice(0, 255);
 const cleanText = (value, maxLength) => String(value || '').trim().slice(0, maxLength);
+const safeDateValue = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 // A job can ask for the resume as one of its document requirements. Detect it so
 // the single resume control on the form can satisfy that requirement instead of
 // making the applicant upload the same file twice.
@@ -346,26 +352,65 @@ export const updateProviderJobApplication = async (req, res) => {
   if (req.user.businessVerification?.status !== 'approved') return res.status(403).json({ success: false, message: 'Provider verification approval is required' });
   if (!validId(req.params.applicationId)) return res.status(400).json({ success: false, message: 'Invalid application ID' });
   const allowedStatuses = new Set(['under_review', 'shortlisted', 'interview_scheduled', 'accepted', 'hired', 'rejected']);
-  const { status, providerNote = '', interviewDate } = req.body;
-  if (!allowedStatuses.has(status)) return res.status(400).json({ success: false, message: 'Invalid application status' });
+  const hasStatus = Object.hasOwn(req.body, 'status');
+  const hasNote = Object.hasOwn(req.body, 'providerNote');
+  const hasInterviewDate = Object.hasOwn(req.body, 'interviewDate');
+  const { status, providerNote, interviewDate } = req.body;
+  if (hasStatus && !allowedStatuses.has(status)) return res.status(400).json({ success: false, message: 'Invalid application status' });
+  if (hasNote && providerNote !== undefined && typeof providerNote !== 'string') return res.status(400).json({ success: false, message: 'Provider note must be text' });
   try {
     const application = await JobApplication.findById(req.params.applicationId);
     if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
     const job = await JobListing.findOne({ _id: application.jobId, providerId: req.user._id, archivedAt: { $exists: false } });
     if (!job) return res.status(404).json({ success: false, message: 'Application not found' });
-    let confirmedInterviewDate;
-    if (status === 'interview_scheduled') {
-      confirmedInterviewDate = interviewDate ? new Date(interviewDate) : job.interviewDate;
-      if (!confirmedInterviewDate || Number.isNaN(confirmedInterviewDate.getTime()) || confirmedInterviewDate.getTime() < Date.now()) {
-        return res.status(400).json({ success: false, message: 'A valid future interview date is required' });
+
+    const previousStatus = application.status;
+
+    // Resolve the interview date that a scheduling request would use.
+    let nextInterviewDate = safeDateValue(application.interviewDate);
+    if (hasInterviewDate) {
+      if (interviewDate) {
+        nextInterviewDate = new Date(interviewDate);
+        if (Number.isNaN(nextInterviewDate.getTime())) return res.status(400).json({ success: false, message: 'Enter a valid interview date and time' });
+      } else {
+        nextInterviewDate = null;
       }
     }
-    application.status = status;
-    if (application.statusHistory.at(-1)?.status !== status) application.statusHistory.push({ status, changedAt: new Date() });
-    application.rejectedAt = status === 'rejected' ? new Date() : undefined;
-    application.providerNote = cleanText(providerNote, 2000);
-    application.interviewDate = status === 'interview_scheduled' ? confirmedInterviewDate : undefined;
+
+    if (hasStatus) {
+      if (status === 'interview_scheduled') {
+        const confirmed = nextInterviewDate || safeDateValue(job.interviewDate);
+        if (!confirmed || confirmed.getTime() < Date.now()) return res.status(400).json({ success: false, message: 'Choose a future interview date and time' });
+        nextInterviewDate = confirmed;
+      } else {
+        // An interview only stays on the record while the application is at the interview stage.
+        nextInterviewDate = null;
+      }
+      application.status = status;
+      if (application.statusHistory.at(-1)?.status !== status) application.statusHistory.push({ status, changedAt: new Date() });
+      application.rejectedAt = status === 'rejected' ? new Date() : undefined;
+      application.interviewDate = nextInterviewDate;
+    } else if (hasInterviewDate) {
+      // A standalone reschedule keeps the current status but moves the interview.
+      if (nextInterviewDate && nextInterviewDate.getTime() < Date.now()) return res.status(400).json({ success: false, message: 'Choose a future interview date and time' });
+      application.interviewDate = nextInterviewDate;
+    }
+
+    if (hasNote) application.providerNote = cleanText(providerNote, 2000);
     await application.save();
+
+    if (hasStatus && status !== previousStatus) {
+      const label = status.replaceAll('_', ' ');
+      const message = status === 'interview_scheduled'
+        ? `${job.title}: interview scheduled for ${application.interviewDate.toLocaleString()}.`
+        : status === 'hired'
+          ? `Congratulations! ${job.title} marked your application as ${label}.`
+          : `${job.title}: your application is now ${label}.`;
+      await Promise.all([
+        notifyUser(application.applicantId, message, '/my-applications'),
+        recordActivity(req.user._id, `changed a job application to ${status}`, application._id, 'jobApplication'),
+      ]);
+    }
     return res.status(200).json({ success: true, message: 'Application updated', data: serializeApplication(application) });
   } catch (error) {
     console.error('[Job Application Error - Status]:', error);

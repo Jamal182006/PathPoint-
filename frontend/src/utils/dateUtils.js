@@ -25,7 +25,10 @@ export const safeDateString = (value, fallback = '') => {
 
 export const safeDateTimeString = (value, fallback = '') => {
   const d = safeDate(value);
-  return d ? d.toISOString().slice(0, 16) : fallback;
+  if (!d) return fallback;
+  // datetime-local inputs expect local wall-clock time, not a UTC slice.
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 export const formatDateDisplay = (value, options = { month: 'short', day: 'numeric', year: 'numeric' }, fallback = 'N/A') => {

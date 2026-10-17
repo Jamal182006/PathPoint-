@@ -765,6 +765,81 @@ test('a required resume-type requirement is satisfied by the profile resume', as
   assert.equal(submitResponse.body.data.responses.filter((item) => item.kind === 'resume').length, 0);
 });
 
+test('providers can review, schedule, hire, or reject an applicant who is then notified', async () => {
+  const provider = await createUser('provider', 'Review Provider', 'approved');
+  const applicant = await createUser('user', 'Review Applicant');
+  const company = await Company.create({ providerId: provider._id, name: 'Review Employer', category: 'Trade', status: 'approved' });
+  const job = await JobListing.create({
+    providerId: provider._id,
+    companyId: company._id,
+    title: 'Welder',
+    description: 'Weld metal.',
+    employmentType: 'full_time',
+    status: 'open',
+    reviewStatus: 'approved',
+    slots: 1,
+    requirements: [{ type: 'text', title: 'Experience', isRequired: true }],
+  });
+  const requirement = job.requirements[0];
+  const submit = response();
+  await submitJobApplication({
+    user: applicant,
+    params: { jobId: String(job._id) },
+    body: { applicantName: applicant.name, applicantEmail: applicant.email, [`requirement-${requirement._id}`]: 'Five years' },
+    files: [],
+  }, submit);
+  assert.equal(submit.statusCode, 201);
+  const applicationId = submit.body.data.id;
+
+  // Scheduling needs a future date.
+  const missingDate = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { status: 'interview_scheduled' } }, missingDate);
+  assert.equal(missingDate.statusCode, 400);
+  const pastDate = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { status: 'interview_scheduled', interviewDate: '2000-01-01T09:00:00.000Z' } }, pastDate);
+  assert.equal(pastDate.statusCode, 400);
+
+  const shortlist = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { status: 'shortlisted', providerNote: 'Strong profile' } }, shortlist);
+  assert.equal(shortlist.statusCode, 200);
+  assert.equal(shortlist.body.data.status, 'shortlisted');
+  assert.equal(shortlist.body.data.providerNote, 'Strong profile');
+
+  const schedule = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { status: 'interview_scheduled', interviewDate: '2999-01-01T10:00:00.000Z', providerNote: 'See you then' } }, schedule);
+  assert.equal(schedule.statusCode, 200);
+  assert.ok(schedule.body.data.interviewDate);
+
+  // A note-only update keeps the interview stage and its date.
+  const noteOnly = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { providerNote: 'Great interview' } }, noteOnly);
+  assert.equal(noteOnly.statusCode, 200);
+  assert.equal(noteOnly.body.data.status, 'interview_scheduled');
+  assert.ok(noteOnly.body.data.interviewDate);
+
+  const hire = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { status: 'hired' } }, hire);
+  assert.equal(hire.statusCode, 200);
+  assert.equal(hire.body.data.status, 'hired');
+  assert.ok(!hire.body.data.interviewDate);
+
+  const hiredNotifications = await Notification.find({ userId: applicant._id });
+  assert.ok(hiredNotifications.length >= 3);
+  assert.ok(hiredNotifications.some((notification) => /interview scheduled/i.test(notification.message)));
+  assert.ok(hiredNotifications.some((notification) => /hired/i.test(notification.message)));
+
+  const applicantList = response();
+  await getApplicantJobApplications({ user: applicant, query: {} }, applicantList);
+  assert.equal(applicantList.body.data[0].status, 'hired');
+
+  const reject = response();
+  await updateProviderJobApplication({ user: provider, params: { applicationId }, body: { status: 'rejected', providerNote: 'Not a fit' } }, reject);
+  assert.equal(reject.statusCode, 200);
+  assert.equal(reject.body.data.status, 'rejected');
+  assert.ok(reject.body.data.rejectedAt);
+  assert.ok(!reject.body.data.interviewDate);
+});
+
 test('admin application oversight lists all pipelines and deletes selected records', async () => {
   const admin = await createUser('admin', 'Application Admin');
   const applicant = await createUser('user', 'Application Owner');

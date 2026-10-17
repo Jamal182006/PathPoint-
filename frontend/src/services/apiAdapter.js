@@ -545,6 +545,11 @@ export const apiAdapter = {
     return res.data;
   },
 
+  getJobApplicationResume: async (applicationId, inline = false) => {
+    const res = await withApiErrorMessage(jobsApi.getApplicationResume(applicationId, inline));
+    return res.data;
+  },
+
   getWorkLogs: async (params = {}) => {
     const res = await withApiErrorMessage(workLogsApi.getAll(params));
     return res.data;
