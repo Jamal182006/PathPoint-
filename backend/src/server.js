@@ -34,6 +34,7 @@ app.set('trust proxy', 1);
 // CORS setup
 const allowedOrigins = [
   'https://pathpoint.vercel.app',
+  'https://pathpoint-frontend.vercel.app',
   'https://pathpoint-frontend-ewtr2s31q-path-point.vercel.app',
   'http://localhost:5173',
   'http://localhost:5174',
@@ -57,7 +58,11 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error('Origin is not allowed by CORS'));
+      // Unknown origin: omit the CORS headers instead of throwing. Throwing
+      // reaches the error handler as a 500, which broke every write request
+      // once the app was served through the Vercel proxy: the browser attaches
+      // an Origin header to every non-GET request, including same-origin ones.
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
