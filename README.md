@@ -111,7 +111,7 @@ npm run preview
 
 Deploy the two folders as separate Vercel projects from the same Git repository:
 
-1. Create the API project with **Root Directory** set to `backend`. Vercel detects `api/[...path].js` as the serverless API entrypoint. The project uses `npm install` and `npm start` for local development; Vercel runs the API function directly.
+1. Create the API project with **Root Directory** set to `backend`. Vercel detects `api/index.js` as the serverless API entrypoint; `backend/vercel.json` rewrites every `/api/:path*` request to that single function. The project uses `npm install` and `npm start` for local development; Vercel runs the API function directly.
 2. Add the API environment variables in the Vercel project settings: `MONGODB_URI`, `MONGODB_ALLOW_MEMORY_FALLBACK=false`, and `JWT_SECRET` (at least 32 characters). Add production SMTP variables if password recovery email is needed. `PORT` is supplied by the host and should not be set manually.
    - Configure MongoDB Atlas Network Access to allow connections from the deployed API. To bootstrap an administrator, set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`; `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_USERNAME` are optional.
    - Vercel Hobby functions use dynamic egress IPs. If your Atlas setup requires an IP allowlist, configure it for the deployed environment. Use a dedicated database user with only the permissions the app needs and a strong password.
@@ -150,7 +150,7 @@ The `backend` Vercel project connects to MongoDB on cold starts and reuses the c
 - Confirm the backend is running on port 5000
 - For local development, check that `VITE_API_URL` in `frontend/.env` is `http://localhost:5000/api`
 - If needed, verify the backend is responding at `http://localhost:5000/api/health`
-- For Vercel, confirm the backend project's Root Directory is `backend` and that `backend/api/[...path].js` is included in the deployed commit. The production health endpoint should report `database: connected`; an `/api/auth/*` `404` means the route is not deployed or routed correctly.
+- For Vercel, confirm the backend project's Root Directory is `backend` and that `backend/api/index.js` (with the `backend/vercel.json` `/api/:path*` rewrite) is included in the deployed commit. The production health endpoint should report `database: connected`; an `/api/auth/*` `404` means the route is not deployed or routed correctly.
 - Check `MONGODB_URI` and `JWT_SECRET` in the backend project's Production environment. Redeploy after changing environment variables.
 
 ## Project structure
