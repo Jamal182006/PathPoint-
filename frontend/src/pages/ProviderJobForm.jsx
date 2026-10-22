@@ -58,19 +58,33 @@ const ProviderJobForm = () => {
 
     let active = true;
     const sourceJobId = jobId || duplicateJobId;
-    const loads = [sourceJobId ? apiAdapter.getProviderJob(sourceJobId) : Promise.resolve(null)];
-    if (companyId) loads.push(apiAdapter.getMyCompany(companyId));
-    Promise.all(loads).then(([jobData, companyData]) => {
-      if (!active) return;
-      setJob(jobData && duplicateJobId && !jobId ? {
-        ...jobData,
-        _id: undefined,
-        requirements: (jobData.requirements || []).map(({ _id, ...requirement }) => requirement),
-      } : jobData);
-      setCompany(companyData || null);
-      setChoosingCompany(false);
-    }).catch((loadError) => { if (active) setError(loadError.message || 'Unable to load job details.'); })
-      .finally(() => { if (active) setLoading(false); });
+    const loadJob = async () => {
+      try {
+        const [jobData, companyData] = await Promise.all([
+          sourceJobId ? apiAdapter.getProviderJob(sourceJobId) : Promise.resolve(null),
+          companyId ? apiAdapter.getMyCompany(companyId) : Promise.resolve(null),
+        ]);
+        // Editing a listing carries no company in the URL: fall back to the
+        // company the listing belongs to so the editor keeps its address.
+        let resolvedCompany = companyData;
+        if (!resolvedCompany && jobData?.companyId?._id) {
+          resolvedCompany = await apiAdapter.getMyCompany(jobData.companyId._id);
+        }
+        if (!active) return;
+        setJob(jobData && duplicateJobId && !jobId ? {
+          ...jobData,
+          _id: undefined,
+          requirements: (jobData.requirements || []).map(({ _id, ...requirement }) => requirement),
+        } : jobData);
+        setCompany(resolvedCompany || null);
+        setChoosingCompany(false);
+      } catch (loadError) {
+        if (active) setError(loadError.message || 'Unable to load job details.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadJob();
     return () => { active = false; };
   }, [jobId, duplicateJobId, companyId, navigate]);
 
