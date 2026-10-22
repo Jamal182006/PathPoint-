@@ -363,6 +363,83 @@
 }
 
 /* =====================================================================
+   Compact density
+   Toggled from Website settings -> Compact mode. The shell flips
+   `data-compact` on <html> and the shared primitives below tighten so
+   denser tables and lists fit more rows without changing markup.
+   ===================================================================== */
+html[data-compact='true'] .ui-card:not(.overflow-hidden):not(.p-0) {
+  padding: 0.875rem;
+}
+
+html[data-compact='true'] .ui-panel:not(.overflow-hidden):not(.p-0) {
+  padding: 0.875rem;
+}
+
+html[data-compact='true'] .ui-btn {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+}
+
+html[data-compact='true'] .ui-btn-sm {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+html[data-compact='true'] .ui-input {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+html[data-compact='true'] .ui-th {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+html[data-compact='true'] .ui-badge {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+html[data-compact='true'] .ui-alert {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+html[data-compact='true'] .ui-empty {
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+html[data-compact='true'] .ui-page-title {
+  font-size: 1.5rem;
+}
+
+html[data-compact='true'] .ui-section-title {
+  font-size: 1rem;
+}
+
+html[data-compact='true'] table tbody tr > * {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+html[data-compact='true'] table thead tr > * {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* =====================================================================
    Micro-Interactions
    ===================================================================== */
 @keyframes modal-scale-in {

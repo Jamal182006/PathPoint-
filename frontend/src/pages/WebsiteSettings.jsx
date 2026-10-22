@@ -1,15 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Loader2, RefreshCw } from 'lucide-react';
+import { Check, Loader2, RefreshCw, RotateCcw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { apiAdapter } from '../services/apiAdapter';
-import { ACCENTS, DEFAULT_ACCENT, resolveAccent } from '../utils/theme';
+import { ACCENTS, DEFAULT_ACCENT, accentToHex, resolveAccent } from '../utils/theme';
+
+const DEFAULT_PREFERENCES = {
+  accent: DEFAULT_ACCENT,
+  compactMode: false,
+  notifications: true,
+  showWelcomeBanner: true,
+};
 
 const TOGGLE_OPTIONS = [
-  ['compactMode', 'Compact mode', 'Reduced spacing for denser tables and lists'],
-  ['notifications', 'Activity notifications', 'Remind me about upcoming interviews and submissions'],
-  ['showWelcomeBanner', 'Welcome banner', 'Show the greeting banner on the dashboard'],
+  ['compactMode', 'Compact mode', 'Tightens spacing across cards, tables, and lists so more fits on screen'],
+  ['notifications', 'Activity notifications', 'Shows the notification bell and new-activity alerts in the top bar'],
+  ['showWelcomeBanner', 'Welcome banner', 'Shows the greeting and progress summary on your dashboard'],
 ];
 
 const normalizePreferences = (source) => ({
@@ -41,6 +48,15 @@ const WebsiteSettings = () => {
     [preferences, savedPreferences]
   );
 
+  const pushToShell = useCallback((next) => {
+    updateSettings({
+      accent: next.accent,
+      compactMode: next.compactMode,
+      notifications: next.notifications,
+      showWelcomeBanner: next.showWelcomeBanner,
+    });
+  }, [updateSettings]);
+
   const loadPreferences = useCallback(async (isSilent = false) => {
     if (isSilent) setRefreshing(true);
     else setLoading(true);
@@ -51,12 +67,7 @@ const WebsiteSettings = () => {
       const normalized = normalizePreferences(source);
       setPreferences(normalized);
       setSavedPreferences(normalized);
-      updateSettings({
-        accent: normalized.accent,
-        compactMode: normalized.compactMode,
-        notifications: normalized.notifications,
-        showWelcomeBanner: normalized.showWelcomeBanner,
-      });
+      pushToShell(normalized);
       if (isSilent) toast('Preferences synchronized with the server.', 'success');
     } catch (err) {
       console.warn('[WebsiteSettings] Load error:', err);
@@ -65,7 +76,7 @@ const WebsiteSettings = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [toast, user, updateSettings]);
+  }, [toast, user, pushToShell]);
 
   useEffect(() => {
     loadPreferences(false);
@@ -75,15 +86,14 @@ const WebsiteSettings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const result = await apiAdapter.updateProfileCustomization({ customization: preferences });
+      // The API stores the accent as a name *and* a hex; send both so either
+      // representation round-trips cleanly.
+      const result = await apiAdapter.updateProfileCustomization({
+        customization: { ...preferences, accentColor: accentToHex(preferences.accent) },
+      });
       const updated = normalizePreferences(result?.customization || preferences);
 
-      updateSettings({
-        accent: updated.accent,
-        compactMode: updated.compactMode,
-        notifications: updated.notifications,
-        showWelcomeBanner: updated.showWelcomeBanner,
-      });
+      pushToShell(updated);
 
       setPreferences(updated);
       setSavedPreferences(updated);
@@ -96,7 +106,25 @@ const WebsiteSettings = () => {
     }
   };
 
-  const handleDiscard = () => setPreferences(savedPreferences);
+  const handleDiscard = () => {
+    setPreferences(savedPreferences);
+    pushToShell(savedPreferences);
+  };
+
+  const handleReset = () => {
+    const reset = { ...DEFAULT_PREFERENCES, layoutBlocks: savedPreferences.layoutBlocks };
+    setPreferences(reset);
+    pushToShell(reset);
+    toast('Preferences reset to their defaults. Save to keep them.', 'info');
+  };
+
+  const toggle = (key, value) => {
+    const next = { ...preferences, [key]: value };
+    setPreferences(next);
+    pushToShell(next);
+  };
+
+  const accentScale = ACCENTS[preferences.accent] || ACCENTS[DEFAULT_ACCENT];
 
   return (
     <div className="ui-container space-y-6 py-8">
@@ -151,10 +179,15 @@ const WebsiteSettings = () => {
         <div className="space-y-6">
           {/* Accent color — drives primary actions, focus, and selection. */}
           <section className="ui-card p-6">
-            <h2 className="text-base font-semibold text-slate-900">Accent color</h2>
-            <p className="mt-1 max-w-measure text-sm text-slate-500">
-              Sets the hue for primary actions, focus rings, text selection, and the text caret.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Accent color</h2>
+                <p className="mt-1 max-w-measure text-sm text-slate-500">
+                  Sets the hue for primary actions, focus rings, text selection, and the text caret.
+                </p>
+              </div>
+              <span className="ui-badge ui-badge-neutral">{accentScale.name}</span>
+            </div>
 
             <div role="radiogroup" aria-label="Accent color" className="mt-5 flex flex-wrap items-center gap-3">
               {Object.entries(ACCENTS).map(([key, scale]) => {
@@ -166,7 +199,7 @@ const WebsiteSettings = () => {
                     role="radio"
                     aria-checked={isSelected}
                     aria-label={`${scale.name} accent`}
-                    onClick={() => setPreferences({ ...preferences, accent: key })}
+                    onClick={() => toggle('accent', key)}
                     title={scale.name}
                     className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-xs transition-transform hover:scale-105 ${
                       isSelected ? 'ring-2 ring-slate-900 ring-offset-2' : ''
@@ -178,17 +211,40 @@ const WebsiteSettings = () => {
                 );
               })}
               <span className="ml-1 text-sm font-medium text-slate-600">
-                {ACCENTS[preferences.accent || DEFAULT_ACCENT].name}
+                {accentScale.name}
+              </span>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</span>
+              <span className="ui-btn ui-btn-primary ui-btn-sm pointer-events-none">Primary action</span>
+              <span className="ui-btn ui-btn-secondary ui-btn-sm pointer-events-none">Secondary</span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-600">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: accentScale['600'] }} />
+                {accentScale.name}
               </span>
             </div>
           </section>
 
           {/* Application settings */}
           <section className="ui-card p-6">
-            <h2 className="text-base font-semibold text-slate-900">Application settings</h2>
-            <p className="mt-1 max-w-measure text-sm text-slate-500">
-              Control how the PathPoint interface behaves for your account.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Application settings</h2>
+                <p className="mt-1 max-w-measure text-sm text-slate-500">
+                  Control how the PathPoint interface behaves for your account.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={saving}
+                className="ui-btn ui-btn-ghost ui-btn-sm"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset to defaults
+              </button>
+            </div>
 
             <div className="mt-5 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
               {TOGGLE_OPTIONS.map(([key, title, subtitle]) => (
@@ -203,7 +259,7 @@ const WebsiteSettings = () => {
                   <input
                     type="checkbox"
                     checked={Boolean(preferences[key])}
-                    onChange={(e) => setPreferences({ ...preferences, [key]: e.target.checked })}
+                    onChange={(e) => toggle(key, e.target.checked)}
                     className="h-4 w-4 shrink-0 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                   />
                 </label>

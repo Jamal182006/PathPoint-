@@ -68,33 +68,65 @@ const normalizeProfileInfo = (source = {}) => ({
     : '',
 });
 
-const normalizeCustomization = (source = {}) => ({
-  themePreset: ['light', 'dark', 'minimal', 'dark_modern', 'creative_tech'].includes(source?.themePreset)
-    ? source.themePreset
-    : 'light',
-  accentColor: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(source?.accentColor || ''))
-    ? String(source.accentColor)
-    : '#4F46E5',
-  compactMode: !!source?.compactMode,
-  notifications: source?.notifications !== false,
-  showWelcomeBanner: source?.showWelcomeBanner !== false,
-  avatarUrl: sanitizeTextField(source?.avatarUrl, { maxLength: 500, fallback: '' }),
-  bannerUrl: sanitizeTextField(source?.bannerUrl, { maxLength: 500, fallback: '' }),
-  profileTitle: sanitizeTextField(source?.profileTitle, { maxLength: 120, fallback: '' }),
-  layoutBlocks: Array.isArray(source?.layoutBlocks)
-    ? source.layoutBlocks
+// Curated accent palette. The client stores the accent as a *name* so the
+// palette stays contrast-safe; `accentColor` keeps the matching hex for
+// backwards compatibility with older clients that only know about hexes.
+const ACCENT_PALETTE = {
+  indigo: { primary: '#4F46E5', shades: ['#E0E7FF', '#6366F1', '#4F46E5', '#4338CA'] },
+  violet: { primary: '#7C3AED', shades: ['#EDE9FE', '#8B5CF6', '#7C3AED', '#6D28D9'] },
+  teal: { primary: '#0F766E', shades: ['#CCFBF1', '#14B8A6', '#0F766E', '#115E59'] },
+  blue: { primary: '#2563EB', shades: ['#DBEAFE', '#3B82F6', '#2563EB', '#1D4ED8'] },
+  rose: { primary: '#E11D48', shades: ['#FFE4E6', '#F43F5E', '#E11D48', '#BE123C'] },
+  emerald: { primary: '#047857', shades: ['#D1FAE5', '#10B981', '#047857', '#065F46'] },
+  amber: { primary: '#B45309', shades: ['#FEF3C7', '#F59E0B', '#B45309', '#92400E'] },
+};
+
+const HEX_TO_ACCENT = Object.entries(ACCENT_PALETTE).reduce((map, [name, palette]) => {
+  [palette.primary, ...palette.shades].forEach((hex) => map[hex.toLowerCase()] = name);
+  return map;
+}, {});
+
+const resolveAccentName = (source = {}) => {
+  if (ACCENT_PALETTE[source?.accent]) return source.accent;
+  const raw = String(source?.accentColor || '').trim().toLowerCase();
+  if (HEX_TO_ACCENT[raw]) return HEX_TO_ACCENT[raw];
+  return 'indigo';
+};
+
+const normalizeCustomization = (source = {}) => {
+  const accent = resolveAccentName(source);
+  const rawHex = String(source?.accentColor || '').trim();
+  return {
+    themePreset: ['light', 'dark', 'minimal', 'dark_modern', 'creative_tech'].includes(source?.themePreset)
+      ? source.themePreset
+      : 'light',
+    accent,
+    // Keep a valid hex untouched so existing accounts do not lose their exact
+    // shade; fall back to the palette entry for the resolved accent.
+    accentColor: /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(rawHex)
+      ? rawHex
+      : ACCENT_PALETTE[accent].primary,
+    compactMode: !!source?.compactMode,
+    notifications: source?.notifications !== false,
+    showWelcomeBanner: source?.showWelcomeBanner !== false,
+    avatarUrl: sanitizeTextField(source?.avatarUrl, { maxLength: 500, fallback: '' }),
+    bannerUrl: sanitizeTextField(source?.bannerUrl, { maxLength: 500, fallback: '' }),
+    profileTitle: sanitizeTextField(source?.profileTitle, { maxLength: 120, fallback: '' }),
+    layoutBlocks: Array.isArray(source?.layoutBlocks)
+      ? source.layoutBlocks
         .map((block) => ({
           id: sanitizeTextField(block?.id, { maxLength: 80, fallback: 'custom' }),
           order: Number.isFinite(Number(block?.order)) ? Number(block.order) : 0,
           visible: Boolean(block?.visible),
         }))
         .slice(0, 20)
-    : [
+      : [
         { id: 'summary', order: 0, visible: true },
         { id: 'skills', order: 1, visible: true },
         { id: 'resumes', order: 2, visible: true },
       ],
-});
+  };
+};
 
 const normalizePrivacySettings = (source = {}) => ({
   profileVisibility: ['private', 'counselors_only', 'public'].includes(source?.profileVisibility)

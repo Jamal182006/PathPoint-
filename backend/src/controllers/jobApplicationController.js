@@ -3,6 +3,7 @@ import path from 'path';
 import { fileTypeFromBuffer, fileTypeFromFile } from 'file-type';
 import JobApplication from '../models/JobApplication.js';
 import JobListing from '../models/JobListing.js';
+import Company from '../models/Company.js';
 import User from '../models/User.js';
 import { getJobUploadDirectory } from '../utils/jobUpload.js';
 import { notifyUser, recordActivity } from '../utils/platformEvents.js';
@@ -343,6 +344,57 @@ export const getProviderJobApplications = async (req, res) => {
     return res.status(200).json({ success: true, count: applications.length, data: applications.map((application) => serializeApplication(application)) });
   } catch (error) {
     console.error('[Job Application Error - Provider List]:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load job applicants' });
+  }
+};
+
+// Every applicant that sent an application to any of the provider's listings.
+// Drafts are excluded so the list only holds real, submitted applications.
+export const getProviderJobApplicationsOverview = async (req, res) => {
+  if (req.user.role !== 'provider') return res.status(403).json({ success: false, message: 'Only providers can view job applicants' });
+  if (req.user.businessVerification?.status !== 'approved') return res.status(403).json({ success: false, message: 'Provider verification approval is required' });
+  try {
+    const jobs = await JobListing.find({ providerId: req.user._id, archivedAt: { $exists: false } })
+      .select('_id title companyId')
+      .lean();
+    const jobIds = jobs.map((job) => job._id);
+    if (!jobIds.length) return res.status(200).json({ success: true, count: 0, data: [] });
+
+    const companyIds = [...new Set(jobs.map((job) => job.companyId).map(String))];
+    const companies = await Company.find({ _id: { $in: companyIds } }).select('name organizationType').lean();
+
+    const applications = await JobApplication.find({ jobId: { $in: jobIds }, status: { $ne: 'draft' } })
+      .select('jobId companyId applicant status interviewDate submittedAt createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const jobById = new Map(jobs.map((job) => [String(job._id), job]));
+    const companyById = new Map(companies.map((company) => [String(company._id), company]));
+
+    const data = applications.map((application) => {
+      const job = jobById.get(String(application.jobId));
+      const company = companyById.get(String(application.companyId));
+      return {
+        id: String(application._id),
+        jobId: String(application.jobId),
+        jobTitle: job?.title || 'Job unavailable',
+        companyId: String(application.companyId),
+        companyName: company?.name || 'Company unavailable',
+        organizationType: company?.organizationType || 'company',
+        applicant: {
+          name: application.applicant?.name || 'Applicant',
+          email: application.applicant?.email || '',
+          phone: application.applicant?.phone || '',
+        },
+        status: application.status,
+        interviewDate: application.interviewDate || null,
+        submittedAt: application.submittedAt || application.createdAt || null,
+      };
+    });
+
+    return res.status(200).json({ success: true, count: data.length, data });
+  } catch (error) {
+    console.error('[Job Application Error - Provider Overview]:', error);
     return res.status(500).json({ success: false, message: 'Failed to load job applicants' });
   }
 };

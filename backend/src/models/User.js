@@ -186,6 +186,12 @@ const userSchema = new mongoose.Schema(
         trim: true,
         maxlength: 20,
       },
+      // Curated accent name; `accentColor` mirrors it for older clients.
+      accent: {
+        type: String,
+        enum: ['indigo', 'violet', 'teal', 'blue', 'rose', 'emerald', 'amber'],
+        default: 'indigo',
+      },
       compactMode: { type: Boolean, default: false },
       notifications: { type: Boolean, default: true },
       showWelcomeBanner: { type: Boolean, default: true },

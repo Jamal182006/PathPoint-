@@ -1,15 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, BellOff, CheckCheck } from 'lucide-react';
 import { notificationsApi } from '../../api/notificationsApi';
+import { useAuth } from '../../context/AuthContext';
 
 const NotificationBell = () => {
+  const { settings } = useAuth();
+  const enabled = settings?.notifications !== false;
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return undefined;
+    }
     let active = true;
     const refresh = async () => {
       try {
@@ -31,7 +39,7 @@ const NotificationBell = () => {
       window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', refreshOnFocus);
     };
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     const closeOutside = (event) => {
@@ -63,14 +71,31 @@ const NotificationBell = () => {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+        aria-label={enabled
+          ? `Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`
+          : 'Notifications are turned off'}
         aria-expanded={open}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+        className={`relative inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+          enabled
+            ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            : 'text-slate-300 hover:bg-slate-100 hover:text-slate-400'
+        }`}
       >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-600 px-1 text-xs font-bold leading-none text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+        {enabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+        {enabled && unreadCount > 0 && <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-600 px-1 text-xs font-bold leading-none text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
-      {open && (
+      {open && !enabled && (
+        <section aria-label="Notifications" className="ui-popover absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden p-4 animate-fade-in">
+          <p className="text-sm font-semibold text-slate-900">Notifications are off</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Activity notifications are turned off in your website settings, so nothing is polled in the background.
+          </p>
+          <Link to="/settings" onClick={() => setOpen(false)} className="ui-btn ui-btn-secondary ui-btn-sm mt-3">
+            Open settings
+          </Link>
+        </section>
+      )}
+      {open && enabled && (
         <section aria-label="Notifications" className="ui-popover absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden animate-fade-in">
           <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div><h2 className="text-sm font-bold text-slate-900">Notifications</h2><p className="text-xs text-slate-500">{unreadCount ? `${unreadCount} unread` : 'You are all caught up'}</p></div>

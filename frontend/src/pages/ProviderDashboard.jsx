@@ -244,14 +244,14 @@ export const ProviderDashboard = () => {
     ];
 
     return (
-      <div className="ui-container space-y-6 py-8">
+      <div className="ui-container space-y-5 py-6">
         <header className="ui-panel overflow-hidden">
-          <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-6 sm:px-8">
+          <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-5 sm:px-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="ui-eyebrow">Provider workspace</p>
-                <h1 className="ui-page-title mt-2">{greeting}, {firstName}</h1>
-                <p className="mt-1.5 text-sm text-slate-600">
+                <h1 className="ui-page-title mt-1.5">{greeting}, {firstName}</h1>
+                <p className="mt-1 text-sm text-slate-600">
                   {workspaceLabel} · {overviewStats.organizations} {overviewStats.organizations === 1 ? 'organization' : 'organizations'} · {overviewStats.jobs} {overviewStats.jobs === 1 ? 'listing' : 'listings'}
                 </p>
               </div>
@@ -263,24 +263,24 @@ export const ProviderDashboard = () => {
                   disabled={overview.loading}
                   className="ui-btn ui-btn-secondary ui-btn-sm"
                 >
-                  <RefreshCw className={`h-4 w-4 ${overview.loading ? 'animate-spin' : ''}`} />Refresh
+                  <RefreshCw className={`h-4 w-4 ${overview.loading ? 'animate-spin' : ''}`} aria-hidden="true" />Refresh
                 </button>
               </div>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/provider/companies/new?type=company" className="ui-btn ui-btn-primary ui-btn-sm"><Building2 className="h-4 w-4" />Add organization</Link>
-              <Link to="/provider/jobs" className="ui-btn ui-btn-secondary ui-btn-sm"><BriefcaseBusiness className="h-4 w-4" />Job listings</Link>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link to="/provider/companies/new?type=company" className="ui-btn ui-btn-primary ui-btn-sm"><Building2 className="h-4 w-4" aria-hidden="true" />Add organization</Link>
+              <Link to="/provider/jobs" className="ui-btn ui-btn-secondary ui-btn-sm"><BriefcaseBusiness className="h-4 w-4" aria-hidden="true" />Job listings</Link>
               <Link to="/provider/companies" className="ui-btn ui-btn-ghost ui-btn-sm">Manage companies</Link>
             </div>
           </div>
           <dl className="grid grid-cols-2 divide-slate-200 sm:grid-cols-4 sm:divide-x">
             {workspaceStats.map(({ label, value, href, hint }) => (
-              <Link key={label} to={href} className="group px-6 py-4 transition-colors hover:bg-slate-50 sm:px-8">
+              <Link key={label} to={href} className="group px-5 py-3 transition-colors hover:bg-slate-50 sm:px-6">
                 <dt className="ui-eyebrow">{label}</dt>
-                <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
-                  {overview.loading ? <span className="inline-block h-7 w-8 animate-pulse rounded bg-slate-200" /> : value}
+                <dd className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">
+                  {overview.loading ? <span className="inline-block h-6 w-8 animate-pulse rounded bg-slate-200" /> : value}
                 </dd>
-                <p className="mt-1 text-xs text-slate-500">{hint}</p>
+                <p className="mt-0.5 truncate text-xs text-slate-500">{hint}</p>
               </Link>
             ))}
           </dl>
@@ -326,15 +326,16 @@ export const ProviderDashboard = () => {
           </section>
         )}
 
+        <div className="grid gap-4 lg:grid-cols-2">
         {hasOrganizations && (
           <section aria-labelledby="orgs-title" className="ui-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
               <h2 id="orgs-title" className="ui-section-title">Your organizations</h2>
               <Link to="/provider/companies" className="text-sm font-semibold text-brand-700 hover:text-brand-800">View all</Link>
             </div>
             <ul className="divide-y divide-slate-200">
               {overview.companies.slice(0, 4).map((company) => (
-                <li key={company._id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+                <li key={company._id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-slate-900">{company.name}</p>
                     <p className="mt-0.5 text-xs text-slate-500">{company.category}{company.location ? ` · ${company.location}` : ''}</p>
@@ -351,33 +352,8 @@ export const ProviderDashboard = () => {
           </section>
         )}
 
-        <section aria-labelledby="profile-title" className="ui-card overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
-            <div>
-              <h2 id="profile-title" className="ui-section-title">Business profile</h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                This is how your business appears to applicants in the provider directory.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowBusinessProfile((open) => !open)}
-              className="ui-btn ui-btn-secondary ui-btn-sm"
-              aria-expanded={showBusinessProfile}
-              aria-controls="business-profile-form"
-            >
-              {showBusinessProfile ? 'Hide details' : 'Edit details'}
-            </button>
-          </div>
-          {showBusinessProfile && (
-            <div id="business-profile-form" className="px-6 py-6">
-              {businessProfileForm}
-            </div>
-          )}
-        </section>
-
         <section aria-labelledby="jobs-title" className="ui-card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
             <h2 id="jobs-title" className="ui-section-title">Latest job listings</h2>
             <Link to="/provider/jobs" className="text-sm font-semibold text-brand-700 hover:text-brand-800">View all</Link>
           </div>
@@ -400,7 +376,7 @@ export const ProviderDashboard = () => {
           ) : (
             <ul className="divide-y divide-slate-200">
               {overview.jobs.slice(0, 4).map((job) => (
-                <li key={job._id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+                <li key={job._id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-slate-900">{job.title}</p>
                     <p className="mt-0.5 text-xs text-slate-500">
@@ -414,6 +390,32 @@ export const ProviderDashboard = () => {
                 </li>
               ))}
             </ul>
+          )}
+        </section>
+        </div>
+
+        <section aria-labelledby="profile-title" className="ui-card overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3">
+            <div>
+              <h2 id="profile-title" className="ui-section-title">Business profile</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                This is how your business appears to applicants in the provider directory.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowBusinessProfile((open) => !open)}
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              aria-expanded={showBusinessProfile}
+              aria-controls="business-profile-form"
+            >
+              {showBusinessProfile ? 'Hide details' : 'Edit details'}
+            </button>
+          </div>
+          {showBusinessProfile && (
+            <div id="business-profile-form" className="px-5 py-5">
+              {businessProfileForm}
+            </div>
           )}
         </section>
       </div>

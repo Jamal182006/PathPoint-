@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
-import { AlertCircle, Building2, Check, CheckCircle2, Compass, Eye, EyeOff, Loader2, ShieldCheck, UserRound } from 'lucide-react';
+import BrandLogo from '../components/common/BrandLogo';
+import { AlertCircle, Building2, Check, CheckCircle2, Eye, EyeOff, Loader2, ShieldCheck, UserRound } from 'lucide-react';
 import { apiAdapter } from '../services/apiAdapter';
 
 const usernamePattern = /^[a-z0-9_]{3,20}$/i;
@@ -248,7 +249,7 @@ const RegisterWizard = () => {
 
         <div className="relative">
           <Link to="/" className="inline-flex items-center gap-3 text-white">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600"><Compass className="h-6 w-6" /></span>
+            <BrandLogo tone="light" size={38} />
             <span className="text-lg font-bold">PathPoint</span>
           </Link>
         </div>
@@ -278,7 +279,7 @@ const RegisterWizard = () => {
       <main className="relative flex min-h-screen flex-1 flex-col">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-5 py-5 sm:px-8 lg:px-14">
           <Link to="/" className="inline-flex items-center gap-2.5 text-slate-900 lg:hidden">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white"><Compass className="h-5 w-5" /></span>
+            <BrandLogo role="brand" size={28} />
             <span className="font-bold">PathPoint</span>
           </Link>
           <p className="text-xs text-slate-500 lg:ml-auto">Already registered? <Link to="/login" className="font-semibold text-brand-700 transition hover:text-brand-900">Sign in</Link></p>

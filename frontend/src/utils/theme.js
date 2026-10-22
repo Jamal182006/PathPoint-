@@ -35,6 +35,9 @@ export const resolveAccent = (value) => {
   return DEFAULT_ACCENT;
 };
 
+// The hex the API stores for a given accent name.
+export const accentToHex = (value) => ACCENTS[resolveAccent(value)]['600'];
+
 export const accentToCssVars = (value) => {
   const scale = ACCENTS[resolveAccent(value)];
   return {
@@ -43,4 +46,24 @@ export const accentToCssVars = (value) => {
     '--accent-600': scale['600'],
     '--accent-700': scale['700'],
   };
+};
+
+/**
+ * Applies the user's preferences to the document shell.
+ *
+ * The accent swaps the `--accent-*` custom properties that drive primary
+ * actions, focus rings, selection, and the caret. Compact mode flips a
+ * `data-compact` flag that the shared `.ui-*` layer reads to tighten density.
+ */
+export const applyAccentToDocument = (accent) => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  Object.entries(accentToCssVars(accent)).forEach(([property, value]) => {
+    root.style.setProperty(property, value);
+  });
+};
+
+export const applyCompactModeToDocument = (compact) => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-compact', compact ? 'true' : 'false');
 };

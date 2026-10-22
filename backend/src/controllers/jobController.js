@@ -10,6 +10,11 @@ const workSetups = new Set(['on_site', 'remote', 'hybrid']);
 const fileTypes = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 const validId = (id) => /^[a-f\d]{24}$/i.test(String(id));
 const inputError = (message) => Object.assign(new Error(message), { statusCode: 400 });
+const sameInstant = (a, b) => {
+  const left = a ? new Date(a).getTime() : Number.NaN;
+  const right = b ? new Date(b).getTime() : Number.NaN;
+  return Number.isFinite(left) && Number.isFinite(right) && left === right;
+};
 
 const normalizeRequirements = (requirements = []) => {
   if (!Array.isArray(requirements) || requirements.length > 25) throw inputError('Add no more than 25 job requirements');
@@ -75,12 +80,14 @@ const normalizeJobInput = (body = {}, fallback = {}) => {
 
   const interviewDate = body.interviewDate ? new Date(body.interviewDate) : undefined;
   if (interviewDate && Number.isNaN(interviewDate.getTime())) throw inputError('Interview date is invalid');
-  if (interviewDate && interviewDate.getTime() < Date.now()) throw inputError('Interview date cannot be in the past');
+  // Only a newly chosen past date is rejected. A date already stored on the
+  // listing is kept as-is so unrelated edits stay possible after it elapses.
+  if (interviewDate && interviewDate.getTime() < Date.now() && !sameInstant(interviewDate, fallback.interviewDate)) throw inputError('Interview date cannot be in the past');
   const applicationDeadline = body.applicationDeadline ? new Date(body.applicationDeadline) : undefined;
   if (applicationDeadline && Number.isNaN(applicationDeadline.getTime())) throw inputError('Application deadline is invalid');
-  if (applicationDeadline && applicationDeadline.getTime() < Date.now()) throw inputError('Application deadline cannot be in the past');
-  const startDate = body.startDate ? new Date(body.startDate) : (fallback.startDate || undefined);
-  if (startDate && Number.isNaN(new Date(startDate).getTime())) throw inputError('Start date is invalid');
+  if (applicationDeadline && applicationDeadline.getTime() < Date.now() && !sameInstant(applicationDeadline, fallback.applicationDeadline)) throw inputError('Application deadline cannot be in the past');
+  const startDate = body.startDate ? new Date(body.startDate) : undefined;
+  if (startDate && Number.isNaN(startDate.getTime())) throw inputError('Start date is invalid');
 
   const slots = Number(body.slots ?? 1);
   if (!Number.isInteger(slots) || slots < 1 || slots > 10000) throw inputError('Slots must be a whole number between 1 and 10000');
@@ -225,14 +232,20 @@ export const updateProviderJob = async (req, res) => {
     }
     const payload = normalizeJobInput({ ...job.toObject(), ...req.body }, job.toObject());
     if (payload.slots < job.applicationCount) return res.status(400).json({ success: false, message: 'Slots cannot be lower than the number of applications already received' });
-    Object.assign(job, payload);
     const workflowAction = req.body.workflowAction;
     if (workflowAction && !['draft', 'submit'].includes(workflowAction)) return res.status(400).json({ success: false, message: 'Choose draft or submit for review' });
-    job.reviewStatus = workflowAction === 'draft' ? 'draft' : 'pending';
-    job.reviewedBy = undefined;
-    job.reviewedAt = undefined;
-    job.reviewReason = '';
-    job.status = workflowAction === 'draft' ? 'draft' : workflowAction === 'submit' ? 'pending_verification' : (job.status === 'verified' || job.status === 'open' ? 'pending_verification' : 'draft');
+    const wasPublished = job.status === 'verified' || job.status === 'open';
+    Object.assign(job, payload);
+    // Saving a draft of an already published listing keeps it live: a private
+    // working copy must never pull a visible job out of the directory.
+    const keepsPublished = workflowAction === 'draft' && wasPublished;
+    if (!keepsPublished) {
+      job.reviewStatus = workflowAction === 'draft' ? 'draft' : 'pending';
+      job.reviewedBy = undefined;
+      job.reviewedAt = undefined;
+      job.reviewReason = '';
+      job.status = workflowAction === 'draft' ? 'draft' : workflowAction === 'submit' ? 'pending_verification' : (wasPublished ? 'pending_verification' : 'draft');
+    }
     await job.save();
     if (workflowAction === 'submit' || !workflowAction) {
       await Promise.all([
@@ -240,7 +253,15 @@ export const updateProviderJob = async (req, res) => {
         recordActivity(req.user._id, 'submitted a job listing for review', job._id, 'job'),
       ]);
     }
-    return res.status(200).json({ success: true, message: workflowAction === 'draft' ? 'Job saved as a draft.' : 'Job updated and sent back for admin verification.', data: job });
+    return res.status(200).json({
+      success: true,
+      message: keepsPublished
+        ? 'Changes saved. Your published listing stays live.'
+        : workflowAction === 'draft'
+          ? 'Job saved as a draft.'
+          : 'Job updated and sent back for admin verification.',
+      data: job,
+    });
   } catch (error) {
     if (error.statusCode || error.name === 'ValidationError') return res.status(400).json({ success: false, message: error.message });
     console.error('[Job Error - Update]:', error);

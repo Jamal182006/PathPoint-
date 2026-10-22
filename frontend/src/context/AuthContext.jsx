@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { apiAdapter, checkBackendStatus, persistAuthSession } from '../services/apiAdapter';
 import { getBaseURL, setBaseURL } from '../api/client';
+import { applyAccentToDocument, applyCompactModeToDocument, resolveAccent } from '../utils/theme';
 
 const AuthContext = createContext(null);
 
@@ -67,6 +68,39 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('pathpoint_settings', JSON.stringify(settings));
     } catch {}
   }, [settings]);
+
+  // Preferences only take effect once they reach the document shell: the accent
+  // drives the `--accent-*` custom properties, compact mode flags the density
+  // switch for the shared `.ui-*` layer.
+  useEffect(() => {
+    applyAccentToDocument(settings.accent);
+  }, [settings.accent]);
+
+  useEffect(() => {
+    applyCompactModeToDocument(settings.compactMode);
+  }, [settings.compactMode]);
+
+  // The server copy of the preferences is authoritative: sync it into the
+  // shell whenever the profile is (re)loaded so the accent and density follow
+  // the account across devices.
+  useEffect(() => {
+    const customization = user?.customization;
+    if (!customization) return;
+    const next = {
+      accent: resolveAccent(customization.accent ?? customization.accentColor),
+      compactMode: Boolean(customization.compactMode),
+      notifications: customization.notifications !== false,
+      showWelcomeBanner: customization.showWelcomeBanner !== false,
+    };
+    setSettings((prev) => (
+      prev.accent === next.accent
+        && prev.compactMode === next.compactMode
+        && prev.notifications === next.notifications
+        && prev.showWelcomeBanner === next.showWelcomeBanner
+        ? prev
+        : { ...prev, ...next }
+    ));
+  }, [user?.customization]);
 
   useEffect(() => {
     const initAuth = async () => {

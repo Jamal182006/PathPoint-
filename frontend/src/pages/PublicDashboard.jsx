@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import BrandLogo from '../components/common/BrandLogo';
 import {
-  Compass,
   LogIn,
   UserPlus,
   Briefcase,
@@ -188,9 +188,7 @@ const PublicDashboard = () => {
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
         <div className="ui-container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
-              <Compass className="h-5 w-5" />
-            </span>
+            <BrandLogo role="brand" size={30} />
             <span className="text-lg font-bold tracking-tight text-slate-900">PathPoint</span>
           </Link>
           <nav className="flex items-center gap-2">
@@ -415,9 +413,7 @@ const PublicDashboard = () => {
       <footer className="border-t border-slate-200 bg-white">
         <div className="ui-container flex flex-col items-center justify-between gap-4 py-8 sm:flex-row">
           <div className="flex items-center gap-2.5 text-slate-700">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <Compass className="h-4 w-4" />
-            </span>
+            <BrandLogo role="brand" size={24} />
             <span className="text-sm font-semibold">PathPoint</span>
           </div>
           <nav className="flex items-center gap-5 text-xs font-medium text-slate-600">

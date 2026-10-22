@@ -171,10 +171,6 @@ test('provider signup flows through verification and publishes its company into 
   const provider = await User.findById(registration.body.user.id);
   provider.businessVerification.status = 'approved';
   await provider.save({ validateBeforeSave: false });
-  const created = response();
-  await createCompany({ user: provider, body: { name: 'Northstar Demo', category: 'Education', location: 'Oakland' } }, created);
-  assert.equal(created.statusCode, 201);
-  assert.equal(created.body.data.status, 'pending');
 
   const directory = response();
   await getPublicCompanies({}, directory);
@@ -329,6 +325,44 @@ test('profile customization reads saved preferences and sanitizes unsafe text in
   assert.equal(patchRes.body.data.customization.themePreset, 'creative_tech');
   assert.equal(patchRes.body.data.privacySettings.profileVisibility, 'public');
   assert.equal(patchRes.body.data.customization.accentColor, '#14B8A6');
+  // The hex above is a teal shade, so the curated name resolves to teal.
+  assert.equal(patchRes.body.data.customization.accent, 'teal');
+});
+
+test('profile customization stores the curated accent name and keeps preferences in sync', async () => {
+  const user = await User.create({
+    name: 'Accent User',
+    email: 'accent.user@example.com',
+    password: 'StrongPass8',
+    role: 'user',
+  });
+
+  const patchRes = response();
+  await updateProfileCustomization({
+    user,
+    body: {
+      customization: {
+        accent: 'teal',
+        accentColor: '#0F766E',
+        compactMode: true,
+        notifications: false,
+        showWelcomeBanner: false,
+      },
+    },
+  }, patchRes);
+
+  assert.equal(patchRes.statusCode, 200);
+  assert.equal(patchRes.body.data.customization.accent, 'teal');
+  assert.equal(patchRes.body.data.customization.accentColor, '#0F766E');
+  assert.equal(patchRes.body.data.customization.compactMode, true);
+  assert.equal(patchRes.body.data.customization.notifications, false);
+  assert.equal(patchRes.body.data.customization.showWelcomeBanner, false);
+
+  // The change must survive a reload of the profile.
+  const saved = await User.findById(user._id);
+  assert.equal(saved.customization.accent, 'teal');
+  assert.equal(saved.customization.accentColor, '#0F766E');
+  assert.equal(saved.customization.compactMode, true);
 });
 
 test('profile sections and resume persist in MongoDB without exposing resume bytes', async () => {

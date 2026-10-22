@@ -2,12 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import BackendStatusModal from '../common/BackendStatusModal';
+import BrandLogo from '../common/BrandLogo';
 import NotificationBell from './NotificationBell';
 import {
-  Compass,
   LayoutDashboard,
   Calendar,
-  ShieldAlert,
   BriefcaseBusiness,
   FileText,
   Menu,
@@ -15,7 +14,6 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Building2,
   Palette,
 } from 'lucide-react';
 
@@ -81,12 +79,10 @@ export const Navbar = () => {
         badge: 'Admin',
         subtitle: '',
         badgeClass: 'bg-brand-50 text-brand-700',
-        logoClass: 'bg-brand-600',
         activeNavClass: 'bg-brand-50 text-brand-800',
         activeIconClass: 'text-brand-600',
         avatarClass: 'bg-brand-600 text-white',
         rolePillClass: 'bg-brand-50 text-brand-700',
-        brandIcon: ShieldAlert,
         // Admin workspace navigation lives in AdminLayout (left rail). The top bar
         // intentionally carries no duplicate workspace links.
         links: [],
@@ -98,12 +94,10 @@ export const Navbar = () => {
         badge: 'Provider',
         subtitle: '',
         badgeClass: 'bg-blue-50 text-blue-700',
-        logoClass: 'bg-blue-600',
         activeNavClass: 'bg-blue-50 text-blue-800',
         activeIconClass: 'text-blue-600',
         avatarClass: 'bg-blue-600 text-white',
         rolePillClass: 'bg-blue-50 text-blue-700',
-        brandIcon: Building2,
         // Provider workspace navigation lives in ProviderSidebar (left rail). The
         // top bar intentionally carries no duplicate workspace links.
         links: [],
@@ -114,12 +108,10 @@ export const Navbar = () => {
       badge: 'Candidate',
       subtitle: '',
       badgeClass: 'bg-teal-50 text-teal-700',
-      logoClass: 'bg-teal-600',
       activeNavClass: 'bg-teal-50 text-teal-800',
       activeIconClass: 'text-teal-700',
       avatarClass: 'bg-teal-600 text-white',
       rolePillClass: 'bg-teal-50 text-teal-700',
-      brandIcon: Compass,
       links: [
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
         { label: 'Jobs', path: '/jobs', icon: BriefcaseBusiness },
@@ -149,8 +141,6 @@ export const Navbar = () => {
     navigate('/login');
   };
 
-  const BrandIcon = roleConfig.brandIcon;
-
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
@@ -175,11 +165,11 @@ export const Navbar = () => {
             {/* Logo & Brand */}
             <div className="flex items-center gap-8">
               <Link to={isAdmin ? '/admin' : user?.role === 'provider' ? '/provider' : '/dashboard'} className="flex items-center gap-2.5 group">
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform duration-200 group-hover:scale-105 ${roleConfig.logoClass}`}
-                >
-                  <BrandIcon className="w-5 h-5" />
-                </div>
+                <BrandLogo
+                  role={roleConfig.roleKey}
+                  size={32}
+                  className="transition-transform duration-200 group-hover:scale-105"
+                />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-slate-900 text-lg leading-tight tracking-tight">

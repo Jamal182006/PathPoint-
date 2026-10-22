@@ -183,9 +183,6 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
         <label className="text-sm font-semibold text-slate-700">Website
           <input type="url" maxLength={200} value={company.website} onChange={(event) => setCompany({ ...company, website: event.target.value })} placeholder="https://example.com" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
-        <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Locations
-          <textarea rows={2} maxLength={2400} value={company.locations.join('\n')} onChange={(event) => setCompany({ ...company, locations: event.target.value })} placeholder="One location per line" className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
-        </label>
         <div className="sm:col-span-2">
           <label className="text-sm font-semibold text-slate-700">Logo URL
             <input type="url" maxLength={2000} value={company.logo.startsWith('data:') ? '' : company.logo} onChange={(event) => setCompany({ ...company, logo: event.target.value })} placeholder="https://example.com/logo.png" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />

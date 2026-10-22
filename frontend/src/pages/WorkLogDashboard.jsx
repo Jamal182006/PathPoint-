@@ -21,12 +21,20 @@ const WorkLogDashboard = () => {
   const { toast } = useToast();
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState(emptySummary);
-  const [filters, setFilters] = useState({ from: '', to: '', status: 'all', paymentStatus: 'all', search: '' });
+  const [filters, setFilters] = useState({ from: '', to: '', status: 'all', paymentStatus: 'all' });
+  // The search box stays responsive while the request waits for a pause.
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modalRecord, setModalRecord] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [busyId, setBusyId] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchInput), 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -34,6 +42,7 @@ const WorkLogDashboard = () => {
     try {
       const result = await apiAdapter.getWorkLogs({
         ...filters,
+        search: debouncedSearch,
         status: filters.status === 'all' ? undefined : filters.status,
         paymentStatus: filters.paymentStatus === 'all' ? undefined : filters.paymentStatus,
       });
@@ -44,7 +53,7 @@ const WorkLogDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, debouncedSearch]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -110,7 +119,7 @@ const WorkLogDashboard = () => {
     </section>
 
     <section aria-label="Filter work records" className="grid gap-3 border-y border-slate-200 py-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto_auto] lg:items-end">
-      <label className="relative text-xs font-semibold text-slate-600"><span className="sr-only">Search work logs</span><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search project, client, or location" className="ui-input pl-9 font-normal" /></label>
+      <label className="relative text-xs font-semibold text-slate-600"><span className="sr-only">Search work logs</span><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Search project, client, or location" className="ui-input pl-9 font-normal" /></label>
       <label className="text-xs font-semibold text-slate-600">From<input type="date" value={filters.from} onChange={(event) => setFilters((current) => ({ ...current, from: event.target.value }))} className="ui-input ml-2 w-auto font-normal" /></label>
       <label className="text-xs font-semibold text-slate-600">To<input type="date" value={filters.to} onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))} className="ui-input ml-2 w-auto font-normal" /></label>
       <label className="text-xs font-semibold text-slate-600">Work status<select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className="ui-input ml-2 w-auto font-normal"><option value="all">All</option><option value="ongoing">Ongoing</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>

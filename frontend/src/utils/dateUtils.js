@@ -31,6 +31,14 @@ export const safeDateTimeString = (value, fallback = '') => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+export const safeLocalDateString = (value, fallback = '') => {
+  const d = safeDate(value);
+  if (!d) return fallback;
+  // Date-only inputs are calendar days, so the local day is the value shown.
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 export const formatDateDisplay = (value, options = { month: 'short', day: 'numeric', year: 'numeric' }, fallback = 'N/A') => {
   const d = safeDate(value);
   return d ? d.toLocaleDateString(undefined, options) : fallback;

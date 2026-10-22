@@ -4,6 +4,7 @@ import AddressMap from '../common/AddressMap';
 import { validateJob } from './jobValidation';
 import { readJobDraft, removeJobDraft, writeJobDraft } from './jobDraftStorage';
 import { phDocumentGroups, phDocumentPresets, standardPhDocumentTitles } from './phDocumentPresets';
+import { safeDateTimeString, safeLocalDateString } from '../../utils/dateUtils';
 
 const types = [
   ['full_time', 'Full-time'], ['part_time', 'Part-time'], ['contract', 'Contract'],
@@ -29,15 +30,19 @@ const requirementFromDocument = (document) => ({
 });
 const normalizeTitle = (value) => String(value || '').trim().toLowerCase();
 const withOrder = (requirements) => requirements.map((requirement, order) => ({ ...requirement, order }));
-const localDateTime = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) || date.getTime() < Date.now() ? '' : date.toISOString().slice(0, 16);
-};
-const localDate = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) || date.getTime() < Date.now() ? '' : date.toISOString().slice(0, 10);
+// datetime-local and date inputs take local wall-clock values, so the stored
+// instant is formatted in the browser's own timezone rather than sliced from
+// UTC. Values that already elapsed are still shown so nothing silently
+// disappears from a listing that is being edited.
+const localDateTime = (value) => safeDateTimeString(value);
+const localDate = (value) => safeLocalDateString(value);
+const matchesCompanyLocation = (job, company) => {
+  if (!company) return false;
+  const hasCompanyCoordinates = company.latitude != null && company.longitude != null;
+  if (hasCompanyCoordinates) {
+    return Number(job.latitude) === Number(company.latitude) && Number(job.longitude) === Number(company.longitude);
+  }
+  return Boolean(company.location) && job.location === company.location && (job.latitude === '' || job.latitude == null);
 };
 
 const createInitialJob = (initialJob, company) => ({
@@ -76,7 +81,7 @@ const createInitialJob = (initialJob, company) => ({
     formattedAddress: initialJob?.formattedAddress || company?.formattedAddress || '',
     latitude: initialJob?.latitude ?? company?.latitude ?? '',
     longitude: initialJob?.longitude ?? company?.longitude ?? '',
-    useCompanyLocation: initialJob ? false : true,
+    useCompanyLocation: initialJob ? matchesCompanyLocation(initialJob, company) : true,
   });
 
 const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel, onDirtyChange, draftKey }) => {
@@ -217,12 +222,14 @@ const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel,
         qualifications: Array.isArray(job.qualifications) ? job.qualifications : job.qualifications.split('\n').map((value) => value.trim()).filter(Boolean),
         skills: Array.isArray(job.skills) ? job.skills : job.skills.split(',').map((value) => value.trim()).filter(Boolean),
         benefits: Array.isArray(job.benefits) ? job.benefits : job.benefits.split('\n').map((value) => value.trim()).filter(Boolean),
-        salaryMin: job.salaryMin === '' ? undefined : Number(job.salaryMin),
-        salaryMax: job.salaryMax === '' ? undefined : Number(job.salaryMax),
+        // Empty strings are sent on purpose: the API treats them as "clear this
+        // field", while an omitted key would keep the previously saved value.
+        salaryMin: job.salaryMin === '' ? '' : Number(job.salaryMin),
+        salaryMax: job.salaryMax === '' ? '' : Number(job.salaryMax),
         slots: Number(job.slots),
-        startDate: job.startDate ? new Date(`${job.startDate}T00:00:00`).toISOString() : undefined,
-        interviewDate: job.interviewDate ? new Date(job.interviewDate).toISOString() : undefined,
-        applicationDeadline: job.applicationDeadline ? new Date(`${job.applicationDeadline}T23:59:59`).toISOString() : undefined,
+        startDate: job.startDate ? new Date(`${job.startDate}T00:00:00`).toISOString() : '',
+        interviewDate: job.interviewDate ? new Date(job.interviewDate).toISOString() : '',
+        applicationDeadline: job.applicationDeadline ? new Date(`${job.applicationDeadline}T23:59:59`).toISOString() : '',
         requirements: withOrder(job.requirements),
       });
       removeJobDraft(window.localStorage, draftKey);

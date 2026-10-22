@@ -43,6 +43,8 @@ const ProviderCompanyDetail = () => {
   const [interviewDrafts, setInterviewDrafts] = useState({});
   const [jobStatusFilter, setJobStatusFilter] = useState('all');
   const [busyJobId, setBusyJobId] = useState('');
+  const [activeTab, setActiveTab] = useState('jobs');
+  const [mapVisible, setMapVisible] = useState(false);
 
   const load = async (quiet = false) => {
     if (!quiet) {
@@ -184,8 +186,17 @@ const ProviderCompanyDetail = () => {
             <span className="ui-badge ui-badge-neutral">{company.organizationType || 'company'}</span>
             <span className={`ui-badge ${company.status === 'approved' ? 'ui-badge-success' : company.status === 'rejected' ? 'ui-badge-danger' : 'ui-badge-warning'}`}>{company.status}</span>
           </div>
-          <p className="mt-1 text-sm text-slate-500">{company.category} · {applications.length} applicants</p>
-          <div className="mt-2 max-w-sm"><AddressMap readOnly compact className="h-28" location={company.location} formattedAddress={company.formattedAddress} latitude={company.latitude} longitude={company.longitude} /></div>
+          <p className="mt-1 text-sm text-slate-500">{company.category} · {applications.length} applicant{applications.length === 1 ? '' : 's'}</p>
+          {mapVisible ? (
+            <div className="mt-2 max-w-sm">
+              <AddressMap readOnly compact className="h-28" location={company.location} formattedAddress={company.formattedAddress} latitude={company.latitude} longitude={company.longitude} />
+            </div>
+          ) : (
+            <button type="button" onClick={() => setMapVisible(true)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800">
+              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              Show location map
+            </button>
+          )}
         </div>
         <div className="flex gap-2">
           <Link to={`/provider/companies/${companyId}/edit`} className="ui-btn ui-btn-secondary ui-btn-sm">Edit listing</Link>
@@ -195,32 +206,43 @@ const ProviderCompanyDetail = () => {
       </header>
 
       {company.status === 'rejected' && company.rejectionReason && <p className="ui-alert ui-alert-danger">Review note: {company.rejectionReason}</p>}
+
+      <div role="tablist" aria-label="Company sections" className="flex gap-1 border-b border-slate-200">
+        <button type="button" role="tab" aria-selected={activeTab === 'jobs'} onClick={() => setActiveTab('jobs')} className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-semibold transition-colors duration-200 ${activeTab === 'jobs' ? 'border-brand-700 text-brand-800' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+          Jobs <span className="ui-badge ui-badge-neutral">{jobs.length}</span>
+        </button>
+        <button type="button" role="tab" aria-selected={activeTab === 'applicants'} onClick={() => setActiveTab('applicants')} className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-semibold transition-colors duration-200 ${activeTab === 'applicants' ? 'border-brand-700 text-brand-800' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+          Applicants <span className="ui-badge ui-badge-neutral">{applications.length}</span>
+        </button>
+      </div>
+
+      {activeTab === 'jobs' ? (
       <section aria-labelledby="company-jobs-heading" className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><h2 id="company-jobs-heading" className="ui-section-title">Jobs</h2><p className="text-xs text-slate-500">{jobs.length} listing{jobs.length === 1 ? '' : 's'} · {jobs.reduce((total, job) => total + (job.applicantCount || 0), 0)} applicants</p></div>
-          <label className="text-xs font-semibold text-slate-600">Status <select value={jobStatusFilter} onChange={(event) => setJobStatusFilter(event.target.value)} className="ui-input ml-2 w-auto text-xs"><option value="all">All statuses</option><option value="draft">Draft</option><option value="pending_verification">Pending review</option><option value="verified">Published</option><option value="closed">Closed</option><option value="rejected">Rejected</option></select></label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">{jobs.length} listing{jobs.length === 1 ? '' : 's'} · {jobs.reduce((total, job) => total + (job.applicantCount || 0), 0)} applicants</p>
+          <label className="text-xs font-semibold text-slate-600">Status <select value={jobStatusFilter} onChange={(event) => setJobStatusFilter(event.target.value)} className="ui-input ml-2 w-auto py-2 text-xs"><option value="all">All statuses</option><option value="draft">Draft</option><option value="pending_verification">Pending review</option><option value="verified">Published</option><option value="closed">Closed</option><option value="rejected">Rejected</option></select></label>
         </div>
         {visibleJobs.length ? <div className="divide-y divide-slate-200 border-y border-slate-200">{visibleJobs.map((job) => <article key={job._id} className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-slate-900">{job.title}</h3><span className="ui-badge ui-badge-neutral">{job.status === 'verified' ? 'Published' : job.status?.replaceAll('_', ' ')}</span><span className="ui-badge ui-badge-warning">{job.reviewStatus === 'pending' ? 'Awaiting admin review' : job.reviewStatus}</span></div><p className="mt-1 text-xs text-slate-500">{job.location || company.location || 'Location not listed'} · {job.applicantCount || 0} applicants · {job.slots} opening{job.slots === 1 ? '' : 's'}</p>{job.reviewReason && <p className="mt-1 text-xs text-rose-700">Review note: {job.reviewReason}</p>}</div><div className="flex flex-wrap gap-2"><Link to={`/provider/jobs/${job._id}/applicants`} className="ui-btn ui-btn-secondary ui-btn-sm">Applicants</Link><Link to={`/provider/jobs/${job._id}/edit`} className="ui-btn ui-btn-secondary ui-btn-sm">Edit</Link>{job.reviewStatus === 'approved' && <button type="button" disabled={busyJobId === String(job._id)} onClick={() => changeJobStatus(job)} className="ui-btn ui-btn-secondary ui-btn-sm">{job.status === 'closed' ? 'Reopen' : 'Close'}</button>}<button type="button" disabled={busyJobId === String(job._id)} onClick={() => archiveJob(job)} aria-label={`Archive ${job.title}`} title="Archive job and retain applications" className="ui-btn ui-btn-ghost ui-btn-sm text-danger-700 disabled:opacity-50"><Archive className="h-4 w-4" /></button></div></article>)}</div> : <div className="py-6 text-center"><BriefcaseBusiness className="mx-auto h-5 w-5 text-slate-400" /><h3 className="mt-2 text-sm font-semibold text-slate-900">{jobs.length ? 'No jobs match this filter' : 'No jobs yet'}</h3><p className="mt-1 text-xs text-slate-500">{jobs.length ? 'Choose another status to see listings.' : company.status === 'approved' ? 'Add a job to start building your team.' : 'Company approval is required before jobs can be posted.'}</p></div>}
       </section>
-      <section className="grid gap-3 border-b border-slate-200 pb-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
+      ) : (
+      <>
+      <section className="ui-panel grid gap-2 p-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
         <label className="relative block">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <input aria-label="Search applicants" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search applicants by name or email" className="ui-input pl-9" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+          <input aria-label="Search applicants" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search applicants by name or email" className="ui-input py-2 pl-9 text-sm" />
         </label>
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">Application status
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="ui-input w-auto text-xs">
-            <option value="all">All statuses</option>{applicationStatuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
-          </select>
-        </label>
-        <button type="button" onClick={load} className="ui-btn ui-btn-secondary ui-btn-sm"><ArrowDownToLine className="h-4 w-4" /> Refresh</button>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by application status" className="ui-input w-auto py-2 text-xs">
+          <option value="all">All statuses</option>{applicationStatuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
+        </select>
+        <button type="button" onClick={() => load()} className="ui-btn ui-btn-secondary ui-btn-sm"><ArrowDownToLine className="h-4 w-4" aria-hidden="true" />Refresh</button>
       </section>
 
       {visibleApplications.length ? <div className="divide-y divide-slate-200 border-y border-slate-200">
         {visibleApplications.map((application) => (
-          <article key={application.id} className="space-y-3 py-4">
+          <article key={application.id} className="space-y-3 py-3">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700"><UserRound className="h-5 w-5" /></span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700"><UserRound className="h-4 w-4" aria-hidden="true" /></span>
                 <div>
                   <h2 className="font-semibold text-slate-900">{application.applicant?.name || 'Applicant'}</h2>
                   <a href={`mailto:${application.applicant?.email}`} className="text-xs text-brand-700 hover:underline">{application.applicant?.email}</a>
@@ -273,6 +295,8 @@ const ProviderCompanyDetail = () => {
           </article>
         ))}
       </div> : <div className="ui-empty">No applicants match this filter.</div>}
+      </>
+      )}
 
       {preview && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true" aria-label="Applicant document preview">
         <div className="flex h-[min(88vh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-popover">

@@ -4,10 +4,10 @@ import { BarChart3, BriefcaseBusiness, Building2, ChevronLeft, ChevronRight, Fil
 
 const links = [
   { to: '/admin', label: 'Overview', icon: BarChart3, end: true },
+  { to: '/admin/applications', label: 'Applications', icon: FileText },
   { to: '/admin/providers', label: 'Business Verification', icon: ShieldCheck },
   { to: '/admin/companies', label: 'Company Listings', icon: Building2 },
   { to: '/admin/jobs', label: 'Job listings', icon: BriefcaseBusiness },
-  { to: '/admin/applications', label: 'Applications', icon: FileText },
   { to: '/admin/users', label: 'Users', icon: Users },
 ];
 

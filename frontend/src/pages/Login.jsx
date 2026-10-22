@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
+import BrandLogo from '../components/common/BrandLogo';
 import ForgotPasswordModal from '../components/common/ForgotPasswordModal';
 import LoginVerificationModal from '../components/common/LoginVerificationModal';
 import {
-  Compass,
   Mail,
   Lock,
   Eye,
@@ -160,7 +160,7 @@ export const Login = () => {
         <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
         <div className="relative">
           <Link to="/" className="inline-flex items-center gap-3 text-white">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white"><Compass className="h-6 w-6" /></span>
+            <BrandLogo tone="light" size={38} />
             <span className="text-lg font-bold">PathPoint</span>
           </Link>
         </div>
@@ -181,7 +181,7 @@ export const Login = () => {
 
       <main className="relative flex min-h-screen flex-1 flex-col bg-white/55">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5 sm:px-8 lg:justify-end lg:px-12">
-          <Link to="/" className="inline-flex items-center gap-2.5 text-slate-900 lg:hidden"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white"><Compass className="h-5 w-5" /></span><span className="font-bold">PathPoint</span></Link>
+          <Link to="/" className="inline-flex items-center gap-2.5 text-slate-900 lg:hidden"><BrandLogo role="brand" size={28} /><span className="font-bold">PathPoint</span></Link>
           <span className="hidden text-xs text-slate-500 lg:block">Secure access to your workspace</span>
         </div>
 

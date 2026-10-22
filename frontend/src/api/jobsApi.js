@@ -10,6 +10,7 @@ export const jobsApi = {
   updateStatus: (id, status) => apiClient.patch(`/jobs/provider/listings/${id}/status`, { status }),
   archive: (id) => apiClient.delete(`/jobs/provider/listings/${id}`),
   getApplicants: (id) => apiClient.get(`/jobs/provider/listings/${id}/applications`),
+  getApplicationsOverview: () => apiClient.get('/jobs/provider/applications'),
   getApplicationDraft: (id) => apiClient.get(`/jobs/${id}/applications/draft`),
   saveApplicationDraft: (id, formData) => apiClient.put(`/jobs/${id}/applications/draft`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   apply: (id, formData, onUploadProgress) => apiClient.post(`/jobs/${id}/applications`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, onUploadProgress }),

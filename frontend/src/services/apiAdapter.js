@@ -514,6 +514,11 @@ export const apiAdapter = {
     return res.data?.data || [];
   },
 
+  getProviderJobApplicationsOverview: async () => {
+    const res = await withApiErrorMessage(jobsApi.getApplicationsOverview());
+    return res.data?.data || [];
+  },
+
   submitJobApplication: async (jobId, formData, onUploadProgress) => {
     const res = await withApiErrorMessage(jobsApi.apply(jobId, formData, onUploadProgress));
     return res.data?.data;

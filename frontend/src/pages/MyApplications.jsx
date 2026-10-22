@@ -17,6 +17,9 @@ const MyApplications = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  // The input stays instant; only the request waits for a short pause so a
+  // burst of keystrokes does not hammer the API.
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState('active');
   const [type, setType] = useState('all');
   const [sort, setSort] = useState('updated_desc');
@@ -26,18 +29,23 @@ const MyApplications = () => {
   const [noteEditor, setNoteEditor] = useState('');
   const [noteDraft, setNoteDraft] = useState('');
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 350);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   const load = useCallback(async (options = {}) => {
     const { silent = false } = options;
     if (!silent) setLoading(true);
     setError('');
     try {
-      const params = { status, kind: type, search, sort, page, limit: 10 };
+      const params = { status, kind: type, search: debouncedSearch, sort, page, limit: 10 };
       const result = await apiAdapter.getApplicationSubmissions(params);
       setApplications(result.data || []);
       setCount(result.count || 0);
       setPages(Math.max(1, result.pages || 1));
       if (status === 'active') {
-        const rejected = await apiAdapter.getApplicationSubmissions({ status: 'rejected', kind: type, search, sort: 'updated_desc', limit: 5 });
+        const rejected = await apiAdapter.getApplicationSubmissions({ status: 'rejected', kind: type, search: debouncedSearch, sort: 'updated_desc', limit: 5 });
         setRejectedPreview(rejected.data || []);
         setRejectedCount(rejected.count || 0);
       } else setRejectedPreview([]);
@@ -46,7 +54,7 @@ const MyApplications = () => {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [status, type, search, sort, page]);
+  }, [status, type, debouncedSearch, sort, page]);
 
   useEffect(() => { load(); }, [load]);
 

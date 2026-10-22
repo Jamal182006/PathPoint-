@@ -79,8 +79,11 @@ jobListingSchema.pre('validate', function validateJobDates(next) {
   if (this.salaryType === 'fixed' && this.salaryMin !== undefined && this.salaryMax !== undefined && this.salaryMin !== this.salaryMax) {
     this.invalidate('salaryMax', 'Fixed salary must use the same minimum and maximum amount');
   }
-  if (this.interviewDate && this.interviewDate.getTime() < now) this.invalidate('interviewDate', 'Interview date cannot be in the past');
-  if (this.applicationDeadline && this.applicationDeadline.getTime() < now) this.invalidate('applicationDeadline', 'Application deadline cannot be in the past');
+  // A date that is already stored on the listing may be in the past. Only a
+  // newly chosen past date is rejected, so editing an unrelated field never
+  // gets blocked by a deadline or interview that has already elapsed.
+  if (this.interviewDate && this.isModified('interviewDate') && this.interviewDate.getTime() < now) this.invalidate('interviewDate', 'Interview date cannot be in the past');
+  if (this.applicationDeadline && this.isModified('applicationDeadline') && this.applicationDeadline.getTime() < now) this.invalidate('applicationDeadline', 'Application deadline cannot be in the past');
   if (this.startDate && Number.isNaN(this.startDate.getTime())) this.invalidate('startDate', 'Start date is invalid');
   next();
 });
