@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { apiAdapter, checkBackendStatus, persistAuthSession } from '../services/apiAdapter';
 import { getBaseURL, setBaseURL } from '../api/client';
 
@@ -32,6 +32,25 @@ export const AuthProvider = ({ children }) => {
       return defaultSettings;
     }
   });
+
+  const refreshUser = useCallback(async () => {
+    try {
+      const storedToken =
+        localStorage.getItem('pathpoint_token') ||
+        sessionStorage.getItem('pathpoint_token');
+      if (!storedToken) return null;
+      const userData = await apiAdapter.getMe();
+      if (userData) {
+        setUser(userData);
+        const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+        storage.setItem('pathpoint_user', JSON.stringify(userData));
+        return userData;
+      }
+    } catch (err) {
+      // ignore transient errors
+    }
+    return null;
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem('pathpoint_token');
@@ -110,7 +129,6 @@ export const AuthProvider = ({ children }) => {
 
     initAuth();
 
-    // Listen for 401 session expired event
     const onSessionExpired = () => {
       setUser(null);
       setToken(null);
@@ -118,6 +136,213 @@ export const AuthProvider = ({ children }) => {
     window.addEventListener('pathpoint:session-expired', onSessionExpired);
     return () => window.removeEventListener('pathpoint:session-expired', onSessionExpired);
   }, []);
+
+  useEffect(() => {
+    if (!token || !user) return undefined;
+    if (user.role === 'provider') {
+      const status = user?.businessVerification?.status;
+      const intervalMs = status === 'approved' ? 120000 : 15000;
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, intervalMs);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    if (user.role === 'user') {
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, 60000);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    return undefined;
+  }, [token, user?.role, user?.businessVerification?.status, user?.id]);
+
+  useEffect(() => {
+    if (!token || !user) return undefined;
+    if (user.role === 'provider') {
+      const status = user?.businessVerification?.status;
+      const intervalMs = status === 'approved' ? 120000 : 15000;
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, intervalMs);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    if (user.role === 'user') {
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, 60000);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    return undefined;
+  }, [token, user?.role, user?.businessVerification?.status, user?.id]);
+
+  // Live verification polling for providers
+  useEffect(() => {
+    if (!token || !user) return undefined;
+    if (user.role !== 'provider') return undefined;
+    const status = user?.businessVerification?.status;
+    const intervalMs = status === 'approved' ? 120000 : 15000;
+    let mounted = true;
+    const poll = async () => {
+      try {
+        const userData = await apiAdapter.getMe();
+        if (mounted && userData) {
+          setUser(userData);
+          const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+          storage.setItem('pathpoint_user', JSON.stringify(userData));
+        }
+      } catch {}
+    };
+    poll();
+    const id = setInterval(poll, intervalMs);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, [token, user?.role, user?.businessVerification?.status, user?.id]);
+
+  // Live verification polling for providers and user profile refresh
+  useEffect(() => {
+    if (!token || !user) return undefined;
+    if (user.role === 'provider') {
+      const status = user?.businessVerification?.status;
+      const intervalMs = status === 'approved' ? 120000 : 15000;
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, intervalMs);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    if (user.role === 'user') {
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, 60000);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    return undefined;
+  }, [token, user?.role, user?.businessVerification?.status, user?.id]);
+
+  // Live verification polling for providers
+  useEffect(() => {
+    if (!token || !user) return undefined;
+    if (user.role === 'provider') {
+      const status = user?.businessVerification?.status;
+      const intervalMs = status === 'approved' ? 120000 : 15000;
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, intervalMs);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    if (user.role === 'user') {
+      let mounted = true;
+      const poll = async () => {
+        try {
+          const userData = await apiAdapter.getMe();
+          if (mounted && userData) {
+            setUser(userData);
+            const storage = localStorage.getItem('pathpoint_token') ? localStorage : sessionStorage;
+            try { storage.setItem('pathpoint_user', JSON.stringify(userData)); } catch {}
+          }
+        } catch {}
+      };
+      poll();
+      const id = setInterval(poll, 60000);
+      return () => {
+        mounted = false;
+        clearInterval(id);
+      };
+    }
+    return undefined;
+  }, [token, user?.role, user?.businessVerification?.status, user?.id]);
 
   const login = useCallback(async (identifier, password = '', rememberMe = true) => {
     const result = await apiAdapter.login(identifier, password, rememberMe);
@@ -202,10 +427,11 @@ export const AuthProvider = ({ children }) => {
       resetPassword,
       changePassword,
       logout,
+      refreshUser,
       isAuthenticated: !!user,
       isAdmin: user?.role === 'admin',
     }),
-    [user, token, loading, backendOnline, apiUrl, settings, updateSettings, updateApiUrl, recheckBackend, login, requestLoginCode, verifyLoginCode, register, updateMyProfile, forgotPassword, verifyResetCode, resetPassword, changePassword, logout]
+    [user, token, loading, backendOnline, apiUrl, settings, updateSettings, updateApiUrl, recheckBackend, login, requestLoginCode, verifyLoginCode, register, updateMyProfile, refreshUser, forgotPassword, verifyResetCode, resetPassword, changePassword, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

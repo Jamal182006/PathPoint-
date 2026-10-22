@@ -35,18 +35,18 @@ export const KanbanCard = ({ application, index }) => {
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`group relative bg-white p-3.5 rounded-xl border transition-all duration-200 shadow-sm hover:shadow-md ${
+          className={`group relative bg-white p-3.5 rounded-xl border transition duration-200 ease-out shadow-sm ${
             snapshot.isDragging
-              ? 'border-indigo-500 ring-2 ring-indigo-300 shadow-lg scale-[1.02] bg-indigo-50/20'
+              ? 'border-brand-500 ring-2 ring-brand-300 shadow-elevated scale-[1.02] bg-brand-50/20'
               : hasUrgentInterview
-              ? 'border-amber-300 bg-amber-50/10 hover:border-amber-400'
+              ? 'border-warning-200 bg-warning-50/10 hover:border-warning-600/40'
               : 'border-slate-200 hover:border-slate-300'
           }`}
         >
           {/* Urgent Interview Banner */}
           {hasUrgentInterview && (
-            <div className="mb-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[11px] font-semibold">
-              <Sparkles className="w-3 h-3 text-amber-600 animate-pulse" />
+            <div className="mb-2 flex items-center gap-1.5 rounded-full bg-warning-100 px-2 py-0.5 text-xs font-semibold text-warning-700">
+              <Sparkles className="w-3 h-3 text-warning-600 animate-pulse" />
               <span>Interview within 7 days!</span>
             </div>
           )}
@@ -56,7 +56,7 @@ export const KanbanCard = ({ application, index }) => {
             <div className="min-w-0 flex-1">
               <Link
                 to={`/applications/${application._id}`}
-                className="font-semibold text-slate-900 text-sm hover:text-indigo-600 transition block truncate"
+                className="font-semibold text-slate-900 text-sm hover:text-brand-600 transition block truncate"
                 title={application.role}
               >
                 {application.role}
@@ -69,7 +69,7 @@ export const KanbanCard = ({ application, index }) => {
 
             <Link
               to={`/applications/${application._id}`}
-              className="text-slate-500 hover:text-indigo-600 p-1 rounded hover:bg-slate-100 transition"
+              className="text-slate-500 hover:text-brand-600 p-1 rounded-lg hover:bg-slate-100 transition"
               title="View details"
             >
               <ChevronRight className="w-4 h-4" />
@@ -77,9 +77,9 @@ export const KanbanCard = ({ application, index }) => {
           </div>
 
           {/* Salary & Details */}
-          <div className="mt-2.5 flex flex-wrap items-center gap-y-1 gap-x-2 text-[11px] text-slate-500">
+          <div className="mt-2.5 flex flex-wrap items-center gap-y-1 gap-x-2 text-xs text-slate-500">
             {application.salaryRange && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
+              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 font-medium text-slate-700">
                 <DollarSign className="w-3 h-3 text-slate-500" />
                 <span>{application.salaryRange}</span>
               </span>
@@ -93,7 +93,7 @@ export const KanbanCard = ({ application, index }) => {
             )}
 
             {application.resumeVersion && (
-              <span className="inline-flex items-center gap-1 text-indigo-600" title="Resume Attached">
+              <span className="inline-flex items-center gap-1 text-brand-600" title="Resume Attached">
                 <FileText className="w-3 h-3" />
                 <span className="truncate max-w-[80px]">Resume</span>
               </span>
@@ -101,9 +101,9 @@ export const KanbanCard = ({ application, index }) => {
 
             {application.interviewDates?.length > 0 && (
               <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-medium ${
+                className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium ${
                   hasUrgentInterview
-                    ? 'bg-amber-100 text-amber-800'
+                    ? 'bg-warning-100 text-warning-700'
                     : 'bg-slate-100 text-slate-700'
                 }`}
               >
@@ -115,7 +115,7 @@ export const KanbanCard = ({ application, index }) => {
 
           {/* Contact Person preview if available */}
           {application.contactPerson && (
-            <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500 truncate">
+            <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500 truncate">
               Contact: <span className="text-slate-700 font-medium">{application.contactPerson}</span>
             </div>
           )}

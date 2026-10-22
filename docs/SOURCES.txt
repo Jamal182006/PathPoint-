@@ -1,0 +1,202 @@
+================================================================================
+PATHPOINT — SOURCES USED IN DEVELOPMENT
+================================================================================
+Project : PathPoint — Role-based Job Application & Interview Management Platform
+Stack   : Vite + React (frontend) · Node.js + Express + MongoDB (backend)
+Compiled: 2026-10-19
+Basis   : frontend/package.json, backend/package.json, package.json,
+          source code, README.md, PRODUCT.md, DESIGN.md,
+          frontend/BACKEND_SPECIFICATION.md, docs/generate_dataset.py
+
+This document lists the datasets, research, documentation, frameworks/libraries,
+APIs, and other references drawn on while building the project. Items are grouped
+by category. Where a resource is an online service or library, its primary public
+URL is given.
+
+================================================================================
+1. DATASET SOURCES
+================================================================================
+The project does not consume any public or third-party dataset. No external
+employment, demographic, or research dataset was used. It does include one
+project-authored reference dataset, classified below as a SECONDARY SOURCE.
+
+- PathPoint Reference Dataset (SECONDARY SOURCE — compiled/synthesized)
+  File: docs/PathPoint_Reference_Dataset.xlsx
+  Generator: docs/generate_dataset.py (deterministic, fixed random seed 42;
+             rerun with `python docs/generate_dataset.py` to reproduce)
+  Classification: Secondary source. It is a compiled, schema-aligned sample of
+             the data PathPoint stores — derived for the project, not primary
+             field-collected data and not obtained from any third party.
+  Contents (10 sheets): Read Me (cover/data dictionary), Applicants (40),
+             Providers (12), Companies (15), Job Listings, Job Applications,
+             Company Applications, Tracked Applications, Work Logs, Interviews,
+             and a Lookups sheet of controlled values.
+  Alignment: Columns mirror the Mongoose models — User, Company, JobListing,
+             JobApplication, CompanyApplication, Application, WorkLog — plus a
+             derived Interviews view, so the workbook doubles as a data
+             dictionary of the app's domain values.
+  Use: demos, testing, documentation, and analytics prototyping for the project.
+  Note: All names, companies, emails (example.com), and figures are fictional;
+        no real person or organization is represented. Do not present as real
+        collected data.
+
+- Synthetic seed data (self-authored, illustrative only)
+  File: backend/src/utils/seedData.js
+  Contents: fabricated demo accounts (applicants, providers, an administrator),
+            companies, job listings, company applications, and work logs used to
+            exercise the flows during local development and testing.
+  Note: This data is invented for demonstration; it is not sourced from any
+        external dataset and is not real personal or business information.
+
+- Placeholder document blob
+  File: backend/src/utils/seedData.js (pngDocument, base64 1x1 PNG)
+  Use: stands in for an uploaded applicant document during seeding.
+
+- Runtime data store
+  Service: MongoDB Atlas (cloud-hosted MongoDB)
+  Database name: pathpoint
+  Use: all persistent application data (users, companies, jobs, applications,
+       work logs, notifications, pins, activity log). The database is created
+       and populated by the application at runtime, not imported.
+
+================================================================================
+2. RESEARCH ARTICLES / ACADEMIC REFERENCES
+================================================================================
+No academic papers, journal articles, or formal research publications are cited
+or embedded in the project.
+
+The product and design documents were informed by general, widely published
+web-accessibility and usability guidance (see Sections 4 and 6), but no specific
+research article is referenced.
+
+================================================================================
+3. PROJECT DOCUMENTATION (internal references)
+================================================================================
+- README.md — project overview, setup, MongoDB Atlas setup, API additions,
+  deployment (Vercel) notes, end-to-end checklist, troubleshooting.
+- PRODUCT.md — users, product purpose, positioning, capabilities/constraints,
+  brand commitments, accessibility & inclusion notes.
+- DESIGN.md — visual world, color, typography, spacing, elevation, motion,
+  component contracts, and refused anti-patterns.
+- frontend/BACKEND_SPECIFICATION.md — REST API specification and integration
+  contract (endpoints, headers/auth, request/response shapes, schemas).
+- frontend/README.md — frontend-specific notes and manual review checklist.
+- backend/.env.example, frontend/.env.example — environment configuration
+  templates (MongoDB URI, JWT secret, SMTP settings, VITE_API_URL).
+
+================================================================================
+4. FRAMEWORK / LIBRARY DOCUMENTATION
+================================================================================
+--- Frontend runtime dependencies (frontend/package.json) ---
+- React (react, react-dom) — https://react.dev/
+- React Router (react-router-dom) — https://reactrouter.com/
+- Vite (build tool / dev server) — https://vite.dev/  ·  https://vitejs.dev/
+- Tailwind CSS (utility-first CSS framework) — https://tailwindcss.com/docs
+- PostCSS — https://postcss.org/
+- Autoprefixer — https://github.com/postcss/autoprefixer
+- Axios (HTTP client) — https://axios-http.com/docs/intro
+- Framer Motion (animation library, motion) — https://www.framer.com/motion/
+- Lucide (lucide-react icon library) — https://lucide.dev/
+- Leaflet (interactive maps) — https://leafletjs.com/reference.html
+- React Leaflet (React bindings for Leaflet) — https://react-leaflet.js.org/
+- @hello-pangea/dnd (drag-and-drop) — https://github.com/hello-pangea/dnd
+- @fontsource-variable/inter (self-hosted Inter typeface) — https://fontsource.org/
+
+--- Backend runtime dependencies (backend/package.json) ---
+- Node.js — https://nodejs.org/docs/
+- Express (web framework) — https://expressjs.com/
+- Mongoose (MongoDB ODM) — https://mongoosejs.com/docs/
+- MongoDB (database) — https://www.mongodb.com/docs/
+- bcryptjs (password hashing) — https://github.com/dcodeIO/bcrypt.js
+- jsonwebtoken (JWT creation/verification) — https://github.com/auth0/node-jsonwebtoken
+- dotenv (environment variables) — https://github.com/motdotla/dotenv
+- cors (CORS middleware) — https://github.com/expressjs/cors
+- morgan (HTTP request logger) — https://github.com/expressjs/morgan
+- multer (multipart/file upload handling) — https://github.com/expressjs/multer
+- nodemailer (SMTP email sending) — https://nodemailer.com/
+- file-type (file signature / MIME detection) — https://github.com/sindresorhus/file-type
+
+--- Build & test tooling ---
+- concurrently (root package.json; runs backend + frontend together)
+  https://github.com/open-cli-tools/concurrently
+- @vitejs/plugin-react — https://github.com/vitejs/vite-plugin-react
+- mongodb-memory-server (backend dev/test) — https://github.com/typegoose/mongodb-memory-server
+- Node.js built-in test runner (node --test) — https://nodejs.org/api/test.html
+- npm (package manager) — https://docs.npmjs.com/
+
+================================================================================
+5. APIs & EXTERNAL SERVICES
+================================================================================
+--- Maps & geolocation (frontend, AddressMap) ---
+- OpenStreetMap standard tile servers
+    URL: https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+    Use: base map tiles rendered via Leaflet / react-leaflet.
+    Attribution: "© OpenStreetMap contributors" — https://www.openstreetmap.org/copyright
+- Nominatim geocoding API (OpenStreetMap) — https://nominatim.org/release-docs/latest/api/Overview/
+  - Forward search:  https://nominatim.openstreetmap.org/search?format=jsonv2&q=...
+  - Reverse geocode: https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=..&lon=..
+- Browser Geolocation API (navigator.geolocation)
+  https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API
+  Use: "Use my location" and map pin placement.
+
+--- Infrastructure / cloud services ---
+- MongoDB Atlas (managed cloud MongoDB database) — https://www.mongodb.com/atlas
+  Use: persistent storage for the `pathpoint` database.
+- Vercel (hosting & deployment for frontend and backend; serverless functions,
+  rewrites/proxy) — https://vercel.com/docs
+  Production domains referenced: pathpoint.vercel.app (frontend),
+  backend-cyan-eight-57.vercel.app (API).
+- SMTP email service (any provider; configured via SMTP_HOST/PORT/USER/PASS/FROM)
+  accessed through Nodemailer. Use: login verification codes and password reset.
+  SMTP reference: https://nodemailer.com/smtp/
+
+--- Project's own API (internal, not third-party) ---
+- PathPoint REST API (Express) — served at /api/* (dev: http://localhost:5000/api,
+  health check at /api/health). Specified in frontend/BACKEND_SPECIFICATION.md.
+
+--- Browser platform APIs used by the UI ---
+- Web Storage API (localStorage / sessionStorage) — session and settings persistence.
+  https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
+- Fetch API and the Fetch/Streams interfaces (used by Axios/fetch calls)
+  https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+- Geolocation API (see above).
+
+================================================================================
+6. STANDARDS & SPECIFICATIONS REFERENCED
+================================================================================
+- HTTP / REST architectural conventions — https://developer.mozilla.org/docs/Web/HTTP
+- JSON Web Token (JWT), RFC 7519 — https://datatracker.ietf.org/doc/html/rfc7519
+- bcrypt password-hashing scheme — https://en.wikipedia.org/wiki/Bcrypt
+- Multipart form data (file uploads) — https://developer.mozilla.org/docs/Web/HTTP/Methods/POST
+- Web Content Accessibility Guidelines (WCAG) 2.1 — contrast and accessibility
+  floors referenced in PRODUCT.md and DESIGN.md — https://www.w3.org/TR/WCAG21/
+- ECMAScript 2020 (build target es2020, per frontend/vite.config.js)
+
+================================================================================
+7. OTHER REFERENCES
+================================================================================
+- Inter typeface (by Rasmus Andersson) — UI typeface, bundled via
+  @fontsource-variable/inter; fallback stack defined in frontend/src/index.css.
+  https://rsms.me/inter/
+- Lucide open-source icon set — https://lucide.dev/
+- Leaflet / OpenStreetMap attribution requirements — https://www.openstreetmap.org/copyright
+- Vercel hosting documentation (deployment topology, rewrites, environment
+  variables) — https://vercel.com/docs
+- MongoDB Atlas documentation (clusters, network access, connection strings) —
+  https://www.mongodb.com/docs/atlas/
+- Nodemailer SMTP configuration guidance — https://nodemailer.com/smtp/
+- Tailwind CSS design-token / theme configuration (brand palette, elevation
+  tokens, typography scale) — https://tailwindcss.com/docs/theme
+
+================================================================================
+NOTES
+================================================================================
+- All library versions and package names above are taken directly from the
+  project's package.json files and are verified against actual imports in the
+  source tree.
+- No dataset, article, or asset was copied from an external source; demo data is
+  synthetic and generated in-repo. The PathPoint Reference Dataset (Section 1) is
+  a project-authored secondary source, not third-party data.
+- This list reflects sources evident in the codebase at the time of compilation;
+  consult package.json files for exact pinned version ranges.
+================================================================================

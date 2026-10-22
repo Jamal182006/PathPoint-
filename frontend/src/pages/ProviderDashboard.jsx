@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { apiAdapter } from '../services/apiAdapter';
-import { BriefcaseBusiness, Building2, CircleAlert, Clock3, FileText, Globe, Loader2, MapPin, RefreshCw, Save, Store, Upload, Users } from 'lucide-react';
+import { BriefcaseBusiness, Building2, Check, CircleAlert, Clock3, FileText, Globe, Loader2, MapPin, RefreshCw, Save, Store, Upload, Users } from 'lucide-react';
 
 const emptyProfile = {
   companyName: '',
@@ -26,6 +26,12 @@ export const ProviderDashboard = () => {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [overview, setOverview] = useState({ companies: [], jobs: [], loading: true, error: '' });
   const [overviewRefresh, setOverviewRefresh] = useState(0);
+
+  useEffect(() => {
+    if (user?.businessVerification) {
+      setVerification(user.businessVerification);
+    }
+  }, [user?.businessVerification]);
   const requiresDocumentUpload = verification.status !== 'approved'
     && (!verification.documentName || verification.status === 'rejected');
   const providerApproved = verification.status === 'approved';
@@ -102,54 +108,240 @@ export const ProviderDashboard = () => {
   };
 
   if (providerApproved) {
-    return <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <header className="border-b border-slate-200 pb-5">
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">Overview</h1>
-        <p className="mt-1 text-sm text-slate-500">Company profiles, job listings, and applicant activity in one place.</p>
-      </header>
+    const firstName = String(user?.name || '').trim().split(/\s+/)[0] || 'there';
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const workspaceLabel = user?.businessName || 'Your workspace';
+    const hasOrganizations = overview.companies.length > 0;
+    const hasJobs = overview.jobs.length > 0;
+    const pendingReviews = overviewStats.jobReviews + overviewStats.organizationReviews;
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3"><div className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800"><span className="h-2 w-2 rounded-full bg-emerald-500" />Provider verified</div><button type="button" onClick={() => { setOverview((current) => ({ ...current, loading: true, error: '' })); setOverviewRefresh((value) => value + 1); }} disabled={overview.loading} className="inline-flex items-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${overview.loading ? 'animate-spin' : ''}`} />Refresh stats</button></div>
+    const workspaceStats = [
+      {
+        label: 'Organizations',
+        value: overviewStats.organizations,
+        href: '/provider/companies',
+        hint: hasOrganizations
+          ? `${overviewStats.companyProfiles} ${overviewStats.companyProfiles === 1 ? 'company' : 'companies'} · ${overviewStats.businesses} ${overviewStats.businesses === 1 ? 'business' : 'businesses'}`
+          : 'None added yet',
+      },
+      {
+        label: 'Job listings',
+        value: overviewStats.jobs,
+        href: '/provider/jobs',
+        hint: hasJobs ? `${overviewStats.jobReviews} awaiting review` : 'None published yet',
+      },
+      {
+        label: 'Applications received',
+        value: overviewStats.applications,
+        href: '/provider/jobs',
+        hint: overviewStats.pendingApplications > 0 ? `${overviewStats.pendingApplications} still pending` : 'No applications yet',
+      },
+      {
+        label: 'Awaiting review',
+        value: pendingReviews,
+        href: '/provider/companies',
+        hint: pendingReviews > 0 ? 'An administrator approves these' : 'Nothing to review',
+      },
+    ];
 
-      {overview.error && <p role="alert" className="flex items-center gap-2 border-l-4 border-rose-500 bg-rose-50 p-3 text-sm text-rose-800"><CircleAlert className="h-4 w-4" />{overview.error}</p>}
-      <section aria-label="Provider workspace stats" className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
-        {[
-          { label: 'Company profiles', value: overviewStats.companyProfiles, icon: Building2, href: '/provider/companies' },
-          { label: 'Businesses', value: overviewStats.businesses, icon: Store, href: '/provider/companies' },
-          { label: 'Job listings', value: overviewStats.jobs, icon: BriefcaseBusiness, href: '/provider/jobs' },
-          { label: 'Applications received', value: overviewStats.applications, icon: Users, href: '/provider/jobs' },
-          { label: 'Applications pending', value: overviewStats.pendingApplications, icon: Clock3, href: '/provider/jobs' },
-          { label: 'Awaiting review', value: overviewStats.jobReviews + overviewStats.organizationReviews, icon: FileText, href: '/provider/companies' },
-        ].map(({ label, value, icon: Icon, href }) => <Link key={label} to={href} className="group flex items-center justify-between border-b border-slate-200 py-4 hover:bg-slate-50"><div><p className="text-xs font-semibold uppercase text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{overview.loading ? <span className="inline-block h-7 w-8 animate-pulse bg-slate-200" /> : value}</p></div><Icon className="h-5 w-5 text-indigo-700" /></Link>)}
-      </section>
-    </div>;
+    const setupSteps = [
+      {
+        title: 'Add an organization',
+        description: 'Create your company or business profile so candidates can discover you.',
+        icon: Building2,
+        done: hasOrganizations,
+        action: { label: 'Add organization', to: '/provider/companies/new?type=company' },
+      },
+      {
+        title: 'Publish a job listing',
+        description: 'Post your first opening and start receiving applications.',
+        icon: BriefcaseBusiness,
+        done: hasJobs,
+        locked: !hasOrganizations,
+        action: { label: 'Create a listing', to: '/provider/jobs' },
+      },
+      {
+        title: 'Review applicants',
+        description: 'Screen, shortlist, and message candidates from one place.',
+        icon: Users,
+        done: overviewStats.applications > 0,
+        locked: !hasJobs,
+      },
+    ];
+
+    return (
+      <div className="ui-container space-y-6 py-8">
+        <header className="ui-panel overflow-hidden">
+          <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-6 sm:px-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="ui-eyebrow">Provider workspace</p>
+                <h1 className="ui-page-title mt-2">{greeting}, {firstName}</h1>
+                <p className="mt-1.5 text-sm text-slate-600">
+                  {workspaceLabel} · {overviewStats.organizations} {overviewStats.organizations === 1 ? 'organization' : 'organizations'} · {overviewStats.jobs} {overviewStats.jobs === 1 ? 'listing' : 'listings'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="ui-badge ui-badge-success"><span className="h-1.5 w-1.5 rounded-full bg-success-600" />Verified provider</span>
+                <button
+                  type="button"
+                  onClick={() => { setOverview((current) => ({ ...current, loading: true, error: '' })); setOverviewRefresh((value) => value + 1); }}
+                  disabled={overview.loading}
+                  className="ui-btn ui-btn-secondary ui-btn-sm"
+                >
+                  <RefreshCw className={`h-4 w-4 ${overview.loading ? 'animate-spin' : ''}`} />Refresh
+                </button>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/provider/companies/new?type=company" className="ui-btn ui-btn-primary ui-btn-sm"><Building2 className="h-4 w-4" />Add organization</Link>
+              <Link to="/provider/jobs" className="ui-btn ui-btn-secondary ui-btn-sm"><BriefcaseBusiness className="h-4 w-4" />Job listings</Link>
+              <Link to="/provider/companies" className="ui-btn ui-btn-ghost ui-btn-sm">Manage companies</Link>
+            </div>
+          </div>
+          <dl className="grid grid-cols-2 divide-slate-200 sm:grid-cols-4 sm:divide-x">
+            {workspaceStats.map(({ label, value, href, hint }) => (
+              <Link key={label} to={href} className="group px-6 py-4 transition-colors hover:bg-slate-50 sm:px-8">
+                <dt className="ui-eyebrow">{label}</dt>
+                <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                  {overview.loading ? <span className="inline-block h-7 w-8 animate-pulse rounded bg-slate-200" /> : value}
+                </dd>
+                <p className="mt-1 text-xs text-slate-500">{hint}</p>
+              </Link>
+            ))}
+          </dl>
+        </header>
+
+        {overview.error && <p role="alert" className="ui-alert ui-alert-danger"><CircleAlert className="h-4 w-4 shrink-0" />{overview.error}</p>}
+
+        {!hasOrganizations && (
+          <section aria-labelledby="setup-title" className="ui-panel p-6 sm:p-8">
+            <h2 id="setup-title" className="ui-section-title">Get your workspace running</h2>
+            <p className="mt-1 text-sm text-slate-500">Three steps before candidates can apply to you.</p>
+            <ol className="mt-6 grid gap-4 md:grid-cols-3">
+              {setupSteps.map((step, index) => {
+                const Icon = step.icon;
+                return (
+                  <li
+                    key={step.title}
+                    className={`flex flex-col rounded-2xl border p-5 ${step.done ? 'border-success-200 bg-success-50/50' : step.locked ? 'border-slate-200 bg-slate-50/60' : 'border-brand-200 bg-brand-50/50'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${step.done ? 'bg-success-600 text-white' : step.locked ? 'bg-slate-200 text-slate-500' : 'bg-brand-600 text-white'}`}>
+                        {step.done ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                      </span>
+                      <Icon className={`h-5 w-5 ${step.locked ? 'text-slate-400' : 'text-brand-700'}`} aria-hidden="true" />
+                    </div>
+                    <h3 className={`mt-4 font-semibold ${step.locked ? 'text-slate-500' : 'text-slate-900'}`}>{step.title}</h3>
+                    <p className="mt-1 flex-1 text-xs leading-5 text-slate-600">{step.description}</p>
+                    {step.done
+                      ? <p className="mt-4 text-xs font-semibold text-success-700">Complete</p>
+                      : step.action && (
+                        <Link
+                          to={step.action.to}
+                          className={`ui-btn ui-btn-sm mt-4 ${step.locked ? 'pointer-events-none opacity-40' : 'ui-btn-primary'}`}
+                          aria-disabled={step.locked ? 'true' : undefined}
+                        >
+                          {step.action.label}
+                        </Link>
+                      )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
+
+        {hasOrganizations && (
+          <section aria-labelledby="orgs-title" className="ui-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+              <h2 id="orgs-title" className="ui-section-title">Your organizations</h2>
+              <Link to="/provider/companies" className="text-sm font-semibold text-brand-700 hover:text-brand-800">View all</Link>
+            </div>
+            <ul className="divide-y divide-slate-200">
+              {overview.companies.slice(0, 4).map((company) => (
+                <li key={company._id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900">{company.name}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{company.category}{company.location ? ` · ${company.location}` : ''}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`ui-badge ${company.status === 'approved' ? 'ui-badge-success' : company.status === 'rejected' ? 'ui-badge-danger' : 'ui-badge-warning'}`}>
+                      {company.status === 'pending' ? 'Pending verification' : company.status === 'approved' ? 'Verified' : company.status}
+                    </span>
+                    <Link to={`/provider/companies/${company._id}`} className="ui-btn ui-btn-secondary ui-btn-sm">Open</Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section aria-labelledby="jobs-title" className="ui-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+            <h2 id="jobs-title" className="ui-section-title">Latest job listings</h2>
+            <Link to="/provider/jobs" className="text-sm font-semibold text-brand-700 hover:text-brand-800">View all</Link>
+          </div>
+          {!hasJobs ? (
+            <div className="ui-empty border-0 bg-transparent px-6 py-10">
+              <BriefcaseBusiness className="h-8 w-8 text-slate-300" aria-hidden="true" />
+              <h3 className="mt-3 font-semibold text-slate-900">{hasOrganizations ? 'No listings yet' : 'No job listings'}</h3>
+              <p className="mt-1 max-w-sm text-sm text-slate-500">
+                {hasOrganizations
+                  ? 'Publish your first opening to start receiving applications.'
+                  : 'Add an approved organization first, then create your first draft.'}
+              </p>
+              <Link
+                to={hasOrganizations ? '/provider/jobs' : '/provider/companies/new?type=company'}
+                className="ui-btn ui-btn-primary ui-btn-sm mt-5"
+              >
+                {hasOrganizations ? 'Create a listing' : 'Add organization'}
+              </Link>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-200">
+              {overview.jobs.slice(0, 4).map((job) => (
+                <li key={job._id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900">{job.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {job.companyId?.name || 'Company'} · {job.location || 'Location not listed'} · {String(job.employmentType || '').replaceAll('_', ' ')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-semibold text-slate-500">{job.applicantCount || 0} {job.applicantCount === 1 ? 'applicant' : 'applicants'}</span>
+                    <Link to={`/provider/jobs/${job._id}/applicants`} className="ui-btn ui-btn-secondary ui-btn-sm">Applicants</Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="ui-container py-8">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">Business listing</h1>
+          <h1 className="ui-page-title">Business listing</h1>
         </div>
-        <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-          verification.status === 'approved'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-            : verification.status === 'rejected'
-              ? 'border-rose-200 bg-rose-50 text-rose-800'
-              : 'border-amber-200 bg-amber-50 text-amber-800'
-        }`}>
-          <span className={`h-2 w-2 rounded-full ${verification.status === 'approved' ? 'bg-emerald-500' : verification.status === 'rejected' ? 'bg-rose-500' : 'bg-amber-500'}`} />
+        <div className={`ui-badge ${verification.status === 'approved' ? 'ui-badge-success' : verification.status === 'rejected' ? 'ui-badge-danger' : 'ui-badge-warning'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${verification.status === 'approved' ? 'bg-success-600' : verification.status === 'rejected' ? 'bg-danger-600' : 'bg-warning-600'}`} />
           {verification.status === 'approved' ? 'Verified and published' : verification.status === 'rejected' ? 'Verification rejected' : !verification.documentName ? 'Document required' : 'Verification pending'}
         </div>
         {verification.status === 'approved'
-          ? <Link to="/provider/companies" className="rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-100">Company dashboard</Link>
-          : <span className="rounded-md border border-slate-200 px-3 py-2 text-xs text-slate-500">Company tools unlock after verification</span>}
+          ? <Link to="/provider/companies" className="ui-btn ui-btn-secondary ui-btn-sm">Company dashboard</Link>
+          : <span className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500">Company tools unlock after verification</span>}
       </div>
 
       {verification.status !== 'approved' && (
-        <section className={`mb-7 border-l-4 p-4 ${verification.status === 'rejected' ? 'border-rose-500 bg-rose-50' : 'border-amber-500 bg-amber-50'}`}>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className={`ui-alert mb-7 ${verification.status === 'rejected' ? 'ui-alert-danger' : 'ui-alert-warning'}`}>
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
+              <h2 className="text-sm font-semibold text-slate-900">
                 {verification.status === 'rejected' ? 'Update your verification documents' : !verification.documentName ? 'Submit a verification document' : 'Business verification is under review'}
               </h2>
               <p className="mt-1 text-xs leading-5 text-slate-600">
@@ -162,8 +354,8 @@ export const ProviderDashboard = () => {
             </div>
             {requiresDocumentUpload && (
               <div className="flex flex-wrap items-center gap-2">
-                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
-                  <FileText className="h-4 w-4 text-indigo-700" />
+                <label className="ui-btn ui-btn-secondary ui-btn-sm cursor-pointer">
+                  <FileText className="h-4 w-4 text-brand-700" />
                   <span className="max-w-48 truncate">{verificationFile?.name || 'Choose document'}</span>
                   <input
                     type="file"
@@ -176,7 +368,7 @@ export const ProviderDashboard = () => {
                   type="button"
                   onClick={submitVerificationDocument}
                   disabled={!verificationFile || uploadingDocument}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800 disabled:opacity-50"
+                  className="ui-btn ui-btn-primary ui-btn-sm"
                 >
                   {uploadingDocument ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   {verification.status === 'rejected' ? 'Resubmit' : 'Submit document'}
@@ -190,7 +382,7 @@ export const ProviderDashboard = () => {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-semibold text-slate-700">
+            <label className="ui-label">
               Business name *
               <input
                 required
@@ -198,10 +390,10 @@ export const ProviderDashboard = () => {
                 name="companyName"
                 value={businessProfile.companyName}
                 onChange={handleChange}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="ui-input mt-1.5"
               />
             </label>
-            <label className="block text-xs font-semibold text-slate-700">
+            <label className="ui-label">
               Industry *
               <input
                 required
@@ -209,20 +401,20 @@ export const ProviderDashboard = () => {
                 name="industry"
                 value={businessProfile.industry}
                 onChange={handleChange}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="ui-input mt-1.5"
               />
             </label>
-            <label className="block text-xs font-semibold text-slate-700">
+            <label className="ui-label">
               Location
               <input
                 maxLength={120}
                 name="location"
                 value={businessProfile.location}
                 onChange={handleChange}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="ui-input mt-1.5"
               />
             </label>
-            <label className="block text-xs font-semibold text-slate-700">
+            <label className="ui-label">
               Website
               <input
                 type="url"
@@ -231,11 +423,11 @@ export const ProviderDashboard = () => {
                 value={businessProfile.website}
                 onChange={handleChange}
                 placeholder="https://example.com"
-                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="ui-input mt-1.5"
               />
             </label>
           </div>
-          <label className="block text-xs font-semibold text-slate-700">
+          <label className="ui-label">
             About the business
             <textarea
               maxLength={1000}
@@ -243,27 +435,27 @@ export const ProviderDashboard = () => {
               name="description"
               value={businessProfile.description}
               onChange={handleChange}
-              className="mt-1.5 w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="ui-input mt-1.5 resize-y"
             />
           </label>
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-800 disabled:opacity-60"
+            className="ui-btn ui-btn-primary"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save listing
           </button>
         </form>
 
-        <aside className="border-t border-slate-200 pt-6 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+        <aside className="ui-card p-6">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
             <Building2 className="h-5 w-5" />
           </div>
-          <h2 className="mt-4 text-lg font-bold text-slate-900">
+          <h2 className="mt-4 text-lg font-semibold text-slate-900">
             {businessProfile.companyName || 'Your business'}
           </h2>
-          <p className="mt-1 text-xs font-semibold text-indigo-700">{businessProfile.industry || 'Industry'}</p>
+          <p className="mt-1 text-xs font-semibold text-brand-700">{businessProfile.industry || 'Industry'}</p>
           {businessProfile.location && (
             <p className="mt-3 flex items-center gap-2 text-xs text-slate-600">
               <MapPin className="h-4 w-4 text-slate-400" />
@@ -278,7 +470,7 @@ export const ProviderDashboard = () => {
               href={businessProfile.website}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-indigo-700 hover:underline"
+              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-brand-700 hover:underline"
             >
               <Globe className="h-4 w-4" />
               Visit website

@@ -1,26 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
+import { Modal } from '../components/common/Modal';
+import { StatusBadge } from '../components/common/StatusBadge';
 import {
   Users,
   Search,
-  Filter,
-  ShieldCheck,
   Archive,
   ArchiveRestore,
   Ban,
   CircleCheck,
-  ExternalLink,
   Download,
   Briefcase,
-  Award,
-  Clock,
-  ChevronRight,
-  X,
   Building2,
-  Calendar,
-  Layers,
-  Activity,
+  Loader2,
 } from 'lucide-react';
 
 export const AdminUsers = () => {
@@ -136,15 +129,15 @@ export const AdminUsers = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="space-y-6">
       {/* Top Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Users className="w-7 h-7 text-indigo-600" />
+          <h1 className="ui-page-title flex items-center gap-2.5">
+            <Users className="h-7 w-7 text-brand-600" />
             <span>Job Seeker & Student Directory</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
             Review candidate cohorts, monitor individual pipeline progress, and manage student accounts.
           </p>
         </div>
@@ -152,25 +145,25 @@ export const AdminUsers = () => {
       </div>
 
       {/* Action Controls & Filters */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="ui-card flex flex-col items-center justify-between gap-3 p-4 md:flex-row">
         {/* Search Input */}
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search candidates by name, email..."
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="ui-input pl-9"
           />
         </div>
 
         {/* Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 text-slate-700 font-medium focus:outline-none cursor-pointer"
+            className="ui-input w-auto cursor-pointer text-xs"
           >
             <option value="All">All Statuses</option>
             <option value="active">Active Only</option>
@@ -180,7 +173,7 @@ export const AdminUsers = () => {
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 text-slate-700 font-medium focus:outline-none cursor-pointer"
+            className="ui-input w-auto cursor-pointer text-xs"
           >
             <option value="user">Job Seekers Only</option>
             <option value="provider">Providers Only</option>
@@ -195,64 +188,64 @@ export const AdminUsers = () => {
 
           <button
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition"
+            className="ui-btn ui-btn-primary ui-btn-sm"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="h-3.5 w-3.5" />
             <span>Export Roster</span>
           </button>
         </div>
       </div>
 
       {/* Directory Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="ui-table-shell">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="px-5 py-3.5">Candidate / Seeker</th>
-                <th className="px-4 py-3.5">Career Track</th>
-                <th className="px-4 py-3.5 text-center">Applications</th>
-                <th className="px-4 py-3.5 text-center">Interviews</th>
-                <th className="px-4 py-3.5 text-center">Offers</th>
-                <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5">Last Active</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="ui-th">Candidate / Seeker</th>
+                <th className="ui-th">Career Track</th>
+                <th className="ui-th text-center">Applications</th>
+                <th className="ui-th text-center">Interviews</th>
+                <th className="ui-th text-center">Offers</th>
+                <th className="ui-th">Status</th>
+                <th className="ui-th">Last Active</th>
+                <th className="ui-th text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {users.length > 0 ? (
                 users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr key={u.id} className="transition-colors hover:bg-slate-50/60">
                     {/* User Info */}
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 text-sm font-semibold text-brand-700">
                           {u.name?.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{u.name}</div>
-                          <div className="text-[11px] text-slate-500">{u.email}</div>
-                          {u.isArchived && <span className="mt-1 inline-block rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-rose-700">Archived</span>}
+                          <div className="font-semibold text-slate-900">{u.name}</div>
+                          <div className="text-xs text-slate-500">{u.email}</div>
+                          {u.isArchived && <span className="ui-badge ui-badge-danger mt-1 uppercase">Archived</span>}
                         </div>
                       </div>
                     </td>
 
                     {/* Career Track */}
                     <td className="px-4 py-3.5">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                        <Briefcase className="w-3 h-3 text-slate-400" />
+                      <span className="ui-badge ui-badge-neutral">
+                        <Briefcase className="h-3 w-3 text-slate-400" />
                         <span>{u.careerTrack || 'General'}</span>
                       </span>
                     </td>
 
                     {/* Applications */}
-                    <td className="px-4 py-3.5 text-center font-bold text-slate-800">
+                    <td className="px-4 py-3.5 text-center font-semibold text-slate-800">
                       {u.applicationCount || 0}
                     </td>
 
                     {/* Interviews */}
                     <td className="px-4 py-3.5 text-center">
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                      <span className="ui-badge ui-badge-warning">
                         {u.interviewCount || 0}
                       </span>
                     </td>
@@ -260,10 +253,10 @@ export const AdminUsers = () => {
                     {/* Offers */}
                     <td className="px-4 py-3.5 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                        className={`ui-badge ${
                           (u.offerCount || 0) > 0
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-slate-50 text-slate-500'
+                            ? 'ui-badge-success'
+                            : 'ui-badge-neutral'
                         }`}
                       >
                         {u.offerCount || 0}
@@ -273,15 +266,15 @@ export const AdminUsers = () => {
                     {/* Account Status */}
                     <td className="px-4 py-3.5">
                       <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                        className={`ui-badge uppercase ${
                           u.status === 'suspended'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'ui-badge-danger'
+                            : 'ui-badge-success'
                         }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            u.status === 'suspended' ? 'bg-rose-500' : 'bg-emerald-500'
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            u.status === 'suspended' ? 'bg-danger-600' : 'bg-success-600'
                           }`}
                         />
                         <span>{u.status || 'active'}</span>
@@ -289,7 +282,7 @@ export const AdminUsers = () => {
                     </td>
 
                     {/* Last Active */}
-                    <td className="px-4 py-3.5 text-slate-500 text-[11px]">
+                    <td className="px-4 py-3.5 text-xs text-slate-500">
                       {u.lastActiveAt
                         ? new Date(u.lastActiveAt).toLocaleDateString(undefined, {
                             month: 'short',
@@ -303,7 +296,7 @@ export const AdminUsers = () => {
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           onClick={() => handleInspectPortfolio(u)}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition"
+                          className="ui-btn ui-btn-secondary ui-btn-sm"
                           title="Review seeker's pipeline portfolio"
                         >
                           Review Portfolio
@@ -312,23 +305,23 @@ export const AdminUsers = () => {
                           <>
                           <button
                             onClick={() => handleToggleStatus(u)}
-                            className={`p-1.5 rounded-lg border transition ${
+                            className={`ui-btn ui-btn-sm ${
                               u.status === 'suspended'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200'
+                                ? 'ui-btn-ghost text-success-700 hover:bg-success-50'
+                                : 'ui-btn-ghost text-slate-500 hover:bg-danger-50 hover:text-danger-700'
                             }`}
                             title={u.status === 'suspended' ? 'Re-activate profile' : 'Suspend account'}
                             aria-label={u.status === 'suspended' ? `Re-activate ${u.name}` : `Suspend ${u.name}`}
                           >
                             {u.status === 'suspended' ? (
-                              <CircleCheck className="w-3.5 h-3.5" />
+                              <CircleCheck className="h-3.5 w-3.5" />
                             ) : (
-                              <Ban className="w-3.5 h-3.5" />
+                              <Ban className="h-3.5 w-3.5" />
                             )}
                           </button>
                           <button
                             onClick={() => handleArchiveUser(u)}
-                            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                            className="ui-btn ui-btn-secondary ui-btn-sm hover:border-danger-200 hover:bg-danger-50 hover:text-danger-700"
                             title={u.isArchived ? 'Restore account' : 'Archive account'}
                             aria-label={u.isArchived ? `Restore ${u.name}` : `Archive ${u.name}`}
                           >
@@ -342,7 +335,7 @@ export const AdminUsers = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="8" className="px-6 py-12 text-center text-sm text-slate-500">
                     No candidates matched your search criteria.
                   </td>
                 </tr>
@@ -355,110 +348,88 @@ export const AdminUsers = () => {
       <div className="flex items-center justify-between text-xs text-slate-600">
         <span>Page {page} of {pages}</span>
         <div className="flex gap-2">
-          <button disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)} className="rounded-md border border-slate-300 px-3 py-2 disabled:opacity-40">Previous</button>
-          <button disabled={page >= pages || loading} onClick={() => setPage((current) => current + 1)} className="rounded-md border border-slate-300 px-3 py-2 disabled:opacity-40">Next</button>
+          <button disabled={page <= 1 || loading} onClick={() => setPage((current) => current - 1)} className="ui-btn ui-btn-secondary ui-btn-sm">Previous</button>
+          <button disabled={page >= pages || loading} onClick={() => setPage((current) => current + 1)} className="ui-btn ui-btn-secondary ui-btn-sm">Next</button>
         </div>
       </div>
 
       {/* Candidate Portfolio Review Drawer Modal */}
-      {inspectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm shadow-indigo-200">
-                  {inspectedUser.name?.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">{inspectedUser.name}</h3>
-                  <p className="text-xs text-slate-500">
-                    {inspectedUser.email} • {inspectedUser.careerTrack || 'General'}
-                  </p>
-                </div>
+      <Modal
+        isOpen={Boolean(inspectedUser)}
+        onClose={() => setInspectedUser(null)}
+        title={inspectedUser?.name}
+        maxWidth="max-w-2xl"
+      >
+        {inspectedUser && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-600 text-base font-semibold text-white">
+                {inspectedUser.name?.charAt(0).toUpperCase()}
               </div>
-              <button
-                onClick={() => setInspectedUser(null)}
-                className="p-2 rounded-xl text-slate-500 hover:text-slate-600 hover:bg-slate-100 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <p className="text-xs text-slate-500">
+                {inspectedUser.email} • {inspectedUser.careerTrack || 'General'}
+              </p>
             </div>
 
-            {/* Modal Body: Seeker's applications */}
-            <div className="p-6 overflow-y-auto space-y-3 flex-1">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                <span>Application Portfolio ({inspectedApps.length})</span>
-                <span className="text-indigo-600 font-bold">Counselor Advisory View</span>
+            <div className="ui-eyebrow flex items-center justify-between">
+              <span>Application Portfolio ({inspectedApps.length})</span>
+              <span className="font-semibold text-brand-600">Counselor Advisory View</span>
+            </div>
+
+            {loadingApps ? (
+              <div className="flex items-center justify-center gap-2.5 py-12 text-sm text-slate-500">
+                <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+                Loading portfolio…
               </div>
-
-              {loadingApps ? (
-                <div className="py-12 text-center text-slate-500">Loading portfolio...</div>
-              ) : inspectedApps.length > 0 ? (
-                inspectedApps.map((app) => (
-                  <div
-                    key={app._id}
-                    className="p-4 rounded-2xl border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-sm transition space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
-                        <Building2 className="w-4 h-4 text-slate-400" />
-                        <span>{app.company}</span>
-                        <span className="text-xs font-normal text-slate-500">— {app.role}</span>
-                      </div>
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          app.status === 'Offered'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : app.status === 'Interviewing'
-                            ? 'bg-amber-100 text-amber-800'
-                            : app.status === 'Applied'
-                            ? 'bg-blue-100 text-blue-800'
-                            : app.status === 'Rejected'
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-slate-100 text-slate-800'
-                        }`}
-                      >
-                        {app.status}
-                      </span>
+            ) : inspectedApps.length > 0 ? (
+              inspectedApps.map((app) => (
+                <div
+                  key={app._id}
+                  className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-brand-200 hover:shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <Building2 className="h-4 w-4 text-slate-400" />
+                      <span>{app.company}</span>
+                      <span className="text-xs font-normal text-slate-500">— {app.role}</span>
                     </div>
-
-                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-3">
-                      {app.salaryRange && <span>Salary: {app.salaryRange}</span>}
-                      {app.dateApplied && (
-                        <span>
-                          Applied: {new Date(app.dateApplied).toLocaleDateString()}
-                        </span>
-                      )}
-                      {app.contactPerson && <span>Contact: {app.contactPerson}</span>}
-                    </div>
-
-                    {app.jobDescriptionNotes && (
-                      <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                        {app.jobDescriptionNotes}
-                      </p>
-                    )}
+                    <StatusBadge status={app.status} />
                   </div>
-                ))
-              ) : (
-                <div className="py-12 text-center text-slate-500">
-                  This candidate has not logged any job applications yet.
-                </div>
-              )}
-            </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    {app.salaryRange && <span>Salary: {app.salaryRange}</span>}
+                    {app.dateApplied && (
+                      <span>
+                        Applied: {new Date(app.dateApplied).toLocaleDateString()}
+                      </span>
+                    )}
+                    {app.contactPerson && <span>Contact: {app.contactPerson}</span>}
+                  </div>
+
+                  {app.jobDescriptionNotes && (
+                    <p className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-xs text-slate-600">
+                      {app.jobDescriptionNotes}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center text-slate-500">
+                This candidate has not logged any job applications yet.
+              </div>
+            )}
+
+            <div className="flex justify-end border-t border-slate-100 pt-4">
               <button
                 onClick={() => setInspectedUser(null)}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition"
+                className="ui-btn ui-btn-primary"
               >
                 Close Review
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

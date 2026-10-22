@@ -127,7 +127,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
               value={formData.company}
               onChange={handleChange}
               placeholder="e.g. Stripe, Google, Acme Corp"
-              className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
+              className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 transition ${
                 errors.company ? 'border-rose-400 bg-rose-50' : 'border-slate-300'
               }`}
             />
@@ -150,7 +150,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
               value={formData.role}
               onChange={handleChange}
               placeholder="e.g. Frontend Engineer, Product Designer"
-              className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition ${
+              className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 transition ${
                 errors.role ? 'border-rose-400 bg-rose-50' : 'border-slate-300'
               }`}
             />
@@ -173,7 +173,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
               value={formData.salaryRange}
               onChange={handleChange}
               placeholder="e.g. $120k - $140k or $60/hr"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -187,7 +187,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
             name="status"
             value={formData.status}
             onChange={handleChange}
-            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
             {STATUS_OPTIONS.map((st) => (
               <option key={st} value={st}>
@@ -209,7 +209,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
               name="dateApplied"
               value={formData.dateApplied}
               onChange={handleChange}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -227,7 +227,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
               value={formData.contactPerson}
               onChange={handleChange}
               placeholder="e.g. Sarah Jenkins (Recruiter)"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -247,7 +247,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
               value={formData.resumeVersion}
               onChange={handleChange}
               placeholder="e.g. Resume_Frontend_v2.pdf"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
         </div>
@@ -263,7 +263,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
             type="date"
             value={newInterviewDate}
             onChange={(e) => setNewInterviewDate(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
           <button
             type="button"
@@ -308,7 +308,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
           onChange={handleChange}
           rows={3}
           placeholder="Paste requirements, interview loops, prep notes..."
-          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
       </div>
 
@@ -327,7 +327,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm shadow-indigo-200 transition disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-5 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm shadow-brand-200 transition disabled:opacity-50"
         >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           <span>{initialData?._id ? 'Update Application' : 'Create Application'}</span>

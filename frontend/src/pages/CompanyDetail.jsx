@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { LoadingState } from '../components/common/Loading';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
@@ -105,26 +106,26 @@ const CompanyDetail = () => {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-20 text-slate-400"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  if (error || !company) return <div className="mx-auto max-w-4xl px-4 py-10"><div role="alert" className="flex items-center gap-2 border-l-4 border-rose-500 bg-rose-50 p-4 text-sm text-rose-800"><CircleAlert className="h-4 w-4" />{error || 'Company unavailable.'}</div></div>;
+  if (loading) return <LoadingState />;
+  if (error || !company) return <div className="ui-container py-10"><div role="alert" className="ui-alert ui-alert-danger"><CircleAlert className="h-4 w-4" />{error || 'Company unavailable.'}</div></div>;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
-      <Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-700"><ArrowLeft className="h-4 w-4" /> Browse jobs</Link>
+    <div className="ui-container space-y-7 py-8">
+      <Link to="/jobs" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand-700"><ArrowLeft className="h-4 w-4" /> Browse jobs</Link>
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start">
-        {company.logo ? <img src={company.logo} alt={`${company.name} logo`} className="h-16 w-16 rounded-md border border-slate-200 object-contain" /> : <span className="flex h-16 w-16 items-center justify-center rounded-md bg-indigo-50 text-indigo-700"><Building2 className="h-7 w-7" /></span>}
+        {company.logo ? <img src={company.logo} alt={`${company.name} logo`} loading="lazy" className="h-16 w-16 rounded-xl border border-slate-200 object-contain" /> : <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-brand-50 text-brand-700"><Building2 className="h-7 w-7" /></span>}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-start justify-between gap-3"><p className="text-xs font-semibold uppercase text-indigo-700">{company.category}</p><PinButton itemType="company" itemId={companyId} details={{ title: company.name, subtitle: company.category, status: company.status === 'approved' ? 'Verified' : 'Pending review', latestUpdate: `Organization updated ${new Date(company.updatedAt).toLocaleDateString()}`, href: `/companies/${companyId}` }} /></div>
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${company.status === 'approved' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            <div className="flex items-start justify-between gap-3"><p className="ui-eyebrow text-brand-700">{company.category}</p><PinButton itemType="company" itemId={companyId} details={{ title: company.name, subtitle: company.category, status: company.status === 'approved' ? 'Verified' : 'Pending review', latestUpdate: `Organization updated ${new Date(company.updatedAt).toLocaleDateString()}`, href: `/companies/${companyId}` }} /></div>
+            <span className={`ui-badge ${company.status === 'approved' ? 'ui-badge-success' : 'ui-badge-warning'}`}>
               {company.status === 'approved' && <BadgeCheck className="h-3 w-3" />}
               {company.status === 'approved' ? 'Verified' : 'Pending verification'}
             </span>
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">{company.name}</h1>
+          <h1 className="ui-page-title mt-1">{company.name}</h1>
           {company.ownerName && <p className="mt-1 text-sm text-slate-600">Listed by {company.ownerName}</p>}
           {company.location && <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600"><MapPin className="h-4 w-4 text-slate-400" />{company.location}</p>}
-          {(company.size || company.locations?.length > 0 || company.website) && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">{company.size && <span>{company.size}</span>}{company.locations?.length > 0 && <span>Locations: {company.locations.join(', ')}</span>}{/^https?:\/\//i.test(company.website || '') && <a href={company.website} target="_blank" rel="noreferrer" className="font-semibold text-indigo-700 underline">Company website</a>}</div>}
+          {(company.size || company.locations?.length > 0 || company.website) && <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">{company.size && <span>{company.size}</span>}{company.locations?.length > 0 && <span>Locations: {company.locations.join(', ')}</span>}{/^https?:\/\//i.test(company.website || '') && <a href={company.website} target="_blank" rel="noreferrer" className="font-semibold text-brand-700 underline">Company website</a>}</div>}
           {company.description && <p className="mt-4 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">{company.description}</p>}
         </div>
       </header>
@@ -139,15 +140,15 @@ const CompanyDetail = () => {
               {informationRequirements.map((requirement) => (
                 <div key={requirement._id} className="py-4">
                   <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                    {requirement.type === 'interview' ? <CalendarClock className="h-4 w-4 text-indigo-700" /> : <FileText className="h-4 w-4 text-slate-500" />}
+                    {requirement.type === 'interview' ? <CalendarClock className="h-4 w-4 text-brand-700" /> : <FileText className="h-4 w-4 text-slate-500" />}
                     {requirement.title}
-                    {requirement.isRequired && <span className="text-[10px] font-semibold uppercase text-rose-700">Required</span>}
+                    {requirement.isRequired && <span className="text-xs font-semibold uppercase tracking-caps text-danger-700">Required</span>}
                   </div>
                   {requirement.description && <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-slate-600">{requirement.description}</p>}
                   {requirement.type === 'interview' && <div className="mt-2 space-y-1 text-xs text-slate-600">
                     {requirement.interviewDate && <p>{new Date(requirement.interviewDate).toLocaleString()}</p>}
                     {requirement.interviewLocation && <p>{requirement.interviewLocation}</p>}
-                    {requirement.interviewLink && <a href={requirement.interviewLink} target="_blank" rel="noreferrer" className="text-indigo-700 underline">Meeting link</a>}
+                    {requirement.interviewLink && <a href={requirement.interviewLink} target="_blank" rel="noreferrer" className="text-brand-700 underline">Meeting link</a>}
                   </div>}
                 </div>
               ))}
@@ -160,17 +161,17 @@ const CompanyDetail = () => {
           <h2 className="text-base font-bold text-slate-900">Submit application</h2>
           <p className="mt-1 text-xs text-slate-500">Complete the listed documents before submitting.</p>
           <form onSubmit={handleApply} className="mt-4 space-y-4">
-            {resubmitId && <p className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-900">Update your responses and documents, then resubmit for provider review.</p>}
+            {resubmitId && <p className="ui-alert ui-alert-warning">Update your responses and documents, then resubmit for provider review.</p>}
             {responseRequirements.map((requirement) => (
               <div key={requirement._id}>
                 <label className="block text-xs font-semibold text-slate-700">
                   {requirement.title}{requirement.isRequired ? ' *' : ' (optional)'}
                   {requirement.description && <span className="mt-1 block font-normal text-slate-500">{requirement.description}</span>}
-                  {requirement.type === 'text' && <textarea rows={3} maxLength={5000} required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />}
-                  {requirement.type === 'date' && <input type="date" required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="mt-2 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />}
-                  {requirement.type === 'select' && <select required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="mt-2 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal"><option value="">Choose an option</option>{(requirement.options || []).map((option) => <option key={option} value={option}>{option}</option>)}</select>}
+                  {requirement.type === 'text' && <textarea rows={3} maxLength={5000} required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="ui-input mt-2 font-normal" />}
+                  {requirement.type === 'date' && <input type="date" required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="ui-input mt-2 font-normal" />}
+                  {requirement.type === 'select' && <select required={requirement.isRequired} value={answers[requirement._id] || ''} onChange={(event) => setAnswers((current) => ({ ...current, [requirement._id]: event.target.value }))} className="ui-input mt-2 font-normal"><option value="">Choose an option</option>{(requirement.options || []).map((option) => <option key={option} value={option}>{option}</option>)}</select>}
                 </label>
-                {validation[requirement._id] && <p role="alert" className="mt-1 text-xs text-rose-700">{validation[requirement._id]}</p>}
+                {validation[requirement._id] && <p role="alert" className="ui-error-text">{validation[requirement._id]}</p>}
               </div>
             ))}
             {documentRequirements.map((requirement) => (
@@ -179,15 +180,15 @@ const CompanyDetail = () => {
                   {requirement.title}{requirement.isRequired ? ' *' : ' (optional)'}
                   {requirement.description && <span className="mt-1 block font-normal text-slate-500">{requirement.description}</span>}
                   <span className="mt-1 block font-normal text-slate-500">{requirement.allowedFileTypes.map((type) => type.split('/')[1].toUpperCase()).join(', ')} · max {requirement.maxSizeMB} MB</span>
-                  <input type="file" accept={requirement.allowedFileTypes.join(',')} onChange={(event) => selectFile(requirement, event.target.files?.[0] || null)} className="mt-2 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-indigo-800 hover:file:bg-indigo-100" />
+                  <input type="file" accept={requirement.allowedFileTypes.join(',')} onChange={(event) => selectFile(requirement, event.target.files?.[0] || null)} className="mt-2 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100" />
                 </label>
-                {files[requirement._id] && <p className="mt-1 text-[11px] text-emerald-700">Selected: {files[requirement._id].name}</p>}
-                {validation[requirement._id] && <p role="alert" className="mt-1 text-xs text-rose-700">{validation[requirement._id]}</p>}
+                {files[requirement._id] && <p className="mt-1 text-xs text-success-700">Selected: {files[requirement._id].name}</p>}
+                {validation[requirement._id] && <p role="alert" className="ui-error-text">{validation[requirement._id]}</p>}
               </div>
             ))}
             {!documentRequirements.length && <p className="border-y border-slate-200 py-3 text-xs text-slate-500">This listing has no required documents.</p>}
-            {submitting && <div aria-live="polite" className="space-y-1"><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-indigo-700 transition-all" style={{ width: `${progress}%` }} /></div><p className="text-right text-[11px] text-slate-500">Uploading {progress}%</p></div>}
-            <button type="submit" disabled={submitting} className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-800 disabled:opacity-50">
+            {submitting && <div aria-live="polite" className="space-y-1"><div className="h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-brand-600 transition-all" style={{ width: `${progress}%` }} /></div><p className="text-right text-xs text-slate-500">Uploading {progress}%</p></div>}
+            <button type="submit" disabled={submitting} className="ui-btn ui-btn-primary w-full">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               {submitting ? 'Submitting…' : 'Submit application'}
             </button>

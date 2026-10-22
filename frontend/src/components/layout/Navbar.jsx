@@ -71,19 +71,21 @@ export const Navbar = () => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Adaptive role configuration and color schemes
+  // Role identity: each role keeps its own hue (candidate teal, provider blue,
+  // admin indigo). Identity only — status and actions stay on the shared
+  // accent/semantic tokens. No gradients.
   const roleConfig = React.useMemo(() => {
     if (isAdmin) {
       return {
         roleKey: 'admin',
-        badge: 'Admin Suite',
-        subtitle: 'Management Console',
-        badgeClass: 'bg-indigo-100 text-indigo-900 border-indigo-200',
-        logoGradient: 'bg-gradient-to-tr from-slate-900 via-slate-800 to-indigo-700 shadow-indigo-950/20',
-        activeNavClass: 'bg-indigo-50 text-indigo-900 border border-indigo-200/80 shadow-xs font-semibold',
-        activeIconClass: 'text-indigo-600',
-        avatarClass: 'bg-slate-900 text-white',
-        rolePillClass: 'bg-indigo-100 text-indigo-900',
+        badge: 'Admin',
+        subtitle: '',
+        badgeClass: 'bg-brand-50 text-brand-700',
+        logoClass: 'bg-brand-600',
+        activeNavClass: 'bg-brand-50 text-brand-800',
+        activeIconClass: 'text-brand-600',
+        avatarClass: 'bg-brand-600 text-white',
+        rolePillClass: 'bg-brand-50 text-brand-700',
         brandIcon: ShieldAlert,
         // Admin workspace navigation lives in AdminLayout (left rail). The top bar
         // intentionally carries no duplicate workspace links.
@@ -93,14 +95,14 @@ export const Navbar = () => {
     if (user?.role === 'provider') {
       return {
         roleKey: 'provider',
-        badge: 'Employer Suite',
-        subtitle: 'Provider Portal',
-        badgeClass: 'bg-blue-100 text-blue-900 border-blue-200',
-        logoGradient: 'bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-600 shadow-blue-500/20',
-        activeNavClass: 'bg-blue-50 text-blue-950 border border-blue-200/80 shadow-xs font-semibold',
+        badge: 'Provider',
+        subtitle: '',
+        badgeClass: 'bg-blue-50 text-blue-700',
+        logoClass: 'bg-blue-600',
+        activeNavClass: 'bg-blue-50 text-blue-800',
         activeIconClass: 'text-blue-600',
         avatarClass: 'bg-blue-600 text-white',
-        rolePillClass: 'bg-blue-100 text-blue-900',
+        rolePillClass: 'bg-blue-50 text-blue-700',
         brandIcon: Building2,
         // Provider workspace navigation lives in ProviderSidebar (left rail). The
         // top bar intentionally carries no duplicate workspace links.
@@ -109,14 +111,14 @@ export const Navbar = () => {
     }
     return {
       roleKey: 'candidate',
-      badge: 'Candidate Portal',
-      subtitle: 'Career & Placement',
-      badgeClass: 'bg-teal-100 text-teal-900 border-teal-200',
-      logoGradient: 'bg-gradient-to-tr from-teal-700 via-teal-600 to-emerald-600 shadow-teal-500/20',
-      activeNavClass: 'bg-teal-50 text-teal-950 border border-teal-200/80 shadow-xs font-semibold',
+      badge: 'Candidate',
+      subtitle: '',
+      badgeClass: 'bg-teal-50 text-teal-700',
+      logoClass: 'bg-teal-600',
+      activeNavClass: 'bg-teal-50 text-teal-800',
       activeIconClass: 'text-teal-700',
-      avatarClass: 'bg-teal-700 text-white',
-      rolePillClass: 'bg-teal-100 text-teal-900',
+      avatarClass: 'bg-teal-600 text-white',
+      rolePillClass: 'bg-teal-50 text-teal-700',
       brandIcon: Compass,
       links: [
         { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -174,7 +176,7 @@ export const Navbar = () => {
             <div className="flex items-center gap-8">
               <Link to={isAdmin ? '/admin' : user?.role === 'provider' ? '/provider' : '/dashboard'} className="flex items-center gap-2.5 group">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform duration-200 group-hover:scale-105 ${roleConfig.logoGradient}`}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform duration-200 group-hover:scale-105 ${roleConfig.logoClass}`}
                 >
                   <BrandIcon className="w-5 h-5" />
                 </div>
@@ -183,13 +185,15 @@ export const Navbar = () => {
                     <span className="font-bold text-slate-900 text-lg leading-tight tracking-tight">
                       PathPoint
                     </span>
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${roleConfig.badgeClass}`}>
+                    <span className={`px-1.5 py-0.5 rounded-md text-xs font-semibold ${roleConfig.badgeClass}`}>
                       {roleConfig.badge}
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-500">
-                    {roleConfig.subtitle}
-                  </span>
+                  {roleConfig.subtitle && (
+                    <span className="text-xs text-slate-500">
+                      {roleConfig.subtitle}
+                    </span>
+                  )}
                 </div>
               </Link>
 
@@ -230,7 +234,7 @@ export const Navbar = () => {
                       <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${moreDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {moreDropdownOpen && (
-                      <div className="absolute left-0 top-full z-50 mt-2 w-52 origin-top-left rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 animate-fade-in">
+                      <div className="ui-popover absolute left-0 top-full z-50 mt-2 w-52 origin-top-left p-1.5 animate-fade-in">
                         {moreNavLinks.map((link) => {
                           const Icon = link.icon;
                           const active = isActive(link);
@@ -268,7 +272,7 @@ export const Navbar = () => {
                   title="User menu"
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-inner ${roleConfig.avatarClass}`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${roleConfig.avatarClass}`}
                   >
                     {user?.avatar
                       ? <img src={user.avatar} alt={`${user.name || 'User'} profile`} className="h-full w-full rounded-full object-cover" />
@@ -283,16 +287,16 @@ export const Navbar = () => {
 
                 {/* Dropdown Panel */}
                 {userDropdownOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 animate-fade-in">
+                  <div className="ui-popover absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden animate-fade-in">
                     {/* User info header */}
                     <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
                       <p className="text-sm font-semibold text-slate-800 truncate">
                         {user?.name || 'User'}
                       </p>
                       <p className="text-xs text-slate-500 truncate">{user?.email || ''}</p>
-                      {user?.username && <p className="text-xs font-medium text-indigo-700 truncate">@{user.username}</p>}
+                      {user?.username && <p className="text-xs font-medium text-brand-700 truncate">@{user.username}</p>}
                       <span
-                        className={`inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-full capitalize ${roleConfig.rolePillClass}`}
+                        className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${roleConfig.rolePillClass}`}
                       >
                         {roleConfig.badge}
                       </span>
@@ -322,7 +326,7 @@ export const Navbar = () => {
 
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition border-t border-slate-100"
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-danger-700 hover:bg-danger-50 transition border-t border-slate-100"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>Sign Out</span>
@@ -364,7 +368,7 @@ export const Navbar = () => {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-800 truncate">{user?.name}</p>
                 <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                <span className={`inline-block mt-0.5 px-2 py-0.5 text-[9px] font-semibold rounded-full ${roleConfig.rolePillClass}`}>
+                <span className={`inline-block mt-0.5 px-2 py-0.5 text-xs font-semibold rounded-full ${roleConfig.rolePillClass}`}>
                   {roleConfig.badge}
                 </span>
               </div>
@@ -409,13 +413,13 @@ export const Navbar = () => {
                   setMobileMenuOpen(false);
                   setBackendModalOpen(true);
                 }}
-                className="text-xs text-indigo-600 font-medium"
+                className="text-xs font-semibold text-brand-700 underline-offset-4 hover:text-brand-900 hover:underline"
               >
                 Backend Diagnostics
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 text-xs font-semibold text-rose-600"
+                className="flex items-center gap-1 text-xs font-semibold text-danger-700"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Log Out</span>

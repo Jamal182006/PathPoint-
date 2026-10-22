@@ -18,8 +18,9 @@ The incumbent identity is preserved — indigo/slate, Tailwind, role-tinted surf
 
 - **Brand (indigo):** `brand.50–900`. Primary actions, active nav, focus, links.
 - **Neutrals (slate):** page `slate-50`, surface `white`, borders `slate-200`, body `slate-700`, muted `slate-500`, ink `slate-900`.
-- **Role tints** (identity, never the only signal): candidate `teal`, provider `blue`, admin `indigo`.
+- **Role tints** (identity, never the only signal): candidate `teal`, provider `blue`, admin `indigo` (brand).
 - **Status:** success `emerald`, warning `amber`, danger `rose`, info `sky`. Status is always paired with an icon or label — never color alone.
+- **Accent (user-selectable):** the interactive hue is a single curated token, `--accent-100/500/600/700`, resolved from a name (see `frontend/src/utils/theme.js`: `ACCENTS`, `DEFAULT_ACCENT`, `resolveAccent`, `accentToCssVars`). The accent drives primary buttons (`.ui-btn-primary`), focus rings, text selection, and the caret. It overrides brand for *interactive* surfaces only; the brand indigo remains the identity mark (logo, brand badges). Stored as a name, never a raw hex, so the palette stays curated and contrast-safe (the `600` fill clears 4.5:1 on white).
 - Contrast floor: body ≥ 4.5:1, large/secondary-strong ≥ 3:1. Secondary text on tinted surfaces tints from the hue, not gray.
 
 ## Typography

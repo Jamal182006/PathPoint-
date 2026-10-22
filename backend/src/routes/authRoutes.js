@@ -27,13 +27,15 @@ const router = express.Router();
 const registerLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 'register' });
 const usernameLimiter = createRateLimiter({ windowMs: 5 * 60 * 1000, max: 80, keyPrefix: 'username' });
 const codeLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 25, keyPrefix: 'authcode' });
+const loginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, keyPrefix: 'login' });
+const adminLoginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, keyPrefix: 'adminlogin' });
 
 router.post('/register', registerLimiter, register);
 router.get('/username-availability', usernameLimiter, checkUsernameAvailability);
-router.post('/login', login);
+router.post('/login', loginLimiter, login);
 router.post('/request-login-code', codeLimiter, requestLoginCode);
 router.post('/verify-login-code', codeLimiter, verifyLoginCode);
-router.post('/admin/login', adminLogin);
+router.post('/admin/login', adminLoginLimiter, adminLogin);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateMyProfile);
 router.get('/profile/resume', protect, getMyResume);

@@ -41,12 +41,12 @@ export class ErrorBoundary extends React.Component {
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8 text-center">
-            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm">
-              <AlertTriangle className="w-7 h-7" />
+          <div className="ui-panel w-full max-w-lg p-8 text-center">
+            <div className="w-14 h-14 bg-danger-50 text-danger-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <AlertTriangle className="w-7 h-7" aria-hidden="true" />
             </div>
 
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Something went wrong</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Something went wrong</h1>
             <p className="mt-2 text-sm text-slate-600 leading-relaxed">
               PathPoint encountered an unexpected error while loading this view. You can reload the page or return to the main dashboard.
             </p>
@@ -55,18 +55,18 @@ export class ErrorBoundary extends React.Component {
               <button
                 type="button"
                 onClick={this.handleReload}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition shadow-sm"
+                className="ui-btn ui-btn-primary w-full sm:w-auto"
               >
-                <RefreshCw className="w-4 h-4" />
-                Reload Page
+                <RefreshCw className="w-4 h-4" aria-hidden="true" />
+                Reload page
               </button>
               <button
                 type="button"
                 onClick={this.handleGoHome}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 transition"
+                className="ui-btn ui-btn-secondary w-full sm:w-auto"
               >
-                <Home className="w-4 h-4" />
-                Return Home
+                <Home className="w-4 h-4" aria-hidden="true" />
+                Return home
               </button>
             </div>
 
@@ -75,23 +75,24 @@ export class ErrorBoundary extends React.Component {
                 <button
                   type="button"
                   onClick={this.toggleDetails}
-                  className="w-full flex items-center justify-between text-xs font-semibold text-slate-500 hover:text-slate-700 uppercase tracking-wider py-1"
+                  aria-expanded={this.state.showDetails}
+                  className="w-full flex items-center justify-between text-xs font-semibold text-slate-500 hover:text-slate-700 py-1"
                 >
-                  <span>Diagnostic Details</span>
+                  <span>Diagnostic details</span>
                   {this.state.showDetails ? (
-                    <ChevronUp className="w-4 h-4" />
+                    <ChevronUp className="w-4 h-4" aria-hidden="true" />
                   ) : (
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-4 h-4" aria-hidden="true" />
                   )}
                 </button>
 
                 {this.state.showDetails && (
                   <div className="mt-3 p-3.5 bg-slate-900 text-slate-200 rounded-xl text-xs font-mono overflow-auto max-h-48 leading-relaxed">
-                    <p className="text-red-400 font-bold mb-1">
+                    <p className="text-danger-200 font-bold mb-1">
                       {this.state.error.name}: {this.state.error.message}
                     </p>
                     {this.state.error.stack && (
-                      <pre className="whitespace-pre-wrap text-[11px] text-slate-400">
+                      <pre className="whitespace-pre-wrap text-xs text-slate-400">
                         {this.state.error.stack}
                       </pre>
                     )}

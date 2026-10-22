@@ -77,7 +77,7 @@ const RESUME_PROFILES = {
         bullets: [
           'Built scalable backend services handling 1.5M daily webhook ingestion events.',
           'Migrated legacy monolith endpoints to optimized Express microservices.',
-          'Authored comprehensive automated unit and integration test suites with 92% code coverage.',
+          'Authored comprehensive automated unit and integration tests with 92% code coverage.',
         ],
       },
     ],
@@ -169,14 +169,14 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
       {/* Top Bar with Version Switcher and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-indigo-600" />
+          <FileText className="w-4 h-4 text-brand-600" />
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Viewing Document:
           </span>
           <select
             value={selectedVersion}
             onChange={(e) => setSelectedVersion(e.target.value)}
-            className="text-xs font-semibold border border-slate-300 rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
+            className="text-xs font-semibold border border-slate-300 rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800"
           >
             <option value="Resume_Frontend_v3.pdf">Resume_Frontend_v3.pdf (Frontend Infrastructure)</option>
             <option value="Resume_FullStack_v4.pdf">Resume_FullStack_v4.pdf (Full Stack Node/React)</option>
@@ -195,7 +195,7 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
           </button>
           <button
             onClick={handlePrint}
-            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition"
+            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Download / Print</span>
@@ -204,13 +204,13 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
       </div>
 
       {/* Styled Resume Document Sheet */}
-      <div className="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-md text-slate-800 space-y-6 max-h-[65vh] overflow-y-auto font-sans">
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-popover text-slate-800 space-y-6 max-h-[65vh] overflow-y-auto font-sans">
         {/* Header */}
         <div className="border-b border-slate-200 pb-4 text-center sm:text-left">
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
             {user?.name || 'Alex Morgan'}
           </h1>
-          <h2 className="text-sm font-semibold text-indigo-600 mt-0.5">
+          <h2 className="text-sm font-semibold text-brand-600 mt-0.5">
             {currentProfile.title}
           </h2>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-slate-500 mt-2">
@@ -220,14 +220,14 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
             <span>•</span>
             <span>San Francisco, CA (Open to Remote)</span>
             <span>•</span>
-            <span className="text-indigo-600 font-medium">linkedin.com/in/alexmorgan</span>
+            <span className="text-brand-600 font-medium">linkedin.com/in/alexmorgan</span>
           </div>
         </div>
 
         {/* Summary */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+            <Sparkles className="w-3.5 h-3.5 text-brand-500" />
             <span>Professional Summary</span>
           </h3>
           <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
@@ -238,7 +238,7 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
         {/* Technical Skills */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
-            <Code className="w-3.5 h-3.5 text-indigo-500" />
+            <Code className="w-3.5 h-3.5 text-brand-500" />
             <span>Core Competencies & Technologies</span>
           </h3>
           <div className="flex flex-wrap gap-1.5">
@@ -256,7 +256,7 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
         {/* Experience */}
         <div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
-            <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
+            <Briefcase className="w-3.5 h-3.5 text-brand-500" />
             <span>Professional Experience</span>
           </h3>
           <div className="space-y-4">
@@ -266,7 +266,7 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
                   <span>{exp.role}</span>
                   <span className="text-xs text-slate-500 font-normal">{exp.period}</span>
                 </div>
-                <div className="text-xs text-indigo-600 font-medium mb-1.5">{exp.company}</div>
+                <div className="text-xs text-brand-600 font-medium mb-1.5">{exp.company}</div>
                 <ul className="list-disc list-inside space-y-1 text-slate-700 text-xs">
                   {exp.bullets.map((b, bIdx) => (
                     <li key={bIdx}>{b}</li>
@@ -280,7 +280,7 @@ export const ResumeViewerModal = ({ isOpen, onClose, application, user }) => {
         {/* Education */}
         <div className="border-t border-slate-100 pt-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5">
-            <GraduationCap className="w-3.5 h-3.5 text-indigo-500" />
+            <GraduationCap className="w-3.5 h-3.5 text-brand-500" />
             <span>Education</span>
           </h3>
           <div className="text-xs sm:text-sm flex justify-between">

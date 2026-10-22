@@ -126,38 +126,38 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && <div role="alert" className="border-l-4 border-rose-500 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}
+      {error && <div role="alert" className="ui-alert ui-alert-danger">{error}</div>}
       <section className="grid gap-4 border-b border-slate-200 pb-6 sm:grid-cols-2">
         <label className="text-sm font-semibold text-slate-700">{company.organizationType === 'business' ? 'Business name' : 'Company name'} *
-          <input required maxLength={120} value={company.name} onChange={(event) => setCompany({ ...company, name: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input required maxLength={120} value={company.name} onChange={(event) => setCompany({ ...company, name: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <label className="text-sm font-semibold text-slate-700">{company.organizationType === 'business' ? 'Industry' : 'Category'} *
-          <input required maxLength={100} value={company.category} onChange={(event) => setCompany({ ...company, category: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input required maxLength={100} value={company.category} onChange={(event) => setCompany({ ...company, category: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <label className="text-sm font-semibold text-slate-700">Location
-          <input maxLength={200} value={company.location} onChange={(event) => setCompany({ ...company, location: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input maxLength={200} value={company.location} onChange={(event) => setCompany({ ...company, location: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <label className="text-sm font-semibold text-slate-700">Company size
-          <input maxLength={40} value={company.size} onChange={(event) => setCompany({ ...company, size: event.target.value })} placeholder="e.g. 50–200 employees" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input maxLength={40} value={company.size} onChange={(event) => setCompany({ ...company, size: event.target.value })} placeholder="e.g. 50–200 employees" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <div className="sm:col-span-2"><h2 className="mb-2 text-sm font-semibold text-slate-700">Map location</h2><AddressMap location={company.location} formattedAddress={company.formattedAddress} latitude={company.latitude} longitude={company.longitude} onChange={(coordinates) => setCompany((current) => ({ ...current, ...coordinates }))} /></div>
         <label className="text-sm font-semibold text-slate-700">Website
-          <input type="url" maxLength={200} value={company.website} onChange={(event) => setCompany({ ...company, website: event.target.value })} placeholder="https://example.com" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <input type="url" maxLength={200} value={company.website} onChange={(event) => setCompany({ ...company, website: event.target.value })} placeholder="https://example.com" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Locations
-          <textarea rows={2} maxLength={2400} value={company.locations.join('\n')} onChange={(event) => setCompany({ ...company, locations: event.target.value })} placeholder="One location per line" className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <textarea rows={2} maxLength={2400} value={company.locations.join('\n')} onChange={(event) => setCompany({ ...company, locations: event.target.value })} placeholder="One location per line" className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <div className="sm:col-span-2">
           <label className="text-sm font-semibold text-slate-700">Logo URL
-            <input type="url" maxLength={2000} value={company.logo.startsWith('data:') ? '' : company.logo} onChange={(event) => setCompany({ ...company, logo: event.target.value })} placeholder="https://example.com/logo.png" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input type="url" maxLength={2000} value={company.logo.startsWith('data:') ? '' : company.logo} onChange={(event) => setCompany({ ...company, logo: event.target.value })} placeholder="https://example.com/logo.png" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
           </label>
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <label className="inline-flex cursor-pointer items-center rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{logoLoading ? 'Reading logo…' : 'Upload PNG/JPG'}<input type="file" accept="image/png,image/jpeg" disabled={logoLoading} onChange={handleLogoUpload} className="sr-only" /></label>
-            {company.logo.startsWith('data:image/') && <><img src={company.logo} alt="Company logo preview" className="h-10 w-10 rounded-md border border-slate-200 object-contain" /><button type="button" onClick={() => setCompany({ ...company, logo: '' })} className="text-xs font-semibold text-rose-700 hover:underline">Remove uploaded logo</button></>}
+            {company.logo.startsWith('data:image/') && <><img src={company.logo} alt="Company logo preview" loading="lazy" className="h-10 w-10 rounded-md border border-slate-200 object-contain" /><button type="button" onClick={() => setCompany({ ...company, logo: '' })} className="text-xs font-semibold text-rose-700 hover:underline">Remove uploaded logo</button></>}
           </div>
         </div>
         <label className="text-sm font-semibold text-slate-700 sm:col-span-2">Description
-          <textarea rows={4} maxLength={3000} value={company.description} onChange={(event) => setCompany({ ...company, description: event.target.value })} className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          <textarea rows={4} maxLength={3000} value={company.description} onChange={(event) => setCompany({ ...company, description: event.target.value })} className="mt-1.5 w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
       </section>
 
@@ -182,7 +182,7 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
           {company.requirements.map((requirement, index) => (
             <fieldset key={requirement._id || `${requirement.type}-${index}`} className="border-y border-slate-200 py-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <legend className="text-xs font-bold uppercase text-indigo-700">{requirementTypes.find(([type]) => type === requirement.type)?.[1]}</legend>
+                <legend className="text-xs font-bold uppercase text-brand-700">{requirementTypes.find(([type]) => type === requirement.type)?.[1]}</legend>
                 <div className="flex items-center gap-1">
                   <button type="button" disabled={index === 0} onClick={() => moveRequirement(index, -1)} aria-label="Move requirement up" className="rounded p-1.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowUp className="h-4 w-4" /></button>
                   <button type="button" disabled={index === company.requirements.length - 1} onClick={() => moveRequirement(index, 1)} aria-label="Move requirement down" className="rounded p-1.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30"><ArrowDown className="h-4 w-4" /></button>
@@ -251,7 +251,7 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
 
       <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
         <button type="button" onClick={onCancel} disabled={saving} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
-        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800 disabled:opacity-60">
+        <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 disabled:opacity-60">
           <Plus className="h-4 w-4" /> {saving ? 'Saving…' : initialCompany ? 'Save changes' : 'Submit company'}
         </button>
       </div>

@@ -673,7 +673,7 @@ const ProfileWorkspace = () => {
   if (profileLoading && !user) {
     return (
       <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="h-44 w-full animate-pulse rounded-2xl bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200" />
+        <div className="h-44 w-full animate-pulse rounded-2xl bg-slate-200" />
         <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
           <div className="h-72 animate-pulse rounded-2xl bg-slate-100" />
           <div className="space-y-4">
@@ -690,14 +690,14 @@ const ProfileWorkspace = () => {
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       {/* Hero Header Card */}
-      <header className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 p-6 text-white shadow-xl sm:p-8">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+      <header className="relative overflow-hidden rounded-2xl bg-brand-900 p-6 text-white shadow-card sm:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-brand-500/20 blur-3xl pointer-events-none" />
         <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             {/* Avatar with upload trigger */}
-            <div className="group relative h-24 w-24 shrink-0 rounded-2xl border-2 border-white/20 bg-white/10 shadow-2xl backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-white/40">
+            <div className="group relative h-24 w-24 shrink-0 rounded-2xl border-2 border-white/20 bg-white/10 shadow-sm overflow-hidden transition-all duration-300 hover:border-white/40">
               {profile.avatar ? (
                 <img
                   src={profile.avatar}
@@ -705,7 +705,7 @@ const ProfileWorkspace = () => {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-indigo-600 to-purple-600 text-3xl font-extrabold text-white">
+                <div className="flex h-full w-full items-center justify-center bg-brand-600 text-3xl font-bold text-white">
                   {profile.name ? profile.name.slice(0, 1).toUpperCase() : 'U'}
                 </div>
               )}
@@ -723,7 +723,7 @@ const ProfileWorkspace = () => {
                 ) : (
                   <>
                     <Camera className="h-5 w-5 text-white" />
-                    <span className="mt-1 text-[10px] font-semibold tracking-wide text-white">Upload</span>
+                    <span className="mt-1 text-xs font-semibold tracking-wide text-white">Upload</span>
                   </>
                 )}
               </button>
@@ -739,12 +739,12 @@ const ProfileWorkspace = () => {
             {/* Profile info */}
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-indigo-100 backdrop-blur-xs">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold tracking-wide text-brand-100 backdrop-blur-xs">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
                   {user?.role?.toUpperCase() || 'USER'} ACCOUNT
                 </span>
                 {user?.username && (
-                  <span className="text-xs font-medium text-indigo-200/90">
+                  <span className="text-xs font-medium text-brand-200/90">
                     @{user.username}
                   </span>
                 )}
@@ -754,7 +754,7 @@ const ProfileWorkspace = () => {
                 {profile.name || 'Your Profile'}
               </h1>
 
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-indigo-100/80">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-brand-100/80">
                 <span>{user?.email}</span>
                 {profile.occupation && (
                   <>
@@ -810,10 +810,10 @@ const ProfileWorkspace = () => {
           <div className="w-full md:max-w-xs">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
               <span className="flex items-center gap-1.5 uppercase tracking-wider text-slate-500">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                <Sparkles className="h-3.5 w-3.5 text-brand-600" />
                 Profile Strength
               </span>
-              <span className={completionPercentage >= 80 ? 'text-emerald-600 font-bold' : 'text-indigo-600 font-bold'}>
+              <span className={completionPercentage >= 80 ? 'text-emerald-600 font-bold' : 'text-brand-600 font-bold'}>
                 {completionPercentage}%
               </span>
             </div>
@@ -823,8 +823,8 @@ const ProfileWorkspace = () => {
                   completionPercentage >= 80
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
                     : completionPercentage >= 50
-                    ? 'bg-gradient-to-r from-indigo-500 to-indigo-600'
-                    : 'bg-gradient-to-r from-amber-500 to-indigo-500'
+                    ? 'bg-gradient-to-r from-brand-500 to-brand-600'
+                    : 'bg-gradient-to-r from-amber-500 to-brand-500'
                 }`}
                 style={{ width: `${completionPercentage}%` }}
               />
@@ -844,7 +844,7 @@ const ProfileWorkspace = () => {
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all ${
                   item.complete
                     ? 'border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                    : 'border border-slate-200 bg-slate-50 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700'
+                    : 'border border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'
                 }`}
                 title={item.complete ? `${item.label} completed` : `Click to add ${item.label}`}
               >
@@ -879,13 +879,13 @@ const ProfileWorkspace = () => {
                   }}
                   className={`group flex w-full shrink-0 items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-all ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                      ? 'bg-brand-600 text-white shadow-sm'
                       : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900'
                   }`}
                 >
                   <Icon
                     className={`h-4 w-4 shrink-0 transition-colors ${
-                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-indigo-600'
+                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-brand-600'
                     }`}
                   />
                   <div className="min-w-0 flex-1">
@@ -893,8 +893,8 @@ const ProfileWorkspace = () => {
                       {label}
                     </p>
                     <p
-                      className={`mt-1 hidden truncate text-[10px] lg:block ${
-                        isActive ? 'text-indigo-100' : 'text-slate-400'
+                      className={`mt-1 hidden truncate text-xs lg:block ${
+                        isActive ? 'text-brand-100' : 'text-slate-400'
                       }`}
                     >
                       {description}
@@ -920,7 +920,7 @@ const ProfileWorkspace = () => {
                   {activeTab.label}
                 </h2>
                 {isSectionDirty && (
-                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
                     Unsaved changes
                   </span>
                 )}
@@ -947,7 +947,7 @@ const ProfileWorkspace = () => {
                   type="submit"
                   form="profile-section-form"
                   disabled={saving || !isSectionDirty}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-600/20 transition hover:bg-indigo-700 disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700 disabled:opacity-40"
                 >
                   {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   <span>{saving ? 'Saving…' : 'Save Changes'}</span>
@@ -983,7 +983,7 @@ const ProfileWorkspace = () => {
                         value={passwordForm.currentPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                         placeholder="••••••••"
-                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                       <button
                         type="button"
@@ -1008,7 +1008,7 @@ const ProfileWorkspace = () => {
                         value={passwordForm.newPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                         placeholder="••••••••"
-                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                       <button
                         type="button"
@@ -1033,7 +1033,7 @@ const ProfileWorkspace = () => {
                         value={passwordForm.confirmNewPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, confirmNewPassword: e.target.value })}
                         placeholder="••••••••"
-                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                       <button
                         type="button"
@@ -1069,7 +1069,7 @@ const ProfileWorkspace = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotPasswordModal(true)}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
+                    className="text-xs font-semibold text-brand-600 hover:text-brand-800 hover:underline"
                   >
                     Forgot password? Reset with code
                   </button>
@@ -1114,7 +1114,7 @@ const ProfileWorkspace = () => {
                       {profile.avatar ? (
                         <img src={profile.avatar} alt="Avatar preview" className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-indigo-100 text-xl font-bold text-indigo-700">
+                        <div className="flex h-full w-full items-center justify-center bg-brand-100 text-xl font-bold text-brand-700">
                           {profile.name ? profile.name.slice(0, 1).toUpperCase() : 'U'}
                         </div>
                       )}
@@ -1142,7 +1142,7 @@ const ProfileWorkspace = () => {
                           </button>
                         )}
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         Supports PNG or JPG under 3 MB.
                       </p>
                     </div>
@@ -1162,7 +1162,7 @@ const ProfileWorkspace = () => {
                           setProfile({ ...profile, name: e.target.value });
                           setEditingSection('basic');
                         }}
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                     </div>
 
@@ -1203,11 +1203,11 @@ const ProfileWorkspace = () => {
                           className={`block w-full rounded-xl border px-3.5 py-2 pl-8 text-sm text-slate-900 transition focus:outline-hidden focus:ring-1 ${
                             ['taken', 'invalid', 'error'].includes(usernameStatus.state)
                               ? 'border-rose-400 focus:border-rose-600 focus:ring-rose-600'
-                              : 'border-slate-300 focus:border-indigo-600 focus:ring-indigo-600'
+                              : 'border-slate-300 focus:border-brand-600 focus:ring-brand-600'
                           }`}
                         />
                       </div>
-                      <p id="profile-username-status" aria-live="polite" className={`mt-1 text-[11px] font-medium ${usernameStatusTone}`}>
+                      <p id="profile-username-status" aria-live="polite" className={`mt-1 text-xs font-medium ${usernameStatusTone}`}>
                         {usernameStatus.message || 'Your public handle. You can sign in with it instead of your email address.'}
                       </p>
                     </div>
@@ -1224,7 +1224,7 @@ const ProfileWorkspace = () => {
                           setEditingSection('basic');
                         }}
                         placeholder="+1 (555) 012-3456"
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                     </div>
 
@@ -1240,7 +1240,7 @@ const ProfileWorkspace = () => {
                           setEditingSection('basic');
                         }}
                         placeholder="San Francisco, CA or Singapore"
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                     </div>
 
@@ -1256,7 +1256,7 @@ const ProfileWorkspace = () => {
                           setEditingSection('basic');
                         }}
                         placeholder="Senior Software Engineer"
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                     </div>
 
@@ -1270,7 +1270,7 @@ const ProfileWorkspace = () => {
                           setProfile({ ...profile, employmentStatus: e.target.value });
                           setEditingSection('basic');
                         }}
-                        className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       >
                         <option value="">Select status…</option>
                         <option value="Actively Looking">Actively Looking</option>
@@ -1286,7 +1286,7 @@ const ProfileWorkspace = () => {
                         <label className="block text-xs font-semibold text-slate-700">
                           Professional Bio / Summary
                         </label>
-                        <span className="text-[11px] text-slate-500">
+                        <span className="text-xs text-slate-500">
                           {profile.bio.length} / 2000
                         </span>
                       </div>
@@ -1299,7 +1299,7 @@ const ProfileWorkspace = () => {
                           setEditingSection('basic');
                         }}
                         placeholder="Write a concise overview of your background, strengths, and goals…"
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                     </div>
                   </div>
@@ -1327,7 +1327,7 @@ const ProfileWorkspace = () => {
                             setEditingSection('basic');
                           }}
                           placeholder="e.g. Full-Stack Developer passionate about UX"
-                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                         />
                       </div>
 
@@ -1344,7 +1344,7 @@ const ProfileWorkspace = () => {
                             });
                             setEditingSection('basic');
                           }}
-                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                         >
                           <option value="">Any / Flexible</option>
                           <option value="Remote">Remote</option>
@@ -1376,7 +1376,7 @@ const ProfileWorkspace = () => {
                             setEditingSection('basic');
                           }}
                           placeholder="Frontend Engineer, UI Designer, Product Manager"
-                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                         />
                       </div>
 
@@ -1402,7 +1402,7 @@ const ProfileWorkspace = () => {
                             });
                             setEditingSection('basic');
                           }}
-                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                         />
                       </div>
 
@@ -1428,7 +1428,7 @@ const ProfileWorkspace = () => {
                             });
                             setEditingSection('basic');
                           }}
-                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-indigo-600 focus:outline-hidden focus:ring-1 focus:ring-indigo-600"
+                          className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                         />
                       </div>
                     </div>
@@ -1463,7 +1463,7 @@ const ProfileWorkspace = () => {
                       <button
                         type="button"
                         onClick={addExperienceEntry}
-                        className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700"
+                        className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-brand-700"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Add First Role
@@ -1556,7 +1556,7 @@ const ProfileWorkspace = () => {
                                     endDate: e.target.checked ? '' : entry.endDate,
                                   })
                                 }
-                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                               />
                               I currently work here
                             </label>
@@ -1625,7 +1625,7 @@ const ProfileWorkspace = () => {
                       <button
                         type="button"
                         onClick={addEducationEntry}
-                        className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700"
+                        className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-brand-700"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         Add First Degree
@@ -1733,7 +1733,7 @@ const ProfileWorkspace = () => {
                       <label className="block text-xs font-semibold text-slate-700">
                         Skills & Competencies ({profile.skills.length}/50)
                       </label>
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-xs text-slate-500">
                         Type and press Enter to add
                       </span>
                     </div>
@@ -1752,13 +1752,13 @@ const ProfileWorkspace = () => {
                           }
                         }}
                         placeholder="Add a skill (e.g. React, Python, Product Strategy)…"
-                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                        className="block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-brand-600 focus:ring-1 focus:ring-brand-600"
                       />
                       <button
                         type="button"
                         onClick={() => handleAddSkill()}
                         disabled={!skillInput.trim()}
-                        className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 disabled:opacity-40"
+                        className="rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-brand-700 disabled:opacity-40"
                       >
                         Add
                       </button>
@@ -1769,13 +1769,13 @@ const ProfileWorkspace = () => {
                       {profile.skills.map((skill) => (
                         <span
                           key={skill}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50/70 px-3 py-1 text-xs font-medium text-indigo-900"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50/70 px-3 py-1 text-xs font-medium text-brand-900"
                         >
                           {skill}
                           <button
                             type="button"
                             onClick={() => handleRemoveSkill(skill)}
-                            className="rounded-full text-indigo-400 hover:text-indigo-700 hover:bg-indigo-100 p-0.5"
+                            className="rounded-full text-brand-400 hover:text-brand-700 hover:bg-brand-100 p-0.5"
                             title={`Remove ${skill}`}
                           >
                             <X className="h-3 w-3" />
@@ -1791,7 +1791,7 @@ const ProfileWorkspace = () => {
 
                     {/* Suggested Skills */}
                     <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/60 p-3.5">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
                         Quick Add Suggestions
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -1808,10 +1808,10 @@ const ProfileWorkspace = () => {
                               type="button"
                               onClick={() => setSkillCategory(label)}
                               disabled={!remaining.length}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-800 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-800 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {label}
-                              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-500">
                                 {remaining.length}
                               </span>
                               <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
@@ -1831,9 +1831,9 @@ const ProfileWorkspace = () => {
 
                     {profile.resume ? (
                       /* Active resume card */
-                      <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="mt-4 flex flex-col gap-4 rounded-2xl border border-brand-100 bg-brand-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3.5">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
                             <FileText className="h-6 w-6" />
                           </div>
                           <div className="min-w-0">
@@ -1863,7 +1863,7 @@ const ProfileWorkspace = () => {
                             <Download className="h-3.5 w-3.5" />
                             Download
                           </button>
-                          <label className="inline-flex cursor-pointer items-center gap-1 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-indigo-700">
+                          <label className="inline-flex cursor-pointer items-center gap-1 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-brand-700">
                             {resumeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                             Replace
                             <input
@@ -1887,14 +1887,14 @@ const ProfileWorkspace = () => {
                       </div>
                     ) : (
                       /* Resume upload dropzone */
-                      <div className="mt-4 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center transition hover:border-indigo-400">
+                      <div className="mt-4 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center transition hover:border-brand-400">
                         <FileText className="mx-auto h-10 w-10 text-slate-400" />
                         <h4 className="mt-2 text-sm font-semibold text-slate-800">No resume attached</h4>
                         <p className="mt-1 text-xs text-slate-500">
                           Upload your resume in PDF, JPG, or PNG format (max 5 MB).
                         </p>
                         <div className="mt-4">
-                          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700">
+                          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-700">
                             {resumeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                             <span>{resumeBusy ? 'Uploading…' : 'Choose File to Upload'}</span>
                             <input
@@ -1950,7 +1950,7 @@ const ProfileWorkspace = () => {
                               setPrivacySettings({ ...privacySettings, shareResumeToPublic: e.target.checked });
                               setEditingSection('privacy');
                             }}
-                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                           />
                           Allow verified recruiters to download my resume
                         </label>
@@ -1998,7 +1998,7 @@ const ProfileWorkspace = () => {
                     key={ps}
                     type="button"
                     onClick={() => handleAddSkill(ps)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-2xs transition hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-800"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 shadow-2xs transition hover:border-brand-300 hover:bg-brand-50/50 hover:text-brand-800"
                   >
                     <Plus className="h-3.5 w-3.5 text-slate-400" />
                     {ps}

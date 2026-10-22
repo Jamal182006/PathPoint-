@@ -583,7 +583,7 @@ export const adminLogin = async (req, res) => {
 
     resetLoginAttempts(loginKey);
 
-    // Strict role check: candidates cannot log into counselor suite
+    // Strict role check: candidates cannot log into admin area
     if (user.role !== 'admin') {
       return res.status(403).json({
         success: false,

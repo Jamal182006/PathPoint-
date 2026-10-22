@@ -10,13 +10,7 @@ import ShortcutsModal from './components/common/ShortcutsModal';
 
 import AdminLayout from './components/layout/AdminLayout';
 import ErrorBoundary from './components/common/ErrorBoundary';
-
-const accentMap = {
-  indigo: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 100: '#e0e7ff' },
-  teal: { 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 100: '#ccfbf1' },
-  rose: { 500: '#f43f5e', 600: '#e11d48', 700: '#be123c', 100: '#ffe4e6' },
-  violet: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 100: '#ede9fe' },
-};
+import { accentToCssVars } from './utils/theme';
 
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/RegisterWizard'));
@@ -29,7 +23,6 @@ const WebsiteSettings = lazy(() => import('./pages/WebsiteSettings'));
 const AdminMetrics = lazy(() => import('./pages/AdminMetrics'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminProviders = lazy(() => import('./pages/AdminProviders'));
-const AdminSystem = lazy(() => import('./pages/AdminSystem'));
 const PublicDashboard = lazy(() => import('./pages/PublicDashboard'));
 const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
 const ProviderCompanies = lazy(() => import('./pages/ProviderCompanies'));
@@ -52,21 +45,11 @@ const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthPage = !isAuthenticated && ['/login', '/register'].includes(location.pathname);
-  const accent = accentMap[settings?.accent] || accentMap.indigo;
   const isProvider = isAuthenticated && user?.role === 'provider';
 
-  const appStyle = useMemo(
-    () => ({
-      '--accent-500': accent[500],
-      '--accent-600': accent[600],
-      '--accent-700': accent[700],
-      '--accent-100': accent[100],
-      '--page-bg': settings?.theme === 'dark' ? '#020817' : '#f8fafc',
-      '--page-text': settings?.theme === 'dark' ? '#e2e8f0' : '#0f172a',
-      '--surface-bg': settings?.theme === 'dark' ? '#0f172a' : '#ffffff',
-    }),
-    [accent, settings?.theme]
-  );
+  // The accent is the only user-selectable theme input; it resolves to the
+  // `--accent-*` tokens consumed by the shared `.ui-*` layer.
+  const appStyle = useMemo(() => accentToCssVars(settings?.accent), [settings?.accent]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -115,7 +98,7 @@ const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
     <div
       style={appStyle}
       data-role={user?.role || (isAdmin ? 'admin' : 'guest')}
-      className={`min-h-screen flex flex-col ${settings?.theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'} ${settings?.compactMode ? 'text-[15px]' : ''}`}
+      className={`min-h-screen flex flex-col bg-slate-50 text-slate-900 ${settings?.compactMode ? 'text-[15px]' : ''}`}
     >
       {isAuthenticated && <Navbar />}
       <div className="flex flex-1">
@@ -137,7 +120,7 @@ const PublicAuthRoute = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
         <p className="mt-4 text-sm text-slate-500 font-medium">Restoring your session...</p>
       </div>
     );
@@ -156,7 +139,7 @@ const HomeRoute = ({ dashboardProps }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
         <p className="mt-4 text-sm text-slate-500 font-medium">Restoring your session...</p>
       </div>
     );
@@ -285,7 +268,7 @@ export const App = () => {
                 }
               />
 
-              {/* Protected Administrative Suite Routes */}
+              {/* Protected Admin Routes */}
               <Route
                 path="/admin"
                 element={
@@ -316,14 +299,6 @@ export const App = () => {
               />
               <Route path="/admin/jobs" element={<ProtectedRoute adminOnly><AdminLayout><AdminJobs /></AdminLayout></ProtectedRoute>} />
               <Route path="/admin/applications" element={<ProtectedRoute adminOnly><AdminLayout><AdminApplications /></AdminLayout></ProtectedRoute>} />
-              <Route
-                path="/admin/system"
-                element={
-                  <ProtectedRoute adminOnly={true}>
-                    <AdminLayout><AdminSystem /></AdminLayout>
-                  </ProtectedRoute>
-                }
-              />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

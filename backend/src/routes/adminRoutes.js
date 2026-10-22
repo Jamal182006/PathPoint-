@@ -15,10 +15,12 @@ import { MAX_BUSINESS_DOCUMENT_SIZE } from '../utils/businessVerification.js';
 import { getCompanyUploadDirectory } from '../utils/companyUpload.js';
 import { getJobUploadDirectory } from '../utils/jobUpload.js';
 import { notifyUser, recordActivity } from '../utils/platformEvents.js';
+import { createRateLimiter } from '../utils/rateLimiter.js';
 
 const router = express.Router();
 
 router.use(protect, adminOnly);
+const adminMutationLimiter = createRateLimiter({ windowMs: 5 * 60 * 1000, max: 60, keyPrefix: 'admin_mut' });
 
 router.get('/jobs', adminListJobs);
 router.patch('/jobs/:jobId/review', adminReviewJob);
@@ -265,24 +267,47 @@ router.patch('/providers/:id/verification', async (req, res) => {
 // @route   GET /api/admin/aggregate-metrics
 router.get('/aggregate-metrics', async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments({ role: 'user', isArchived: { $ne: true } });
-    const trackedApplications = await Application.countDocuments();
-    const totalProviders = await User.countDocuments({ role: 'provider', isArchived: { $ne: true } });
-    const pendingVerifications = await User.countDocuments({
-      role: 'provider',
-      isArchived: { $ne: true },
-      $or: [
-        { 'businessVerification.status': 'pending' },
-        { 'businessVerification.status': 'not_submitted' },
-        { 'businessVerification.status': { $exists: false } },
-      ],
-    });
-    const totalCompanies = await Company.countDocuments({ isArchived: false });
-    const totalCompanyApplications = await CompanyApplication.countDocuments();
-    const totalJobListings = await JobListing.countDocuments({ archivedAt: { $exists: false } });
-    const pendingJobReviews = await JobListing.countDocuments({ reviewStatus: 'pending', archivedAt: { $exists: false } });
-    const totalJobApplications = await JobApplication.countDocuments();
-    const approvedProviders = await User.find({ role: 'provider', status: 'active', isArchived: { $ne: true }, 'businessVerification.status': 'approved' }).select('_id');
+    const [
+      totalUsers,
+      trackedApplications,
+      totalProviders,
+      pendingVerifications,
+      totalCompanies,
+      totalCompanyApplications,
+      totalJobListings,
+      pendingJobReviews,
+      totalJobApplications,
+      totalWorkLogs,
+      paidWorkTotals,
+      offeredApps,
+      jobStatusRows,
+      companyStatusRows,
+      approvedProviders,
+    ] = await Promise.all([
+      User.countDocuments({ role: 'user', isArchived: { $ne: true } }),
+      Application.countDocuments(),
+      User.countDocuments({ role: 'provider', isArchived: { $ne: true } }),
+      User.countDocuments({
+        role: 'provider',
+        isArchived: { $ne: true },
+        $or: [
+          { 'businessVerification.status': 'pending' },
+          { 'businessVerification.status': 'not_submitted' },
+          { 'businessVerification.status': { $exists: false } },
+        ],
+      }),
+      Company.countDocuments({ isArchived: false }),
+      CompanyApplication.countDocuments(),
+      JobListing.countDocuments({ archivedAt: { $exists: false } }),
+      JobListing.countDocuments({ reviewStatus: 'pending', archivedAt: { $exists: false } }),
+      JobApplication.countDocuments(),
+      WorkLog.countDocuments(),
+      WorkLog.aggregate([{ $match: { paymentStatus: 'paid' } }, { $group: { _id: null, amount: { $sum: '$payAmount' } } }]),
+      Application.find({ status: 'Offered' }),
+      JobApplication.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      CompanyApplication.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      User.find({ role: 'provider', status: 'active', isArchived: { $ne: true }, 'businessVerification.status': 'approved' }).select('_id'),
+    ]);
     const approvedCompanies = await Company.find({ providerId: { $in: approvedProviders.map(({ _id }) => _id) }, status: 'approved', isArchived: false }).select('_id');
     const activeJobListings = await JobListing.countDocuments({
       companyId: { $in: approvedCompanies.map(({ _id }) => _id) },
@@ -291,16 +316,6 @@ router.get('/aggregate-metrics', async (req, res) => {
       archivedAt: { $exists: false },
       $or: [{ applicationDeadline: { $exists: false } }, { applicationDeadline: null }, { applicationDeadline: { $gte: new Date() } }],
     });
-    const [jobStatusRows, companyStatusRows] = await Promise.all([
-      JobApplication.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-      CompanyApplication.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-    ]);
-    const totalWorkLogs = await WorkLog.countDocuments();
-    const paidWorkTotals = await WorkLog.aggregate([
-      { $match: { paymentStatus: 'paid' } },
-      { $group: { _id: null, amount: { $sum: '$payAmount' } } },
-    ]);
-    const offeredApps = await Application.find({ status: 'Offered' });
     const firstOfferByUser = new Map();
     for (const application of offeredApps) {
       const offerEvent = application.statusHistory?.find((entry) => entry.status === 'Offered');

@@ -68,17 +68,17 @@ const NotificationBell = () => {
         className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
       >
         <Bell className="h-5 w-5" />
-        {unreadCount > 0 && <span className="absolute right-1 top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+        {unreadCount > 0 && <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-600 px-1 text-xs font-bold leading-none text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
       </button>
       {open && (
-        <section aria-label="Notifications" className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 animate-fade-in">
+        <section aria-label="Notifications" className="ui-popover absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden animate-fade-in">
           <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <div><h2 className="text-sm font-bold text-slate-900">Notifications</h2><p className="text-xs text-slate-500">{unreadCount ? `${unreadCount} unread` : 'You are all caught up'}</p></div>
-            {unreadCount > 0 && <button type="button" onClick={markAllRead} className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900"><CheckCheck className="h-3.5 w-3.5" />Mark all read</button>}
+            {unreadCount > 0 && <button type="button" onClick={markAllRead} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:text-brand-900"><CheckCheck className="h-3.5 w-3.5" />Mark all read</button>}
           </header>
           <div className="max-h-[min(24rem,65vh)] overflow-y-auto">
             {notifications.length ? notifications.map((notification) => {
-              const content = <><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notification.read ? 'bg-transparent' : 'bg-indigo-600'}`} /><span className="min-w-0 flex-1"><span className="block text-sm leading-5 text-slate-800">{notification.message}</span><time className="mt-1 block text-[11px] text-slate-500">{new Date(notification.createdAt).toLocaleString()}</time></span></>;
+              const content = <><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${notification.read ? 'bg-transparent' : 'bg-brand-600'}`} /><span className="min-w-0 flex-1"><span className="block text-sm leading-5 text-slate-800">{notification.message}</span><time className="mt-1 block text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString()}</time></span></>;
               return notification.link ? (
                 <Link key={notification._id} to={notification.link} onClick={() => { markRead(notification); setOpen(false); }} className="flex gap-3 border-b border-slate-100 px-4 py-3 transition-colors hover:bg-slate-50">{content}</Link>
               ) : (

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import morgan from 'morgan';
+import helmet from 'helmet';
 import healthRoutes from './routes/healthRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import applicationRoutes from './routes/applicationRoutes.js';
@@ -71,19 +72,33 @@ app.use(
 
 // Body parsers
 app.use(express.json({ limit: '8mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '8mb' }));
 
-// Security headers
+// Security headers via Helmet (centralized, maintained). Manual fallbacks kept
+// as defense-in-depth in case Helmet is ever disabled.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        connectSrc: ["'self'", "https://nominatim.openstreetmap.org"],
+        fontSrc: ["'self'", "data:"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  })
+);
+// Keep geolocation usable for the address map (Helmet's default Permissions-Policy
+// would disable it).
 app.use((_req, res, next) => {
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // geolocation must allow the app's own origin: the address map uses
-  // navigator.geolocation for "use my location". An empty allowlist would
-  // block it for same-origin requests too.
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=()');
   next();
 });
 

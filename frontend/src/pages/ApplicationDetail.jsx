@@ -108,7 +108,7 @@ export const ApplicationDetail = () => {
   const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="ui-container py-6">
       {/* Back Navigation & Actions Bar */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <Link
@@ -122,14 +122,14 @@ export const ApplicationDetail = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsEditModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             <Edit className="w-3.5 h-3.5" />
             <span>Edit Details</span>
           </button>
           <button
             onClick={handleDelete}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition"
+            className="ui-btn ui-btn-danger ui-btn-sm"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Delete</span>
@@ -138,10 +138,10 @@ export const ApplicationDetail = () => {
       </div>
 
       {/* Primary Role & Status Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mb-6">
+      <div className="ui-card p-6 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 leading-tight">
+            <h1 className="ui-page-title leading-tight">
               {application.role}
             </h1>
             <div className="flex items-center gap-2 text-base text-slate-600 font-medium mt-1">
@@ -155,7 +155,7 @@ export const ApplicationDetail = () => {
             <select
               value={application.status}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50 hover:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              className="ui-input w-auto text-xs font-semibold"
             >
               {STATUS_OPTIONS.map((st) => (
                 <option key={st} value={st}>
@@ -172,7 +172,7 @@ export const ApplicationDetail = () => {
             onClick={() => setActiveTab('overview')}
             className={`pb-2.5 text-xs sm:text-sm font-semibold border-b-2 transition ${
               activeTab === 'overview'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-brand-600 text-brand-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
@@ -183,11 +183,11 @@ export const ApplicationDetail = () => {
             onClick={() => setActiveTab('prep')}
             className={`pb-2.5 text-xs sm:text-sm font-semibold border-b-2 transition flex items-center gap-1.5 ${
               activeTab === 'prep'
-                ? 'border-indigo-600 text-indigo-600'
+                ? 'border-brand-600 text-brand-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <Sparkles className="w-3.5 h-3.5 text-warning-600" />
             <span>Interview Prep & STAR Stories</span>
           </button>
         </div>
@@ -202,7 +202,7 @@ export const ApplicationDetail = () => {
         <div key="overview" className="animate-tab-panel grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left 2 Columns: Details, History, Notes */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="ui-card p-6">
               <h3 className="text-sm font-semibold text-slate-900 mb-4">
                 Application Specifications
               </h3>
@@ -249,9 +249,9 @@ export const ApplicationDetail = () => {
             </div>
 
             {/* Status History Timeline */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="ui-card p-6">
               <h3 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <History className="w-4 h-4 text-indigo-600" />
+                <History className="w-4 h-4 text-brand-600" />
                 <span>Status Transition Audit Trail (`statusHistory`)</span>
               </h3>
 
@@ -262,7 +262,7 @@ export const ApplicationDetail = () => {
 
                     return (
                       <div key={index} className="relative flex items-center justify-between text-xs">
-                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white" />
+                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-brand-600 ring-4 ring-white" />
                         <div className="flex items-center gap-2">
                           <StatusBadge status={item.status} size="xs" />
                           <span className="font-medium text-slate-700">
@@ -283,9 +283,9 @@ export const ApplicationDetail = () => {
           {/* Right 1 Column: Interview Dates & Resume Management */}
           <div className="space-y-6">
             {/* Scheduled Interviews Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="ui-card p-5">
               <h3 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-amber-600" />
+                <Calendar className="w-4 h-4 text-warning-600" />
                 <span>Interview Schedule</span>
               </h3>
 
@@ -295,12 +295,12 @@ export const ApplicationDetail = () => {
                   type="date"
                   value={newInterviewDate}
                   onChange={(e) => setNewInterviewDate(e.target.value)}
-                  className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="ui-input flex-1 text-xs"
                 />
                 <button
                   onClick={handleAddInterviewDate}
                   disabled={!newInterviewDate}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition disabled:opacity-50"
+                  className="ui-btn ui-btn-primary ui-btn-sm"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add</span>
@@ -323,14 +323,14 @@ export const ApplicationDetail = () => {
                           key={idx}
                           className={`flex items-center justify-between p-2.5 rounded-xl border text-xs ${
                             isUpcomingWithin7Days
-                              ? 'bg-amber-50 border-amber-200 text-amber-900'
+                              ? 'bg-warning-50 border-warning-200 text-warning-700'
                               : isPast
                               ? 'bg-slate-50 border-slate-200 text-slate-500 line-through'
                               : 'bg-white border-slate-200 text-slate-800'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <Calendar className={`w-3.5 h-3.5 ${isUpcomingWithin7Days ? 'text-amber-600' : 'text-slate-400'}`} />
+                            <Calendar className={`w-3.5 h-3.5 ${isUpcomingWithin7Days ? 'text-warning-600' : 'text-slate-400'}`} />
                             <span className="font-medium">
                               {dateObj.toLocaleDateString(undefined, {
                                 weekday: 'short',
@@ -340,7 +340,7 @@ export const ApplicationDetail = () => {
                               })}
                             </span>
                             {isUpcomingWithin7Days && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.2 bg-amber-200 text-amber-900 rounded">
+                              <span className="ui-badge ui-badge-warning">
                                 <Sparkles className="w-2.5 h-2.5" /> &lt;7d
                               </span>
                             )}
@@ -365,23 +365,23 @@ export const ApplicationDetail = () => {
             </div>
 
             {/* Resume & Documents Card */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+            <div className="ui-card p-5 space-y-3">
               <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-600" />
+                <FileText className="w-4 h-4 text-brand-600" />
                 <span>Resume & Documents</span>
               </h3>
 
               {application.resumeVersion ? (
-                <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-center justify-between gap-2">
+                <div className="p-3 bg-brand-50 rounded-xl border border-brand-100 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 truncate">
-                    <div className="p-2 rounded-lg bg-indigo-100 text-indigo-700">
+                    <div className="p-2 rounded-lg bg-brand-100 text-brand-700">
                       <FileText className="w-4 h-4" />
                     </div>
                     <div className="truncate">
                       <div className="text-xs font-semibold text-slate-900 truncate">
                         {application.resumeVersion}
                       </div>
-                      <div className="text-[10px] text-slate-500">
+                      <div className="text-xs text-slate-500">
                         Tailored version attached
                       </div>
                     </div>
@@ -389,7 +389,7 @@ export const ApplicationDetail = () => {
 
                   <button
                     onClick={() => setIsResumeModalOpen(true)}
-                    className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 rounded-lg transition"
+                    className="p-1.5 text-brand-600 hover:text-brand-800 hover:bg-brand-100 rounded-lg transition"
                     title="Preview Document"
                   >
                     <Eye className="w-4 h-4" />
@@ -404,9 +404,9 @@ export const ApplicationDetail = () => {
               {/* Action: Preview Resume Document */}
               <button
                 onClick={() => setIsResumeModalOpen(true)}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition"
+                className="ui-btn ui-btn-secondary w-full"
               >
-                <Eye className="w-4 h-4 text-indigo-600" />
+                <Eye className="w-4 h-4 text-brand-600" />
                 <span>Open Resume Previewer</span>
               </button>
 

@@ -5,29 +5,24 @@ import { Plus } from 'lucide-react';
 
 const COLUMN_COLORS = {
   Saved: {
-    borderTop: 'border-t-slate-400',
-    headerBadge: 'bg-slate-100 text-slate-700',
+    badge: 'ui-badge ui-badge-neutral',
     dot: 'bg-slate-400',
   },
   Applied: {
-    borderTop: 'border-t-blue-500',
-    headerBadge: 'bg-blue-100 text-blue-800',
-    dot: 'bg-blue-500',
+    badge: 'ui-badge ui-badge-info',
+    dot: 'bg-sky-500',
   },
   Interviewing: {
-    borderTop: 'border-t-amber-500',
-    headerBadge: 'bg-amber-100 text-amber-800',
-    dot: 'bg-amber-500 animate-pulse',
+    badge: 'ui-badge ui-badge-warning',
+    dot: 'bg-warning-600 animate-pulse',
   },
   Offered: {
-    borderTop: 'border-t-emerald-500',
-    headerBadge: 'bg-emerald-100 text-emerald-800',
-    dot: 'bg-emerald-500',
+    badge: 'ui-badge ui-badge-success',
+    dot: 'bg-success-600',
   },
   Rejected: {
-    borderTop: 'border-t-rose-500',
-    headerBadge: 'bg-rose-100 text-rose-800',
-    dot: 'bg-rose-500',
+    badge: 'ui-badge ui-badge-danger',
+    dot: 'bg-danger-600',
   },
 };
 
@@ -35,17 +30,13 @@ export const KanbanColumn = ({ status, applications = [], onAddClick }) => {
   const colors = COLUMN_COLORS[status] || COLUMN_COLORS.Saved;
 
   return (
-    <div
-      className={`flex flex-col flex-1 min-w-[280px] max-w-xs bg-slate-100/75 rounded-2xl border-t-4 ${colors.borderTop} border border-slate-200/80 p-3 h-[calc(100vh-210px)] min-h-[500px]`}
-    >
+    <div className="flex flex-col flex-1 min-w-[280px] max-w-xs bg-slate-100/75 rounded-2xl border border-slate-200/80 p-3 h-[calc(100vh-210px)] min-h-[500px]">
       {/* Column Header */}
       <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-200/60 px-1">
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
           <h3 className="font-semibold text-slate-800 text-sm">{status}</h3>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full font-bold ${colors.headerBadge}`}
-          >
+          <span className={colors.badge}>
             {applications.length}
           </span>
         </div>
@@ -53,7 +44,7 @@ export const KanbanColumn = ({ status, applications = [], onAddClick }) => {
         {onAddClick && (
           <button
             onClick={() => onAddClick(status)}
-            className="p-1 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-white transition"
+            className="p-1 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-white transition"
             title={`Add application to ${status}`}
           >
             <Plus className="w-4 h-4" />
@@ -68,7 +59,7 @@ export const KanbanColumn = ({ status, applications = [], onAddClick }) => {
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 overflow-y-auto space-y-2.5 pr-1 transition-colors rounded-xl p-1 ${
-              snapshot.isDraggingOver ? 'bg-indigo-50/50 ring-2 ring-indigo-200' : ''
+              snapshot.isDraggingOver ? 'bg-brand-50/50 ring-2 ring-brand-200' : ''
             }`}
           >
             {applications.map((app, index) => (
@@ -77,9 +68,9 @@ export const KanbanColumn = ({ status, applications = [], onAddClick }) => {
             {provided.placeholder}
 
             {applications.length === 0 && !snapshot.isDraggingOver && (
-              <div className="h-32 flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 text-xs">
-                <span>No applications</span>
-                <span className="text-[11px] text-slate-500 mt-0.5">Drag cards here</span>
+              <div className="ui-empty">
+                <span className="text-xs font-medium text-slate-600">No applications</span>
+                <span className="mt-0.5 text-xs text-slate-500">Drag cards here</span>
               </div>
             )}
           </div>

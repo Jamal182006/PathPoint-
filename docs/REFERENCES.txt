@@ -1,0 +1,35 @@
+﻿================================================================================
+PATHPOINT - REFERENCES
+================================================================================
+Project  : PathPoint - Role-based Job Application & Interview Management Platform
+Format   : APA 7th edition (reference list)
+Compiled : 2026-10-19
+================================================================================
+
+Internet Engineering Task Force. (2015). JSON Web Token (JWT) (RFC 7519). https://datatracker.ietf.org/doc/html/rfc7519
+
+Internet Engineering Task Force. (2017). The JavaScript Object Notation (JSON) data interchange format (RFC 8259). https://datatracker.ietf.org/doc/html/rfc8259
+
+Leaflet.js Contributors. (2025). Leaflet: An open-source JavaScript library for mobile-friendly interactive maps [Computer software]. https://leafletjs.com/
+
+MongoDB, Inc. (2026). MongoDB geospatial queries and 2dsphere indexing manual. MongoDB Documentation. https://www.mongodb.com/docs/manual/geospatial-queries/
+
+Mongoose. (2025). Mongoose: Elegant MongoDB object modeling for Node.js [Computer software]. https://mongoosejs.com/docs/
+
+OpenJS Foundation. (2025). Express: Fast, unopinionated, minimalist web framework for Node.js [Computer software]. https://expressjs.com/
+
+OpenJS Foundation. (2025). Node.js documentation. https://nodejs.org/docs/
+
+OpenStreetMap Contributors. (2026). OpenStreetMap [Map data]. OpenStreetMap Foundation. https://www.openstreetmap.org/
+
+OWASP Foundation. (2023). OWASP API Security Top 10 (2023). https://owasp.org/API-Security/
+
+PathPoint Project. (2026). PathPoint reference dataset [Data set; secondary source]. docs/PathPoint_Reference_Dataset.xlsx
+
+React. (2025). React: The library for web and native user interfaces [Computer software]. https://react.dev/
+
+Tailwind Labs. (2025). Tailwind CSS documentation. https://tailwindcss.com/docs
+
+Vite. (2025). Vite: Next-generation frontend tooling [Computer software]. https://vite.dev/
+
+World Wide Web Consortium. (2018). Web Content Accessibility Guidelines (WCAG) 2.1. W3C Recommendation. https://www.w3.org/TR/WCAG21/

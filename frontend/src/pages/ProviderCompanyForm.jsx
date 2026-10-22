@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { LoadingState } from '../components/common/Loading';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
 import CompanyEditor from '../components/forms/CompanyEditor';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 const ProviderCompanyForm = () => {
   const { companyId } = useParams();
@@ -38,14 +39,14 @@ const ProviderCompanyForm = () => {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-20 text-slate-400"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  if (error) return <div className="mx-auto max-w-4xl px-4 py-10"><p role="alert" className="border-l-4 border-rose-500 bg-rose-50 p-4 text-sm text-rose-800">{error}</p></div>;
+  if (loading) return <LoadingState />;
+  if (error) return <div className="ui-container py-10"><p role="alert" className="ui-alert ui-alert-danger">{error}</p></div>;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <Link to={companyId ? `/provider/companies/${companyId}` : '/provider/companies'} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-700"><ArrowLeft className="h-4 w-4" /> Back</Link>
+    <div className="ui-container space-y-6 py-8">
+      <Link to={companyId ? `/provider/companies/${companyId}` : '/provider/companies'} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand-700"><ArrowLeft className="h-4 w-4" /> Back</Link>
       <header className="border-b border-slate-200 pb-4">
-        <h1 className="text-2xl font-bold text-slate-900">{companyId ? `Edit ${organizationType}` : `Add a ${organizationType}`}</h1>
+        <h1 className="ui-page-title">{companyId ? `Edit ${organizationType}` : `Add a ${organizationType}`}</h1>
         <p className="mt-1 text-sm text-slate-500">{organizationType === 'business' ? 'Business' : 'Company'} details are reviewed before publication.</p>
       </header>
       <CompanyEditor initialCompany={company} organizationType={organizationType} onSave={save} saving={saving} onCancel={() => navigate('/provider/companies')} />

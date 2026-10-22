@@ -96,14 +96,14 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="ui-card overflow-hidden">
       {/* Calendar Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:px-6 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+          <div className="p-2 rounded-xl bg-brand-50 text-brand-600">
             <CalendarIcon className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+          <h2 className="text-lg font-semibold text-slate-900 tracking-tight">
             {monthName}
           </h2>
         </div>
@@ -111,7 +111,7 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={goToToday}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             Today
           </button>
@@ -136,7 +136,7 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
       </div>
 
       {/* Weekday Names Header */}
-      <div className="grid grid-cols-7 border-b border-slate-200 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50 py-2.5">
+      <div className="grid grid-cols-7 border-b border-slate-200 text-center text-xs font-semibold text-slate-500 uppercase tracking-caps bg-slate-50 py-2.5">
         {DAYS_OF_WEEK.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -159,9 +159,9 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
               {/* Cell Day Header */}
               <div className="flex items-center justify-between mb-1">
                 <span
-                  className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${
+                  className={`text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full ${
                     cell.isToday
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-brand-600 text-white shadow-sm'
                       : cell.isCurrentMonth
                       ? 'text-slate-700'
                       : 'text-slate-500'
@@ -171,7 +171,7 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
                 </span>
 
                 {hasEvents && (
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded-full">
+                  <span className="ui-badge ui-badge-warning">
                     {cell.interviews.length}
                   </span>
                 )}
@@ -185,20 +185,20 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
                     <Link
                       key={evIdx}
                       to={ev.link || `/applications/${ev.appId}`}
-                      className={`block p-1 rounded-md text-[11px] font-medium truncate transition border shadow-xs ${
+                      className={`block p-1 rounded-lg text-xs font-medium truncate transition border shadow-xs ${
                         isUrgent
-                          ? 'bg-amber-50 border-amber-200 text-amber-900 hover:border-amber-400'
-                          : 'bg-indigo-50 border-indigo-100 text-indigo-900 hover:border-indigo-300'
+                          ? 'bg-warning-50 border-warning-200 text-warning-700 hover:border-warning-600/40'
+                          : 'bg-brand-50 border-brand-100 text-brand-900 hover:border-brand-300'
                       }`}
                       title={`${ev.role} @ ${ev.company}`}
                     >
                       <div className="flex items-center gap-1">
                         {isUrgent && (
-                          <Sparkles className="w-2.5 h-2.5 text-amber-600 flex-shrink-0 animate-pulse" />
+                          <Sparkles className="w-2.5 h-2.5 text-warning-600 flex-shrink-0 animate-pulse" />
                         )}
                         <span className="truncate font-semibold">{ev.company}</span>
                       </div>
-                      <div className="text-[10px] text-slate-500 truncate">{ev.role}</div>
+                      <div className="text-xs text-slate-500 truncate">{ev.role}</div>
                     </Link>
                   );
                 })}

@@ -34,7 +34,7 @@ export const ShortcutsModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="pt-3 border-t border-slate-100 text-center">
-          <span className="text-[11px] text-slate-500">
+          <span className="text-xs text-slate-500">
             Press <kbd className="font-mono bg-slate-100 px-1 rounded border">Esc</kbd> anytime to dismiss.
           </span>
         </div>

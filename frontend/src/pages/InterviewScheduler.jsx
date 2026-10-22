@@ -109,12 +109,12 @@ export const InterviewScheduler = () => {
   const pastInterviews = allInterviews.filter((i) => i.isPast);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="ui-container py-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <CalendarCheck className="w-6 h-6 text-indigo-600" />
+          <h1 className="ui-page-title flex items-center gap-2">
+            <CalendarCheck className="w-6 h-6 text-brand-600" />
             <span>Interview Scheduler & Calendar</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -129,7 +129,7 @@ export const InterviewScheduler = () => {
               onClick={() => setViewMode('calendar')}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition ${
                 viewMode === 'calendar'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -141,7 +141,7 @@ export const InterviewScheduler = () => {
               onClick={() => setViewMode('list')}
               className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition ${
                 viewMode === 'list'
-                  ? 'bg-indigo-600 text-white shadow-xs'
+                  ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -152,7 +152,7 @@ export const InterviewScheduler = () => {
 
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             <span>Applications</span>
             <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
@@ -161,13 +161,13 @@ export const InterviewScheduler = () => {
       </div>
 
       {loading && <div className="mb-5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">Loading interviews…</div>}
-      {error && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"><span>{error}</span><button type="button" onClick={() => setReload((value) => value + 1)} className="font-semibold underline">Try again</button></div>}
+      {error && <div role="alert" className="ui-alert ui-alert-danger mb-5 flex-wrap items-center justify-between gap-3"><span>{error}</span><button type="button" onClick={() => setReload((value) => value + 1)} className="font-semibold underline">Try again</button></div>}
 
       {/* Urgent 7-Day Interview Alert Section */}
       {urgentInterviews.length > 0 && (
-        <div className="mb-6 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 rounded-r-2xl p-5 border-y border-r border-slate-200">
-          <div className="flex items-center gap-2 text-amber-900 font-bold text-sm mb-3">
-            <Sparkles className="w-5 h-5 text-amber-600 animate-pulse" />
+        <div className="ui-alert ui-alert-warning mb-6 flex-col items-stretch gap-3 p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-warning-700">
+            <Sparkles className="w-5 h-5 text-warning-600 animate-pulse" />
             <span>Upcoming in the Next 7 Days ({urgentInterviews.length})</span>
           </div>
 
@@ -175,11 +175,11 @@ export const InterviewScheduler = () => {
             {urgentInterviews.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm flex items-start justify-between gap-3 hover:border-amber-400 transition"
+                className="ui-card flex items-start justify-between gap-3 p-4"
               >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                    <span className="ui-badge ui-badge-warning">
                       {item.date.toLocaleDateString(undefined, {
                         weekday: 'short',
                         month: 'short',
@@ -191,7 +191,7 @@ export const InterviewScheduler = () => {
 
                   <Link
                     to={item.link || `/applications/${item.appId}`}
-                    className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition block"
+                    className="font-bold text-slate-900 text-sm hover:text-brand-600 transition block"
                   >
                     {item.role}
                   </Link>
@@ -204,7 +204,7 @@ export const InterviewScheduler = () => {
 
                 <Link
                   to={item.link || `/applications/${item.appId}`}
-                  className="p-2 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-lg transition"
+                  className="p-2 text-warning-700 hover:bg-warning-50 rounded-lg transition"
                   title="Prepare notes"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -223,7 +223,7 @@ export const InterviewScheduler = () => {
           {/* Later Upcoming Interviews */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-indigo-600" />
+              <Clock className="w-4 h-4 text-brand-600" />
               <span>Upcoming Scheduled Interviews</span>
             </h2>
 
@@ -236,14 +236,14 @@ export const InterviewScheduler = () => {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-24 text-left">
-                        <div className="text-xs font-bold text-indigo-700">
+                        <div className="text-xs font-bold text-brand-700">
                           {item.date.toLocaleDateString(undefined, {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric',
                           })}
                         </div>
-                        <div className="text-[10px] text-slate-500">
+                        <div className="text-xs text-slate-500">
                           {item.date.getFullYear()}
                         </div>
                       </div>
@@ -251,7 +251,7 @@ export const InterviewScheduler = () => {
                       <div>
                         <Link
                           to={item.link || `/applications/${item.appId}`}
-                          className="font-semibold text-slate-900 hover:text-indigo-600 text-sm transition"
+                          className="font-semibold text-slate-900 hover:text-brand-600 text-sm transition"
                         >
                           {item.role}
                         </Link>
@@ -266,7 +266,7 @@ export const InterviewScheduler = () => {
                       <StatusBadge status={item.status} size="xs" />
                       <Link
                         to={item.link || `/applications/${item.appId}`}
-                        className="text-xs font-medium text-indigo-600 hover:underline inline-flex items-center gap-1"
+                        className="text-xs font-medium text-brand-600 hover:underline inline-flex items-center gap-1"
                       >
                         <span>Details</span>
                         <ExternalLink className="w-3 h-3" />
@@ -312,7 +312,7 @@ export const InterviewScheduler = () => {
                       </span>
                       <Link
                         to={item.link || `/applications/${item.appId}`}
-                        className="font-medium text-slate-700 hover:text-indigo-600 truncate"
+                        className="font-medium text-slate-700 hover:text-brand-600 truncate"
                       >
                         {item.role} @ {item.company}
                       </Link>

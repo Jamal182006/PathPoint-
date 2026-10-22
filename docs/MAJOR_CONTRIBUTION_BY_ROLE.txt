@@ -1,0 +1,42 @@
+﻿MAJOR CONTRIBUTION BY ROLE
+================================================================================
+
+Project  : PathPoint - Role-based Job Application & Interview Management Platform
+Compiled : 2026-10-19
+
+1. Project Manager
+   - Overall project coordination and timeline management.
+   - Defined scope, objectives, and deliverables in alignment with system requirements.
+   - Facilitated task delegation, progress tracking, and ensured milestones were met.
+   - Ensured quality control and integration of all components.
+
+2. Lead Researcher
+   - Conducted literature review and identified relevant standards (OWASP API Top 10, WCAG 2.1, JWT/RFC 7519, JSON/RFC 8259) to guide implementation.
+   - Researched geospatial services (OpenStreetMap, Nominatim, Leaflet) for mapping features.
+   - Synthesized legal and policy context (Data Privacy Act of 2012, RA 10173) relevant to the system.
+   - Compiled and structured references/sources documentation.
+
+3. Data Lead
+   - Designed domain schema reflecting Users, Companies, Job Listings, Applications, Work Logs, and Interviews.
+   - Created reproducible project-authored reference dataset (docs/PathPoint_Reference_Dataset.xlsx) with schema validation and referential integrity checks.
+   - Prepared synthetic seed data (backend/src/utils/seedData.js) for testing/demos.
+   - Ensured data consistency, controlled vocabularies, and clear documentation of data structures.
+
+4. Presenter
+   - Prepared and delivered project presentation materials.
+   - Articulated system overview, objectives, features, and key contributions.
+   - Highlighted technical decisions, standards compliance, and project outcomes.
+   - Communicated the solution effectively to the audience.
+
+5. Backend Development
+   - Designed and implemented REST API (Express.js/Node.js) with clear endpoint contracts aligned to frontend/BACKEND_SPECIFICATION.md.
+   - Implemented authentication/authorization (JWT), role-based access control, and validation.
+   - Integrated MongoDB/Mongoose (including geospatial support), file uploads, and business logic.
+   - Ensured maintainability, testability, and adherence to API security practices.
+
+6. Frontend Development
+   - Built responsive UI with React, Vite, Tailwind CSS using reusable UI primitives.
+   - Implemented role-based views and flows for Applicants, Providers, and Admin.
+   - Integrated maps (React-Leaflet/Leaflet/OpenStreetMap/Nominatim) and interactive components.
+   - Applied accessibility-conscious practices (WCAG 2.1-informed), consistent styling, and maintained alignment with DESIGN.md.
+================================================================================

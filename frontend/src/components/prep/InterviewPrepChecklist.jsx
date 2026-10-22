@@ -68,15 +68,15 @@ export const InterviewPrepChecklist = ({ company, role }) => {
   return (
     <div className="space-y-6 text-slate-800">
       {/* Preparation Checklist */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div className="ui-card p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-bold text-slate-900 text-sm">
+            <CheckSquare className="w-5 h-5 text-brand-600" />
+            <h3 className="font-semibold text-slate-900 text-sm">
               Interview Readiness Checklist ({completedCount}/{tasks.length})
             </h3>
           </div>
-          <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+          <span className="ui-badge ui-badge-brand">
             {Math.round((completedCount / tasks.length) * 100)}% Ready
           </span>
         </div>
@@ -89,11 +89,11 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               className={`flex items-start gap-3 p-2.5 rounded-xl border cursor-pointer transition text-xs select-none ${
                 task.done
                   ? 'bg-slate-50 border-slate-200 text-slate-500 line-through'
-                  : 'bg-white border-slate-200 text-slate-800 hover:border-indigo-300'
+                  : 'bg-white border-slate-200 text-slate-800 hover:border-brand-300'
               }`}
             >
               {task.done ? (
-                <CheckSquare className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <CheckSquare className="w-4 h-4 text-success-600 flex-shrink-0 mt-0.5" />
               ) : (
                 <Square className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
               )}
@@ -109,11 +109,11 @@ export const InterviewPrepChecklist = ({ company, role }) => {
             value={newTaskText}
             onChange={(e) => setNewTaskText(e.target.value)}
             placeholder="Add custom prep item (e.g. review dynamic programming)..."
-            className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="ui-input flex-1"
           />
           <button
             type="submit"
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             Add
           </button>
@@ -121,10 +121,10 @@ export const InterviewPrepChecklist = ({ company, role }) => {
       </div>
 
       {/* STAR Method Behavioral Prep Notes */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div className="ui-card p-6 space-y-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-amber-500" />
-          <h3 className="font-bold text-slate-900 text-sm">
+          <Sparkles className="w-5 h-5 text-brand-600" />
+          <h3 className="font-semibold text-slate-900 text-sm">
             STAR Method Story Builder for {company}
           </h3>
         </div>
@@ -134,7 +134,7 @@ export const InterviewPrepChecklist = ({ company, role }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+            <label className="ui-label">
               1. Situation (Context)
             </label>
             <textarea
@@ -142,12 +142,12 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               value={starNotes.situation}
               onChange={(e) => setStarNotes({ ...starNotes, situation: e.target.value })}
               placeholder="What was the background? What challenge arose?"
-              className="w-full p-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="ui-input"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+            <label className="ui-label">
               2. Task (Responsibility)
             </label>
             <textarea
@@ -155,12 +155,12 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               value={starNotes.task}
               onChange={(e) => setStarNotes({ ...starNotes, task: e.target.value })}
               placeholder="What was your specific goal or deliverable?"
-              className="w-full p-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="ui-input"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+            <label className="ui-label">
               3. Action (Steps Taken)
             </label>
             <textarea
@@ -168,12 +168,12 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               value={starNotes.action}
               onChange={(e) => setStarNotes({ ...starNotes, action: e.target.value })}
               placeholder="What exact technical or team actions did you lead?"
-              className="w-full p-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="ui-input"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+            <label className="ui-label">
               4. Result (Impact & Metrics)
             </label>
             <textarea
@@ -181,17 +181,17 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               value={starNotes.result}
               onChange={(e) => setStarNotes({ ...starNotes, result: e.target.value })}
               placeholder="What was the measurable outcome? (e.g. cut latency by 30%)"
-              className="w-full p-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              className="ui-input"
             />
           </div>
         </div>
       </div>
 
       {/* Questions to Ask Interviewer */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+      <div className="ui-card p-6 space-y-4">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-indigo-600" />
-          <h3 className="font-bold text-slate-900 text-sm">
+          <MessageSquare className="w-5 h-5 text-brand-600" />
+          <h3 className="font-semibold text-slate-900 text-sm">
             Questions to Ask Your Interviewers
           </h3>
         </div>
@@ -206,7 +206,7 @@ export const InterviewPrepChecklist = ({ company, role }) => {
               <button
                 type="button"
                 onClick={() => handleRemoveQuestion(idx)}
-                className="text-slate-500 hover:text-rose-600 p-1 transition"
+                className="text-slate-500 hover:text-danger-600 p-1 transition"
                 title="Remove question"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -221,11 +221,11 @@ export const InterviewPrepChecklist = ({ company, role }) => {
             value={newQuestionText}
             onChange={(e) => setNewQuestionText(e.target.value)}
             placeholder="Add custom question (e.g. How does the deployment pipeline look?)..."
-            className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="ui-input flex-1"
           />
           <button
             type="submit"
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             Add
           </button>

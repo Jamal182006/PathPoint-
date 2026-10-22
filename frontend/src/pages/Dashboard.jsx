@@ -52,14 +52,17 @@ export const Dashboard = ({
   const modalOpen = isAddModalOpen !== undefined ? isAddModalOpen : localModalOpen;
   const setModalOpen = setIsAddModalOpen !== undefined ? setIsAddModalOpen : setLocalModalOpen;
 
-  const loadApplications = useCallback(async () => {
+  const loadApplications = useCallback(async (options = {}) => {
+    const { silent = false } = options;
     if (!user?.id) return;
     try {
       const list = await apiAdapter.getApplications(user.id);
       setApplications(list);
     } catch (err) {
-      console.error('Failed to load applications:', err);
-      toast('Failed to load applications', 'error');
+      if (!silent) {
+        console.error('Failed to load applications:', err);
+        toast('Failed to load applications', 'error');
+      }
     }
 
     // Platform submissions (job / company listings) are stored separately from the manual tracker.
@@ -76,7 +79,7 @@ export const Dashboard = ({
       setSubmissionCount(Number(totals?.count) || 0);
       setPlatformInterviews((scheduled?.data || []).map((sub) => sub.interviewDate).filter(Boolean));
     } catch (err) {
-      console.error('Failed to load platform applications:', err);
+      if (!silent) console.error('Failed to load platform applications:', err);
       setSubmissionCount(0);
       setPlatformInterviews([]);
     }
@@ -86,6 +89,22 @@ export const Dashboard = ({
   useEffect(() => {
     loadApplications();
   }, [loadApplications]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    if (typeof window === 'undefined') return undefined;
+    const intervalId = setInterval(() => {
+      loadApplications({ silent: true });
+    }, 30000);
+    const handleFocus = () => loadApplications({ silent: true });
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [user?.id, loadApplications]);
 
   const handleViewChange = (view) => {
     if (view === 'list') {
@@ -195,13 +214,13 @@ export const Dashboard = ({
         <section aria-label="Profile completion" className="ui-card mb-6 flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-indigo-600" aria-hidden="true" />
+              <Sparkles className="h-4 w-4 text-brand-600" aria-hidden="true" />
               <h2 className="text-sm font-semibold text-slate-900">Finish your profile</h2>
-              <span className="ml-auto text-xs font-semibold tabular-nums text-indigo-600 sm:ml-0">{profileCompletion.percentage}%</span>
+              <span className="ml-auto text-xs font-semibold tabular-nums text-brand-600 sm:ml-0">{profileCompletion.percentage}%</span>
             </div>
             <p className="mt-1 text-xs text-slate-500">Add {profileCompletion.next} so providers and recruiters can understand your background.</p>
             <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-indigo-600 transition-all duration-500" style={{ width: `${profileCompletion.percentage}%` }} />
+              <div className="h-full rounded-full bg-brand-600 transition-all duration-500" style={{ width: `${profileCompletion.percentage}%` }} />
             </div>
           </div>
           <Link to="/profile" className="ui-btn ui-btn-primary ui-btn-sm shrink-0 justify-center">Complete profile</Link>
@@ -211,21 +230,32 @@ export const Dashboard = ({
       {/* Metrics Header Summary Bar */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: 'Total tracked', value: counts.total, icon: Briefcase, tint: 'bg-brand-50 text-brand-600' },
-          { label: 'Interviews', value: counts.currentInterviews, icon: Calendar, tint: 'bg-amber-50 text-amber-600' },
-          { label: 'Interviews completed', value: counts.completedInterviews, icon: CalendarCheck, tint: 'bg-emerald-50 text-emerald-600' },
-          { label: 'Saved / wishlist', value: counts.saved, icon: Bookmark, tint: 'bg-slate-100 text-slate-600' },
-        ].map(({ label, value, icon: Icon, tint }) => (
-          <div key={label} className="ui-card flex items-center gap-3 p-4">
-            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
-              <Icon className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <div className="text-2xl font-semibold leading-none tabular-nums text-slate-900">{value}</div>
-              <div className="mt-1.5 truncate text-xs font-medium text-slate-500">{label}</div>
+          { label: 'Total tracked', value: counts.total, icon: Briefcase, tint: 'bg-brand-50 text-brand-600', href: null },
+          { label: 'Interviews', value: counts.currentInterviews, icon: Calendar, tint: 'bg-amber-50 text-amber-600', href: '/my-applications' },
+          { label: 'Interviews completed', value: counts.completedInterviews, icon: CalendarCheck, tint: 'bg-emerald-50 text-emerald-600', href: '/my-applications' },
+          { label: 'Saved / wishlist', value: counts.saved, icon: Bookmark, tint: 'bg-slate-100 text-slate-600', href: null },
+        ].map(({ label, value, icon: Icon, tint, href }) => {
+          const content = (
+            <>
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tint}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-2xl font-semibold leading-none tabular-nums text-slate-900">{value}</div>
+                <div className="mt-1.5 truncate text-xs font-medium text-slate-500">{label}</div>
+              </div>
+            </>
+          );
+          return href ? (
+            <Link key={label} to={href} className="ui-card flex items-center gap-3 p-4 transition hover:border-slate-300 hover:shadow-sm">
+              {content}
+            </Link>
+          ) : (
+            <div key={label} className="ui-card flex items-center gap-3 p-4">
+              {content}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <TrackedItemsWidget />
@@ -325,14 +355,30 @@ export const Dashboard = ({
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Briefcase className="h-7 w-7" />
           </span>
-          <h3 className="mt-4 text-base font-semibold text-slate-900">No applications logged yet</h3>
+          <h3 className="mt-4 text-base font-semibold text-slate-900">
+            {submissionCount > 0 ? 'No manual applications logged yet' : 'No applications yet'}
+          </h3>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500">
-            Log your target companies, track interview stages, attach resumes, and monitor outcomes — all in one board.
+            {submissionCount > 0
+              ? `You have ${submissionCount} ${submissionCount === 1 ? 'application' : 'applications'} submitted through job listings. Log target companies to track them on this board, or manage platform applications in My Applications.`
+              : 'Log your target companies, track interview stages, attach resumes, and monitor outcomes — all in one board. You can also apply directly to jobs in the Jobs Directory.'}
           </p>
-          <button onClick={() => setModalOpen(true)} className="ui-btn ui-btn-primary mt-5">
-            <Plus className="h-4 w-4" />
-            Log your first application
-          </button>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            <button onClick={() => setModalOpen(true)} className="ui-btn ui-btn-primary">
+              <Plus className="h-4 w-4" />
+              Log your first application
+            </button>
+            {submissionCount > 0 && (
+              <Link to="/my-applications" className="ui-btn ui-btn-secondary">
+                View platform applications
+              </Link>
+            )}
+            {submissionCount === 0 && (
+              <Link to="/jobs" className="ui-btn ui-btn-secondary">
+                Browse jobs
+              </Link>
+            )}
+          </div>
         </div>
       ) : currentView === 'board' ? (
         <KanbanBoard

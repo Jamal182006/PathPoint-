@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { AlertCircle, Building2, Check, CheckCircle2, Compass, Eye, EyeOff, Loader2, ShieldCheck, UserRound } from 'lucide-react';
@@ -57,7 +57,7 @@ const TextInput = ({ label, name, value, onChange, error, hint, type = 'text', r
 };
 
 const RegisterWizard = () => {
-  const { register, settings } = useAuth();
+  const { register } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -130,6 +130,17 @@ const RegisterWizard = () => {
     const { name, value, type, checked } = event.target;
     setValue(name, type === 'checkbox' ? checked : value);
   };
+
+  // Deep links such as /register?role=provider preselect the account type so
+  // entry points (e.g. the landing page) can send visitors to the right flow.
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const requestedRole = searchParams.get('role');
+    if (['user', 'provider'].includes(requestedRole)) {
+      setValue('role', requestedRole);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validate = async () => {
     const nextErrors = {};
@@ -230,17 +241,14 @@ const RegisterWizard = () => {
   const strengthTone = strength < 3 ? 'text-warning-700' : 'text-success-700';
   const strengthBarTone = strength < 3 ? 'bg-warning-600' : 'bg-success-600';
 
-  const dark = settings?.theme === 'dark';
-
   return (
-    <div className={`auth-page flex min-h-screen flex-col lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] ${dark ? 'auth-dark' : ''}`}>
+    <div className="auth-page flex min-h-screen flex-col lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-slate-950 px-10 py-10 text-white lg:flex xl:px-16 xl:py-12">
         <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
-        <div className="pointer-events-none absolute -left-24 top-1/3 h-72 w-72 rounded-full bg-indigo-600/25 blur-3xl" />
 
         <div className="relative">
           <Link to="/" className="inline-flex items-center gap-3 text-white">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-500 shadow-lg shadow-indigo-950/40"><Compass className="h-6 w-6" /></span>
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600"><Compass className="h-6 w-6" /></span>
             <span className="text-lg font-bold">PathPoint</span>
           </Link>
         </div>
@@ -252,7 +260,7 @@ const RegisterWizard = () => {
           <ul className="mt-10 space-y-5">
             {perks.map((perk) => (
               <li key={perk} className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-brand-300">
                   <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
                 <span className="text-sm leading-6 text-slate-200">{perk}</span>
@@ -262,7 +270,7 @@ const RegisterWizard = () => {
         </div>
 
         <div className="relative flex items-center gap-2 border-t border-white/15 pt-5 text-xs text-slate-400">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
+          <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
           Your information is stored securely and only used to support your PathPoint account.
         </div>
       </aside>
@@ -280,7 +288,19 @@ const RegisterWizard = () => {
           <form onSubmit={submit} className="w-full" noValidate>
             <div className="auth-card auth-surface overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
               <header className="border-b border-slate-100 px-6 pb-6 pt-7 sm:px-8">
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">Create your account</h1>
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                  <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Create your account</h1>
+                  {/* The chosen account type brands the card: the same role
+                      tints the picker uses, so the choice feels consequential. */}
+                  {form.role && (
+                    <span className={`animate-fade-in ui-badge ${form.role === 'provider' ? 'bg-blue-50 text-blue-700' : 'bg-teal-50 text-teal-700'}`}>
+                      {form.role === 'provider'
+                        ? <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        : <UserRound className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {form.role === 'provider' ? 'Provider account' : 'Applicant account'}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-2 max-w-measure text-sm leading-6 text-slate-600">It takes less than a minute. You can add the rest of your details later from your profile.</p>
               </header>
 
@@ -297,19 +317,19 @@ const RegisterWizard = () => {
                     <legend className="ui-label">Account type <span className="text-danger-600">*</span></legend>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {[
-                        ['user', 'User', 'Find companies and apply to opportunities.', UserRound],
-                        ['provider', 'Provider', 'List your business and review applicants.', Building2],
-                      ].map(([role, title, description, Icon]) => {
+                        ['user', 'User', 'Find companies and apply to opportunities.', UserRound, 'border-teal-400 bg-teal-50/70', 'bg-teal-600 text-white', 'border-teal-600 bg-teal-600 text-white'],
+                        ['provider', 'Provider', 'List your business and review applicants.', Building2, 'border-blue-400 bg-blue-50/70', 'bg-blue-600 text-white', 'border-blue-600 bg-blue-600 text-white'],
+                      ].map(([role, title, description, Icon, selectedCard, selectedIcon, selectedCheck]) => {
                         const selected = form.role === role;
                         return (
                           <button key={role} type="button" onClick={() => setValue('role', role)} aria-pressed={selected}
-                            className={`group relative flex items-start gap-3 rounded-xl border p-4 text-left transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${selected ? 'border-brand-500 bg-brand-50 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}>
-                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition ${selected ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:text-slate-700'}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                            className={`group relative flex items-start gap-3 rounded-xl border p-4 text-left transition duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-500)] focus-visible:ring-offset-2 ${selected ? `${selectedCard} shadow-xs` : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'}`}>
+                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition ${selected ? selectedIcon : 'bg-slate-100 text-slate-500 group-hover:text-slate-700'}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
                             <span className="min-w-0">
                               <span className="block text-sm font-semibold text-slate-900">{title}</span>
                               <span className="mt-0.5 block text-xs leading-5 text-slate-600">{description}</span>
                             </span>
-                            <span className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${selected ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-transparent'}`}><Check className="h-3 w-3" aria-hidden="true" /></span>
+                            <span className={`ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition ${selected ? selectedCheck : 'border-slate-300 bg-white text-transparent'}`}><Check className="h-3 w-3" aria-hidden="true" /></span>
                           </button>
                         );
                       })}
@@ -394,15 +414,15 @@ const RegisterWizard = () => {
               </div>
 
               <footer className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-                <p className="text-[11px] leading-5 text-slate-500">You can update your details anytime from your profile.</p>
+                <p className="text-xs leading-5 text-slate-500">You can update your details anytime from your profile.</p>
                 <button type="submit" disabled={loading} className="ui-btn ui-btn-primary w-full justify-center sm:w-auto">
                   {loading ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Creating account…</> : <><CheckCircle2 className="h-4 w-4" aria-hidden="true" />Create account</>}
                 </button>
               </footer>
             </div>
 
-            <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-slate-500 lg:hidden">
-              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" aria-hidden="true" />
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500 lg:hidden">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
               Your information is stored securely and only used to support your PathPoint account.
             </p>
           </form>

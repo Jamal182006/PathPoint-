@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { LoadingState } from '../components/common/Loading';
 import { Link, useParams } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
@@ -12,7 +13,6 @@ import {
   Download,
   Eye,
   FileText,
-  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -35,7 +35,7 @@ const STAGES = [
 const STATUS_STYLES = {
   submitted: 'bg-blue-50 text-blue-700 ring-blue-200',
   under_review: 'bg-slate-100 text-slate-700 ring-slate-200',
-  shortlisted: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+  shortlisted: 'bg-brand-50 text-brand-700 ring-brand-200',
   interview_scheduled: 'bg-amber-50 text-amber-800 ring-amber-200',
   accepted: 'bg-teal-50 text-teal-700 ring-teal-200',
   hired: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -53,7 +53,7 @@ const STATUS_LABELS = {
 };
 
 const BTN_BASE = 'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_PRIMARY = `${BTN_BASE} bg-indigo-600 text-white hover:bg-indigo-700`;
+const BTN_PRIMARY = `${BTN_BASE} bg-brand-600 text-white hover:bg-brand-700`;
 const BTN_HIRE = `${BTN_BASE} bg-emerald-600 text-white hover:bg-emerald-700`;
 const BTN_REJECT = `${BTN_BASE} border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100`;
 const BTN_GHOST = `${BTN_BASE} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`;
@@ -175,7 +175,7 @@ const ProviderJobApplicants = () => {
     setPreview(null);
   };
 
-  if (loading) return <div className="flex justify-center py-20 text-slate-400"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (loading) return <LoadingState />;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -202,7 +202,7 @@ const ProviderJobApplicants = () => {
             onChange={(event) => setSearch(event.target.value)}
             aria-label="Search applicants"
             placeholder="Search by name or email"
-            className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
           />
         </label>
         <nav className="flex flex-wrap gap-2" aria-label="Filter applicants by stage">
@@ -214,10 +214,10 @@ const ProviderJobApplicants = () => {
                 type="button"
                 onClick={() => setStage(item.key)}
                 aria-pressed={active}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}
+                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${active ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}
               >
                 {item.label}
-                <span className={`rounded-full px-1.5 text-[10px] ${active ? 'bg-white/25' : 'bg-slate-100 text-slate-500'}`}>{counts[item.key] || 0}</span>
+                <span className={`rounded-full px-1.5 text-xs ${active ? 'bg-white/25' : 'bg-slate-100 text-slate-500'}`}>{counts[item.key] || 0}</span>
               </button>
             );
           })}
@@ -234,7 +234,7 @@ const ProviderJobApplicants = () => {
             return (
               <article key={application.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex flex-wrap items-center gap-4 p-4 sm:p-5">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-bold text-indigo-700">{initials(application.applicant?.name)}</span>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">{initials(application.applicant?.name)}</span>
                   <button
                     type="button"
                     onClick={() => setExpandedId(expanded ? null : application.id)}
@@ -250,7 +250,7 @@ const ProviderJobApplicants = () => {
                         {application.applicant?.email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{application.applicant.email}</span>}
                         {application.applicant?.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{application.applicant.phone}</span>}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-slate-400">Applied {formatDateTimeDisplay(application.createdAt)}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">Applied {formatDateTimeDisplay(application.createdAt)}</p>
                     </div>
                   </button>
                   <button
@@ -273,10 +273,10 @@ const ProviderJobApplicants = () => {
                           <ul className="mt-3 space-y-2">
                             {fileResponses.map((response) => (
                               <li key={response.id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-3">
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700"><FileText className="h-4 w-4" /></span>
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700"><FileText className="h-4 w-4" /></span>
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-xs font-semibold text-slate-800">{response.requirementTitle}</p>
-                                  <p className="truncate text-[11px] text-slate-500">{response.fileName}{response.fileSize ? ` · ${prettySize(response.fileSize)}` : ''}</p>
+                                  <p className="truncate text-xs text-slate-500">{response.fileName}{response.fileSize ? ` · ${prettySize(response.fileSize)}` : ''}</p>
                                 </div>
                                 <button type="button" onClick={() => retrieveFile(application, response)} aria-label={`Preview ${response.requirementTitle}`} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"><Eye className="h-4 w-4" /></button>
                                 <button type="button" onClick={() => retrieveFile(application, response, true)} aria-label={`Download ${response.requirementTitle}`} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"><Download className="h-4 w-4" /></button>
@@ -319,7 +319,7 @@ const ProviderJobApplicants = () => {
                           <h3 className="text-sm font-bold text-slate-900">History</h3>
                           <ol className="mt-2 space-y-1.5">
                             {application.statusHistory.map((entry, index) => (
-                              <li key={`${entry.status}-${index}`} className="flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                              <li key={`${entry.status}-${index}`} className="flex items-center justify-between gap-2 text-xs text-slate-500">
                                 <span className="font-medium text-slate-700">{STATUS_LABELS[entry.status] || entry.status}</span>
                                 <span>{formatDateTimeDisplay(entry.changedAt)}</span>
                               </li>
@@ -356,7 +356,7 @@ const ProviderJobApplicants = () => {
                             min={safeDateTimeString(new Date())}
                             value={interviewDrafts[application.id] || ''}
                             onChange={(event) => setInterviewDrafts((current) => ({ ...current, [application.id]: event.target.value }))}
-                            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                           />
                           <button type="button" onClick={() => scheduleInterview(application)} disabled={isBusy} className={`${BTN_PRIMARY} w-full`}>
                             <CalendarClock className="h-3.5 w-3.5" />{application.status === 'interview_scheduled' ? 'Update interview' : 'Schedule interview'}
@@ -374,7 +374,7 @@ const ProviderJobApplicants = () => {
                           value={noteDrafts[application.id] || ''}
                           onChange={(event) => setNoteDrafts((current) => ({ ...current, [application.id]: event.target.value }))}
                           placeholder="Notes about this candidate"
-                          className="mt-3 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                          className="mt-3 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
                         />
                         <button type="button" onClick={() => saveNote(application)} disabled={isBusy} className={`${BTN_GHOST} mt-2 w-full`}>Save note</button>
                       </section>

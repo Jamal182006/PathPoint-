@@ -148,7 +148,9 @@ export const apiAdapter = {
       throw new Error(res.data?.message || 'Unable to send login verification code');
     } catch (err) {
       if (err.response?.data?.message) {
-        throw new Error(err.response.data.message);
+        const error = new Error(err.response.data.message);
+        error.lockoutSeconds = err.response.data.lockoutSeconds;
+        throw error;
       }
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         throw new Error('Connection timed out while sending verification code. Please try again.');
@@ -172,7 +174,9 @@ export const apiAdapter = {
       throw new Error(res.data?.message || 'Login verification failed');
     } catch (err) {
       if (err.response?.data?.message) {
-        throw new Error(err.response.data.message);
+        const error = new Error(err.response.data.message);
+        error.lockoutSeconds = err.response.data.lockoutSeconds;
+        throw error;
       }
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
         throw new Error('Connection timed out while verifying the code. Please try again.');
@@ -434,7 +438,7 @@ export const apiAdapter = {
   },
 
   // ==========================================
-  // ADMIN & COUNSELOR SUITE
+  // ADMIN AREA
   // ==========================================
   getAdminMetrics: async () => {
     const res = await withApiErrorMessage(adminApi.getAggregateMetrics());

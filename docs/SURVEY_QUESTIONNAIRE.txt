@@ -1,0 +1,79 @@
+﻿PATHPOINT: A Role-Based Job Application and Interview Management Platform
+SURVEY QUESTIONNAIRE
+
+Name (Optional): ___________________________  Date: ___________________________
+Direction: Please indicate your level of agreement with each statement by placing a check mark (/) in the appropriate column.
+Scale: 1 = Strongly Disagree (SD) | 2 = Disagree (D) | 3 = Neutral (N) | 4 = Agree (A) | 5 = Strongly Agree (SA)
+
+
+A. RESPONDENT PROFILE
+1. Age: _____
+2. Sex: ☐ Male   ☐ Female   ☐ LGBTQIA+   ☐ Prefer not to say
+3. Role: ☐ Job Seeker/Applicant   ☐ Employer/Provider   ☐ Career Counselor/School Personnel
+4. Location (City/Municipality): ___________________________
+
+
+B. PERCEIVED PROBLEMS IN JOB APPLICATION AND HIRING PROCESS (For All Respondents)
+
+| NO. | STATEMENT | SD (1) | D (2) | N (3) | A (4) | SA (5) |
+| :-- | :--- | :--: | :--: | :--: | :--: | :--: |
+| 1. | It is difficult to keep track of job applications and their statuses. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 2. | Important deadlines (application deadlines/interviews) are often missed due to poor tracking. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 3. | Managing application requirements (resume, documents, etc.) is time-consuming and hassle. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 4. | Communication between applicants and employers regarding job applications is not efficient. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 5. | There is a need for a centralized platform to manage job applications and hiring processes. | ☐ | ☐ | ☐ | ☐ | ☐ |
+
+
+C. PERCEIVED USEFULNESS OF PATHPOINT FOR JOB SEEKERS/APPLICANTS
+
+| NO. | STATEMENT | SD (1) | D (2) | N (3) | A (4) | SA (5) |
+| :-- | :--- | :--: | :--: | :--: | :--: | :--: |
+| 6. | PathPoint can help me easily track all my job applications in one place. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 7. | The application tracker (Saved/Applied/Interviewing/Offered/Rejected) is useful for monitoring my progress. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 8. | Having a list of application requirements for each job posting will help me prepare better. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 9. | The work log feature can help me document my skills and work experiences. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 10. | PathPoint can help me stay organized and avoid missing interviews or deadlines. | ☐ | ☐ | ☐ | ☐ | ☐ |
+
+
+D. PERCEIVED USEFULNESS OF PATHPOINT FOR EMPLOYERS/PROVIDERS
+
+| NO. | STATEMENT | SD (1) | D (2) | N (3) | A (4) | SA (5) |
+| :-- | :--- | :--: | :--: | :--: | :--: | :--: |
+| 11. | PathPoint can help employers post and manage job openings more efficiently. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 12. | The system can help in screening and reviewing applicants based on their submitted requirements. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 13. | Updating applicant statuses (Shortlisted, Interview Scheduled, Accepted, Rejected) is convenient through the system. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 14. | The platform can reduce the use of manual methods (paper forms, Messenger, etc.) in hiring. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 15. | Company verification adds credibility and trust to job postings. | ☐ | ☐ | ☐ | ☐ | ☐ |
+
+
+E. PERCEIVED USEFULNESS OF PATHPOINT FOR CAREER COUNSELORS/SCHOOL PERSONNEL
+
+| NO. | STATEMENT | SD (1) | D (2) | N (3) | A (4) | SA (5) |
+| :-- | :--- | :--: | :--: | :--: | :--: | :--: |
+| 16. | PathPoint can help career counselors monitor their students/graduates job applications more effectively. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 17. | The system can aid in providing better guidance and follow-up to job-seeking students. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 18. | Having a centralized platform makes it easier to assist multiple students/graduates. | ☐ | ☐ | ☐ | ☐ | ☐ |
+
+
+F. OVERALL EVALUATION OF PATHPOINT
+
+| NO. | STATEMENT | SD (1) | D (2) | N (3) | A (4) | SA (5) |
+| :-- | :--- | :--: | :--: | :--: | :--: | :--: |
+| 19. | PathPoint is relevant to the needs of job seekers and employers in the community. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 20. | PathPoint is user-friendly and easy to navigate. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 21. | PathPoint is a practical solution to the problems in job application and hiring processes. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 22. | I am willing to use PathPoint if it is made available. | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 23. | I would recommend PathPoint to other job seekers, employers, or career counselors. | ☐ | ☐ | ☐ | ☐ | ☐ |
+
+
+G. SUGGESTIONS (Optional)
+1. What features would you like to see added to PathPoint? ___________________________
+   _____________________________________________________________________________
+2. Other comments and suggestions: ___________________________
+   _____________________________________________________________________________
+
+
+___________________________
+Signature of Respondent (Optional)
+
+Date: ___________________________

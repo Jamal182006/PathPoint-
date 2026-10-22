@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const Login = () => {
-  const { login, requestLoginCode, verifyLoginCode, backendOnline, settings } = useAuth();
+  const { login, requestLoginCode, verifyLoginCode, backendOnline } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -155,22 +155,22 @@ export const Login = () => {
   };
 
   return (
-    <div className={`auth-page min-h-screen flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(32rem,1.06fr)] ${settings?.theme === 'dark' ? 'auth-dark' : ''}`}>
+    <div className="auth-page min-h-screen flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(32rem,1.06fr)]">
       <aside className="relative hidden min-h-screen flex-col justify-between overflow-hidden bg-slate-950 px-10 py-10 text-white lg:flex xl:px-16 xl:py-12">
         <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.18) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px)', backgroundSize: '44px 44px' }} />
         <div className="relative">
           <Link to="/" className="inline-flex items-center gap-3 text-white">
-            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-500 text-white shadow-lg shadow-indigo-950/40"><Compass className="h-6 w-6" /></span>
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white"><Compass className="h-6 w-6" /></span>
             <span className="text-lg font-bold">PathPoint</span>
           </Link>
         </div>
         <div className="relative max-w-xl py-12">
-          <h1 className="mt-5 text-4xl font-bold leading-tight text-white xl:text-5xl">Bring your career journey into focus.</h1>
-          <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">Applicants, providers, and career teams move through one shared platform, with every application and review connected.</p>
+          <h2 className="mt-5 text-4xl font-bold leading-tight text-white xl:text-5xl">Bring your career journey into focus.</h2>
+          <p className="mt-5 max-w-lg text-base leading-7 text-slate-300">Applicants, providers, and administrators move through one shared platform, with every application and review connected.</p>
           <div className="mt-10 grid gap-0 border-y border-white/15 sm:grid-cols-3">
             <div className="py-4 sm:pr-4"><p className="text-sm font-semibold text-white">Applicants</p><p className="mt-1 text-xs leading-5 text-slate-400">Discover listings and follow every decision.</p></div>
             <div className="border-t border-white/15 py-4 sm:border-l sm:border-t-0 sm:px-4"><p className="text-sm font-semibold text-white">Providers</p><p className="mt-1 text-xs leading-5 text-slate-400">Publish companies and review candidates.</p></div>
-            <div className="border-t border-white/15 py-4 sm:border-l sm:border-t-0 sm:pl-4"><p className="text-sm font-semibold text-white">Career teams</p><p className="mt-1 text-xs leading-5 text-slate-400">Verify listings and monitor platform health.</p></div>
+            <div className="border-t border-white/15 py-4 sm:border-l sm:border-t-0 sm:pl-4"><p className="text-sm font-semibold text-white">Administrators</p><p className="mt-1 text-xs leading-5 text-slate-400">Verify listings and monitor platform health.</p></div>
           </div>
         </div>
         <div className="relative flex items-center justify-between border-t border-white/15 pt-5 text-xs text-slate-400">
@@ -181,131 +181,133 @@ export const Login = () => {
 
       <main className="relative flex min-h-screen flex-1 flex-col bg-white/55">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-5 py-5 sm:px-8 lg:justify-end lg:px-12">
-          <Link to="/" className="inline-flex items-center gap-2.5 text-slate-900 lg:hidden"><span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white"><Compass className="h-5 w-5" /></span><span className="font-bold">PathPoint</span></Link>
+          <Link to="/" className="inline-flex items-center gap-2.5 text-slate-900 lg:hidden"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white"><Compass className="h-5 w-5" /></span><span className="font-bold">PathPoint</span></Link>
           <span className="hidden text-xs text-slate-500 lg:block">Secure access to your workspace</span>
         </div>
 
-        <section className="auth-card mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-8 sm:px-8 lg:px-16 xl:px-24">
+        <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-5 pb-8 sm:px-8 lg:px-16 xl:px-24">
           <div className="mx-auto w-full max-w-md">
-          {sessionExpired && (
-            <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
-              <span>Your session has expired. Please sign in again.</span>
-            </div>
-          )}
+            {/* The form card: same shell as the signup page — banded header,
+                body, and footer band, resting on the shadow-card elevation. */}
+            <div className="auth-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+              <header className="border-b border-slate-100 px-6 pb-6 pt-7 sm:px-8">
+                <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                  Welcome back
+                </h1>
+                <p className="mt-2 max-w-measure text-sm leading-6 text-slate-600">Sign in to continue to your role-based PathPoint workspace.</p>
+              </header>
 
-          {errorMessage && (
-            <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {registrationNotice && (
-            <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
-              Your account was created successfully. Sign in to open your dashboard.
-            </div>
-          )}
-
-          <div className="mb-7">
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Welcome back
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Sign in to continue to your role-based PathPoint workspace.</p>
-          </div>
-
-          <form className="space-y-4" onSubmit={handleSubmit} autoComplete="on">
-            <div>
-              <label htmlFor="login-identifier" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">Email or Username</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                <input
-                  id="login-identifier"
-                  type="text"
-                  name="username"
-                  autoComplete="username"
-                  required
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="Email address or username"
-                  className="auth-input ui-input pl-9"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Password
-                </label>
-              </div>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                <input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="auth-input ui-input pl-9 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  className="absolute right-3 top-3 rounded p-1 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Remember Me */}
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
-                />
-                <span className="text-xs text-slate-600 select-none">Stay signed in for 30 days</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setForgotPasswordOpen(true)}
-                className="shrink-0 text-xs text-indigo-600 hover:text-indigo-700 font-medium transition"
-              >
-                Forgot password?
-              </button>
-            </div>
-
-            {/* Submit Button */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading || loginCodeRequired || lockoutSeconds > 0}
-                className="auth-submit ui-btn ui-btn-primary w-full py-3 text-sm disabled:opacity-60"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <span>{lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : 'Send Code & Sign In'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
+              <div className="px-6 py-7 sm:px-8">
+                {sessionExpired && (
+                  <div className="ui-alert ui-alert-warning mb-4" role="status">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                    <span>Your session has expired. Please sign in again.</span>
+                  </div>
                 )}
-              </button>
-            </div>
-          </form>
 
-          <div className="mt-8 border-t border-slate-200 pt-5 text-center text-xs text-slate-500">
-            <p>Don&apos;t have an account? <Link to="/register" className="font-semibold text-indigo-700 hover:text-indigo-900">Create one</Link></p>
-          </div>
+                {errorMessage && (
+                  <div className="ui-alert ui-alert-danger mb-4" role="alert">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {registrationNotice && (
+                  <div className="ui-alert ui-alert-success mb-4" role="status">
+                    <span>Your account was created successfully. Sign in to open your dashboard.</span>
+                  </div>
+                )}
+
+                <form className="space-y-4" onSubmit={handleSubmit} autoComplete="on">
+                  <div>
+                    <label htmlFor="login-identifier" className="ui-label">Email or username</label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+                      <input
+                        id="login-identifier"
+                        type="text"
+                        name="username"
+                        autoComplete="username"
+                        required
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        placeholder="Email address or username"
+                        className="auth-input ui-input pl-9"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label htmlFor="login-password" className="ui-label">Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
+                      <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        autoComplete="current-password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="auth-input ui-input pl-9 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        className="absolute right-3 top-3 rounded p-1 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Remember Me */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                      />
+                      <span className="text-xs text-slate-600 select-none">Stay signed in for 30 days</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setForgotPasswordOpen(true)}
+                      className="shrink-0 text-xs font-semibold text-brand-700 underline-offset-4 transition hover:text-brand-900 hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={loading || loginCodeRequired || lockoutSeconds > 0}
+                      className="auth-submit ui-btn ui-btn-primary w-full py-3 text-sm disabled:opacity-60"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <span>{lockoutSeconds > 0 ? `Try again in ${lockoutSeconds}s` : 'Send Code & Sign In'}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <footer className="border-t border-slate-100 bg-slate-50/70 px-6 py-4 text-center text-xs text-slate-500 sm:px-8">
+                <p>Don&apos;t have an account? <Link to="/register" className="font-semibold text-brand-700 underline-offset-4 hover:text-brand-900 hover:underline">Create one</Link></p>
+              </footer>
+            </div>
           </div>
         </section>
       </main>

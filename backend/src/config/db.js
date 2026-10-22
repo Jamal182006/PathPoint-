@@ -33,33 +33,49 @@ const ensureDefaultAdmin = async () => {
   const adminEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
   const adminPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
   const adminName = process.env.BOOTSTRAP_ADMIN_NAME?.trim() || 'PathPoint Administrator';
-  const adminUsername = process.env.BOOTSTRAP_ADMIN_USERNAME || 'pathpoint_admin';
+  const adminUsername = (process.env.BOOTSTRAP_ADMIN_USERNAME || 'pathpoint_admin').trim();
+  const normalizedUsername = adminUsername.toLowerCase();
   if (!adminEmail || !adminPassword) return;
 
-  const existingAdmin = await User.findOne({ email: adminEmail }).select('+password');
+  // Match on either identifier. An account created before BOOTSTRAP_ADMIN_EMAIL
+  // changed still carries the old email, so an email-only lookup misses it and
+  // the subsequent create hits a duplicate-username error on every boot --
+  // leaving the configured admin email with no account behind it, which signs
+  // in as "Invalid credentials".
+  let existingAdmin = await User.findOne({ email: adminEmail }).select('+password');
+  if (!existingAdmin) {
+    existingAdmin = await User.findOne({ username: normalizedUsername }).select('+password');
+  }
+
   if (existingAdmin) {
+    // Adopt the configured email, unless another account already owns it.
+    const emailHeldByOther = await User.exists({ email: adminEmail, _id: { $ne: existingAdmin._id } });
+    const targetEmail = emailHeldByOther ? existingAdmin.email : adminEmail;
+
     const needsRefresh =
       existingAdmin.name !== adminName ||
-      existingAdmin.username !== adminUsername ||
+      existingAdmin.username !== normalizedUsername ||
+      existingAdmin.email !== targetEmail ||
       existingAdmin.role !== 'admin' ||
       existingAdmin.status !== 'active';
 
     const passwordMatches = existingAdmin.password ? await existingAdmin.matchPassword(adminPassword) : false;
     if (needsRefresh || !passwordMatches) {
       existingAdmin.name = adminName;
-      existingAdmin.username = adminUsername;
+      existingAdmin.username = normalizedUsername;
+      existingAdmin.email = targetEmail;
       existingAdmin.role = 'admin';
       existingAdmin.status = 'active';
       existingAdmin.password = adminPassword;
       await existingAdmin.save();
-      console.log(`[MongoDB] Bootstrap administrator refreshed: ${adminEmail}`);
+      console.log(`[MongoDB] Bootstrap administrator refreshed: ${targetEmail}`);
     }
     return;
   }
 
   await User.create({
     name: adminName,
-    username: adminUsername,
+    username: normalizedUsername,
     email: adminEmail,
     password: adminPassword,
     role: 'admin',

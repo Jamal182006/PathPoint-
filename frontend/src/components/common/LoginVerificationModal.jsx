@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Mail, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import Modal from './Modal';
 
 export const LoginVerificationModal = ({
@@ -32,8 +32,8 @@ export const LoginVerificationModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Verify your sign-in" maxWidth="max-w-md">
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-          <ShieldCheck className="h-6 w-6" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
+          <ShieldCheck className="h-6 w-6" aria-hidden="true" />
         </div>
         <h4 className="text-lg font-semibold text-slate-900">Enter your verification code</h4>
         <p className="mt-2 text-sm text-slate-600">
@@ -42,38 +42,35 @@ export const LoginVerificationModal = ({
       </div>
 
       {errorMessage && (
-        <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+        <div role="alert" className="ui-alert ui-alert-danger mt-5 text-xs">
           {errorMessage}
         </div>
       )}
 
       <form className="mt-5 space-y-4" onSubmit={onSubmit}>
         <div>
-          <label htmlFor="login-verification-code" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-700">
+          <label htmlFor="login-verification-code" className="ui-label">
             Verification code
           </label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-            <input
-              id="login-verification-code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              required
-              maxLength={6}
-              value={code}
-              onChange={(event) => onCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="123456"
-              className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-center text-lg tracking-[0.35em] focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+          <input
+            id="login-verification-code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            required
+            maxLength={6}
+            value={code}
+            onChange={(event) => onCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            className="ui-input text-center text-lg font-semibold tracking-[0.35em]"
+          />
         </div>
 
         <button
           type="submit"
           disabled={loading || code.length !== 6}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="ui-btn ui-btn-primary w-full"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
           Verify and sign in
@@ -86,7 +83,7 @@ export const LoginVerificationModal = ({
           type="button"
           onClick={handleResend}
           disabled={resendLoading || resendSeconds > 0}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {resendLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
           {resendSeconds > 0 ? `Resend in ${resendSeconds}s` : 'Resend code'}

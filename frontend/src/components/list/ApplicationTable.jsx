@@ -35,7 +35,7 @@ export const ApplicationTable = ({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-caps">
               <th className="py-3.5 px-4">Company & Role</th>
               <th className="py-3.5 px-4">Status</th>
               <th className="py-3.5 px-4">Salary</th>
@@ -65,7 +65,7 @@ export const ApplicationTable = ({
                     <div className="flex flex-col">
                       <Link
                         to={`/applications/${app._id}`}
-                        className="font-semibold text-slate-900 hover:text-indigo-600 transition"
+                        className="font-semibold text-slate-900 hover:text-brand-600 transition"
                       >
                         {app.role}
                       </Link>
@@ -77,19 +77,23 @@ export const ApplicationTable = ({
                   </td>
 
                   <td className="py-3.5 px-4 whitespace-nowrap">
-                    <select
-                      value={app.status}
-                      onChange={(e) => onStatusChange(app._id, e.target.value)}
-                      className="cursor-pointer rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium shadow-xs transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                    >
-                      {['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'].map(
-                        (st) => (
-                          <option key={st} value={st}>
-                            {st}
-                          </option>
-                        )
-                      )}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={app.status} size="xs" />
+                      <select
+                        value={app.status}
+                        onChange={(e) => onStatusChange(app._id, e.target.value)}
+                        aria-label={`Change status for ${app.role}`}
+                        className="cursor-pointer rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium shadow-xs transition hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      >
+                        {['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'].map(
+                          (st) => (
+                            <option key={st} value={st}>
+                              {st}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
                   </td>
 
                   <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600">
@@ -119,8 +123,8 @@ export const ApplicationTable = ({
 
                   <td className="py-3.5 px-4 whitespace-nowrap text-xs">
                     {urgentInterviews.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 font-semibold">
-                        <Sparkles className="w-3 h-3 text-amber-600 animate-pulse" />
+                      <span className="ui-badge ui-badge-warning">
+                        <Sparkles className="w-3 h-3 text-warning-600 animate-pulse" />
                         <span>
                           {urgentInterviews[0].toLocaleDateString(undefined, {
                             month: 'short',
@@ -145,7 +149,7 @@ export const ApplicationTable = ({
 
                   <td className="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600">
                     {app.resumeVersion ? (
-                      <span className="inline-flex items-center gap-1 text-indigo-600 font-medium">
+                      <span className="inline-flex items-center gap-1 text-brand-600 font-medium">
                         <FileText className="w-3.5 h-3.5" />
                         <span className="max-w-[120px] truncate">{app.resumeVersion}</span>
                       </span>
@@ -158,7 +162,7 @@ export const ApplicationTable = ({
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         to={`/applications/${app._id}`}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-brand-600 hover:bg-brand-50 transition"
                         title="View Full Details"
                       >
                         <ExternalLink className="w-4 h-4" />

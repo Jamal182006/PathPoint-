@@ -88,7 +88,7 @@ export const ExportImportModal = ({
           onClick={() => setActiveTab('export')}
           className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition ${
             activeTab === 'export'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -100,7 +100,7 @@ export const ExportImportModal = ({
           onClick={() => setActiveTab('import')}
           className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition ${
             activeTab === 'import'
-              ? 'border-indigo-600 text-indigo-600'
+              ? 'border-brand-600 text-brand-600'
               : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
@@ -119,7 +119,7 @@ export const ExportImportModal = ({
             {/* CSV Export Card */}
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition flex flex-col justify-between space-y-3">
               <div>
-                <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm mb-1">
+                <div className="flex items-center gap-2 text-brand-600 font-semibold text-sm mb-1">
                   <FileSpreadsheet className="w-5 h-5" />
                   <span>CSV Spreadsheet</span>
                 </div>
@@ -129,7 +129,7 @@ export const ExportImportModal = ({
               </div>
               <button
                 onClick={handleExportCSV}
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition"
+                className="ui-btn ui-btn-primary ui-btn-sm w-full"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export to .CSV</span>
@@ -139,7 +139,7 @@ export const ExportImportModal = ({
             {/* JSON Export Card */}
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition flex flex-col justify-between space-y-3">
               <div>
-                <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm mb-1">
+                <div className="flex items-center gap-2 text-success-600 font-semibold text-sm mb-1">
                   <FileCode className="w-5 h-5" />
                   <span>JSON Raw Backup</span>
                 </div>
@@ -149,7 +149,7 @@ export const ExportImportModal = ({
               </div>
               <button
                 onClick={handleExportJSON}
-                className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition"
+                className="ui-btn ui-btn-secondary ui-btn-sm w-full"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Export to .JSON</span>
@@ -164,19 +164,19 @@ export const ExportImportModal = ({
           </p>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="ui-label">
               Select Backup File (.json)
             </label>
             <input
               type="file"
               accept=".json"
               onChange={handleFileUpload}
-              className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg"
+              className="ui-input text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="ui-label">
               Or Paste JSON Content
             </label>
             <textarea
@@ -187,7 +187,7 @@ export const ExportImportModal = ({
                 setImportError('');
               }}
               placeholder='[ { "company": "Acme", "role": "Engineer", "status": "Applied" } ]'
-              className="w-full p-2.5 text-xs font-mono border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="ui-input font-mono"
             />
           </div>
 
@@ -198,7 +198,7 @@ export const ExportImportModal = ({
               id="replaceMode"
               checked={replaceMode}
               onChange={(e) => setReplaceMode(e.target.checked)}
-              className="rounded text-indigo-600 focus:ring-indigo-500"
+              className="rounded text-brand-600 focus:ring-brand-500"
             />
             <label htmlFor="replaceMode" className="text-xs text-slate-700 font-medium">
               Replace existing applications (unchecked: append without overwriting)
@@ -206,7 +206,7 @@ export const ExportImportModal = ({
           </div>
 
           {importError && (
-            <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+            <div className="ui-alert ui-alert-danger">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{importError}</span>
             </div>
@@ -215,14 +215,14 @@ export const ExportImportModal = ({
           <div className="pt-2 flex justify-end gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg"
+              className="ui-btn ui-btn-ghost ui-btn-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleImportSubmit}
               disabled={importing}
-              className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition disabled:opacity-50"
+              className="ui-btn ui-btn-primary ui-btn-sm"
             >
               {importing ? 'Importing…' : 'Complete Import'}
             </button>
