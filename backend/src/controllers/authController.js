@@ -385,6 +385,27 @@ export const register = async (req, res) => {
       businessVerification,
     });
 
+    // Auto-create the first company/business from signup details for providers
+    if (role === 'provider' && normalizedBusinessName) {
+      try {
+        const Company = (await import('../models/Company.js')).default;
+        const businessTypeLower = normalizedBusinessType.toLowerCase();
+        const isCompany = /(corporation|inc\.?|incorporated|corporate|company|ltd\.?|limited|plc|gmbh)/.test(businessTypeLower);
+        const organizationType = isCompany ? 'company' : 'business';
+        await Company.create({
+          providerId: user._id,
+          name: normalizedBusinessName,
+          category: normalizedBusinessType || (organizationType === 'company' ? 'Company' : 'Business'),
+          organizationType,
+          location: normalizedBusinessAddress,
+          status: 'pending',
+          isArchived: false,
+        });
+      } catch (autoCreateError) {
+        console.error('[Auth Error - Auto-create provider company]:', autoCreateError);
+      }
+    }
+
     const token = generateToken(user);
 
     return res.status(201).json({

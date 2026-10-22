@@ -63,7 +63,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('pathpoint_settings', JSON.stringify(settings));
+    try {
+      localStorage.setItem('pathpoint_settings', JSON.stringify(settings));
+    } catch {}
   }, [settings]);
 
   useEffect(() => {

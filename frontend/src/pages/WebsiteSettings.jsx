@@ -47,9 +47,16 @@ const WebsiteSettings = () => {
 
     try {
       const result = await apiAdapter.getProfileCustomization();
-      const normalized = normalizePreferences(result?.customization || user?.customization);
+      const source = result?.customization || user?.customization;
+      const normalized = normalizePreferences(source);
       setPreferences(normalized);
       setSavedPreferences(normalized);
+      updateSettings({
+        accent: normalized.accent,
+        compactMode: normalized.compactMode,
+        notifications: normalized.notifications,
+        showWelcomeBanner: normalized.showWelcomeBanner,
+      });
       if (isSilent) toast('Preferences synchronized with the server.', 'success');
     } catch (err) {
       console.warn('[WebsiteSettings] Load error:', err);
@@ -58,11 +65,12 @@ const WebsiteSettings = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [toast, user]);
+  }, [toast, user, updateSettings]);
 
   useEffect(() => {
     loadPreferences(false);
-  }, [loadPreferences]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { apiAdapter } from '../../services/apiAdapter';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../common/Toast';
-import { Plus, Trash2, Calendar, FileText, DollarSign, Building, Briefcase, User, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Calendar, FileText, DollarSign, Building, Briefcase, User, Loader2, MapPin } from 'lucide-react';
 import { safeDateString } from '../../utils/dateUtils';
+import PhilippineLocationInput from '../common/PhilippineLocationInput';
 
 const STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
 
@@ -16,6 +17,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
   const [formData, setFormData] = useState({
     company: '',
     role: '',
+    location: '',
     salaryRange: '',
     dateApplied: safeDateString(new Date()),
     status: 'Saved',
@@ -32,6 +34,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
       setFormData({
         company: initialData.company || '',
         role: initialData.role || '',
+        location: initialData.location || '',
         salaryRange: initialData.salaryRange || '',
         dateApplied: safeDateString(initialData.dateApplied, safeDateString(new Date())),
         status: initialData.status || 'Saved',
@@ -158,6 +161,19 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
           {errors.role && (
             <p className="mt-1 text-xs text-rose-600 font-medium">{errors.role}</p>
           )}
+        </div>
+
+        {/* Location */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            Location (Philippines)
+          </label>
+          <PhilippineLocationInput
+            name="location"
+            value={formData.location}
+            onChange={(value) => setFormData((current) => ({ ...current, location: value }))}
+            placeholder="Search a Philippine city or municipality"
+          />
         </div>
 
         {/* Salary Range */}

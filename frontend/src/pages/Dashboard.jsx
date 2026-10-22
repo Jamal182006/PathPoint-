@@ -356,28 +356,25 @@ export const Dashboard = ({
             <Briefcase className="h-7 w-7" />
           </span>
           <h3 className="mt-4 text-base font-semibold text-slate-900">
-            {submissionCount > 0 ? 'No manual applications logged yet' : 'No applications yet'}
+            {submissionCount > 0 ? 'Track platform applications here' : 'No applications yet'}
           </h3>
           <p className="mt-1.5 max-w-sm text-sm text-slate-500">
             {submissionCount > 0
-              ? `You have ${submissionCount} ${submissionCount === 1 ? 'application' : 'applications'} submitted through job listings. Log target companies to track them on this board, or manage platform applications in My Applications.`
-              : 'Log your target companies, track interview stages, attach resumes, and monitor outcomes — all in one board. You can also apply directly to jobs in the Jobs Directory.'}
+              ? `You have ${submissionCount} ${submissionCount === 1 ? 'application' : 'applications'} submitted through job listings. Manage them in My Applications. Log personal targets or use Work Log to track your job search activities.`
+              : 'Use Work Log to track your job search activities, interviews, and follow-ups. You can also apply directly to jobs in the Jobs Directory.'}
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            <button onClick={() => setModalOpen(true)} className="ui-btn ui-btn-primary">
-              <Plus className="h-4 w-4" />
-              Log your first application
-            </button>
             {submissionCount > 0 && (
-              <Link to="/my-applications" className="ui-btn ui-btn-secondary">
+              <Link to="/my-applications" className="ui-btn ui-btn-primary">
                 View platform applications
               </Link>
             )}
-            {submissionCount === 0 && (
-              <Link to="/jobs" className="ui-btn ui-btn-secondary">
-                Browse jobs
-              </Link>
-            )}
+            <Link to="/work-log" className="ui-btn ui-btn-secondary">
+              Open Work Log
+            </Link>
+            <Link to="/jobs" className="ui-btn ui-btn-secondary">
+              Browse jobs
+            </Link>
           </div>
         </div>
       ) : currentView === 'board' ? (
@@ -398,7 +395,7 @@ export const Dashboard = ({
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title="Log New Job Application"
+        title="Log Personal Job Target"
       >
         <ApplicationForm
           onSuccess={handleFormSuccess}

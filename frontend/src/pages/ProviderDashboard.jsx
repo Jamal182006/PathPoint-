@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import { apiAdapter } from '../services/apiAdapter';
-import { BriefcaseBusiness, Building2, Check, CircleAlert, Clock3, FileText, Globe, Loader2, MapPin, RefreshCw, Save, Store, Upload, Users } from 'lucide-react';
+import { BriefcaseBusiness, Building2, Check, CircleAlert, FileText, Loader2, RefreshCw, Save, Upload, Users } from 'lucide-react';
+import PhilippineLocationInput from '../components/common/PhilippineLocationInput';
 
 const emptyProfile = {
   companyName: '',
@@ -26,6 +27,7 @@ export const ProviderDashboard = () => {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [overview, setOverview] = useState({ companies: [], jobs: [], loading: true, error: '' });
   const [overviewRefresh, setOverviewRefresh] = useState(0);
+  const [showBusinessProfile, setShowBusinessProfile] = useState(false);
 
   useEffect(() => {
     if (user?.businessVerification) {
@@ -106,6 +108,77 @@ export const ProviderDashboard = () => {
       setSaving(false);
     }
   };
+
+  const businessProfileForm = (
+    <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="ui-label">
+          Business name *
+          <input
+            required
+            maxLength={120}
+            name="companyName"
+            value={businessProfile.companyName}
+            onChange={handleChange}
+            className="ui-input mt-1.5"
+          />
+        </label>
+        <label className="ui-label">
+          Industry *
+          <input
+            required
+            maxLength={100}
+            name="industry"
+            value={businessProfile.industry}
+            onChange={handleChange}
+            className="ui-input mt-1.5"
+          />
+        </label>
+        <div>
+          <span className="ui-label">Location</span>
+          <div className="mt-1.5">
+            <PhilippineLocationInput
+              name="location"
+              value={businessProfile.location || ''}
+              onChange={(value) => setBusinessProfile((profile) => ({ ...profile, location: value }))}
+              placeholder="Search a Philippine city or municipality"
+            />
+          </div>
+        </div>
+        <label className="ui-label">
+          Website
+          <input
+            type="url"
+            maxLength={200}
+            name="website"
+            value={businessProfile.website}
+            onChange={handleChange}
+            placeholder="https://example.com"
+            className="ui-input mt-1.5"
+          />
+        </label>
+      </div>
+      <label className="ui-label">
+        About the business
+        <textarea
+          maxLength={1000}
+          rows={5}
+          name="description"
+          value={businessProfile.description}
+          onChange={handleChange}
+          className="ui-input mt-1.5 resize-y"
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={saving}
+        className="ui-btn ui-btn-primary"
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        Save listing
+      </button>
+    </form>
+  );
 
   if (providerApproved) {
     const firstName = String(user?.name || '').trim().split(/\s+/)[0] || 'there';
@@ -278,6 +351,31 @@ export const ProviderDashboard = () => {
           </section>
         )}
 
+        <section aria-labelledby="profile-title" className="ui-card overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+            <div>
+              <h2 id="profile-title" className="ui-section-title">Business profile</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                This is how your business appears to applicants in the provider directory.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowBusinessProfile((open) => !open)}
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+              aria-expanded={showBusinessProfile}
+              aria-controls="business-profile-form"
+            >
+              {showBusinessProfile ? 'Hide details' : 'Edit details'}
+            </button>
+          </div>
+          {showBusinessProfile && (
+            <div id="business-profile-form" className="px-6 py-6">
+              {businessProfileForm}
+            </div>
+          )}
+        </section>
+
         <section aria-labelledby="jobs-title" className="ui-card overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
             <h2 id="jobs-title" className="ui-section-title">Latest job listings</h2>
@@ -326,7 +424,8 @@ export const ProviderDashboard = () => {
     <div className="ui-container py-8">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="ui-page-title">Business listing</h1>
+          <h1 className="ui-page-title">Business verification</h1>
+          <p className="mt-1 text-sm text-slate-500">Your signup business is ready — just submit the required document for review.</p>
         </div>
         <div className={`ui-badge ${verification.status === 'approved' ? 'ui-badge-success' : verification.status === 'rejected' ? 'ui-badge-danger' : 'ui-badge-warning'}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${verification.status === 'approved' ? 'bg-success-600' : verification.status === 'rejected' ? 'bg-danger-600' : 'bg-warning-600'}`} />
@@ -334,29 +433,38 @@ export const ProviderDashboard = () => {
         </div>
         {verification.status === 'approved'
           ? <Link to="/provider/companies" className="ui-btn ui-btn-secondary ui-btn-sm">Company dashboard</Link>
-          : <span className="rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-500">Company tools unlock after verification</span>}
+          : null}
       </div>
 
       {verification.status !== 'approved' && (
         <section className={`ui-alert mb-7 ${verification.status === 'rejected' ? 'ui-alert-danger' : 'ui-alert-warning'}`}>
-          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex w-full flex-col gap-4">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">
                 {verification.status === 'rejected' ? 'Update your verification documents' : !verification.documentName ? 'Submit a verification document' : 'Business verification is under review'}
               </h2>
               <p className="mt-1 text-xs leading-5 text-slate-600">
                 {verification.status === 'rejected'
-                  ? verification.rejectionReason || 'Submit an updated business registration, license, or ownership record.'
+                  ? verification.rejectionReason || 'Submit an updated document based on the requirements below.'
                   : !verification.documentName
-                    ? 'Upload a business registration, license, or official ownership record to begin review.'
+                    ? 'Upload the required document below to begin review. Your business was created from your signup details.'
                     : 'Your business will appear in the directory after an administrator verifies your documents.'}
               </p>
+              {!verification.documentName && verification.status !== 'rejected' && (
+                <div className="mt-3 rounded-lg border border-slate-200 bg-white/70 p-3">
+                  <p className="text-xs font-semibold text-slate-800">Document requirements</p>
+                  <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-slate-600">
+                    <li><span className="font-medium">Individual / Business:</span> DTI Certificate OR Mayor&apos;s Permit OR BIR Form 2303</li>
+                    <li><span className="font-medium">Company:</span> SEC Certificate of Incorporation OR BIR Form 2303</li>
+                  </ul>
+                </div>
+              )}
             </div>
             {requiresDocumentUpload && (
               <div className="flex flex-wrap items-center gap-2">
                 <label className="ui-btn ui-btn-secondary ui-btn-sm cursor-pointer">
                   <FileText className="h-4 w-4 text-brand-700" />
-                  <span className="max-w-48 truncate">{verificationFile?.name || 'Choose document'}</span>
+                  <span>{verificationFile?.name ? `Selected: ${verificationFile.name}` : 'Choose document'}</span>
                   <input
                     type="file"
                     accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
@@ -364,6 +472,9 @@ export const ProviderDashboard = () => {
                     className="sr-only"
                   />
                 </label>
+                {verificationFile && (
+                  <span className="text-xs text-slate-600 truncate max-w-xs">{verificationFile.name} ({Math.round(verificationFile.size / 1024)} KB)</span>
+                )}
                 <button
                   type="button"
                   onClick={submitVerificationDocument}
@@ -378,106 +489,6 @@ export const ProviderDashboard = () => {
           </div>
         </section>
       )}
-
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="ui-label">
-              Business name *
-              <input
-                required
-                maxLength={120}
-                name="companyName"
-                value={businessProfile.companyName}
-                onChange={handleChange}
-                className="ui-input mt-1.5"
-              />
-            </label>
-            <label className="ui-label">
-              Industry *
-              <input
-                required
-                maxLength={100}
-                name="industry"
-                value={businessProfile.industry}
-                onChange={handleChange}
-                className="ui-input mt-1.5"
-              />
-            </label>
-            <label className="ui-label">
-              Location
-              <input
-                maxLength={120}
-                name="location"
-                value={businessProfile.location}
-                onChange={handleChange}
-                className="ui-input mt-1.5"
-              />
-            </label>
-            <label className="ui-label">
-              Website
-              <input
-                type="url"
-                maxLength={200}
-                name="website"
-                value={businessProfile.website}
-                onChange={handleChange}
-                placeholder="https://example.com"
-                className="ui-input mt-1.5"
-              />
-            </label>
-          </div>
-          <label className="ui-label">
-            About the business
-            <textarea
-              maxLength={1000}
-              rows={5}
-              name="description"
-              value={businessProfile.description}
-              onChange={handleChange}
-              className="ui-input mt-1.5 resize-y"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={saving}
-            className="ui-btn ui-btn-primary"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Save listing
-          </button>
-        </form>
-
-        <aside className="ui-card p-6">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-slate-900">
-            {businessProfile.companyName || 'Your business'}
-          </h2>
-          <p className="mt-1 text-xs font-semibold text-brand-700">{businessProfile.industry || 'Industry'}</p>
-          {businessProfile.location && (
-            <p className="mt-3 flex items-center gap-2 text-xs text-slate-600">
-              <MapPin className="h-4 w-4 text-slate-400" />
-              {businessProfile.location}
-            </p>
-          )}
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-            {businessProfile.description || 'Add a business description to complete your public listing.'}
-          </p>
-          {businessProfile.website && (
-            <a
-              href={businessProfile.website}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-brand-700 hover:underline"
-            >
-              <Globe className="h-4 w-4" />
-              Visit website
-            </a>
-          )}
-        </aside>
-      </div>
     </div>
   );
 };

@@ -71,7 +71,7 @@ const ProviderCompanies = () => {
           <h1 className="ui-page-title">Company &amp; business dashboard</h1>
           <p className="mt-1 text-sm text-slate-500">Manage organization listings and review applicants.</p>
         </div>
-        <button type="button" aria-expanded={addOptionsOpen} aria-controls="add-organization-options" onClick={() => setAddOptionsOpen((open) => !open)} className="ui-btn ui-btn-primary"><FilePlus2 className="h-4 w-4" /> Add listing <ChevronDown className={`h-4 w-4 transition-transform ${addOptionsOpen ? 'rotate-180' : ''}`} /></button>
+        <button type="button" aria-expanded={addOptionsOpen} aria-controls="add-organization-options" onClick={() => setAddOptionsOpen((open) => !open)} className="ui-btn ui-btn-secondary"><FilePlus2 className="h-4 w-4" /> Add another listing <ChevronDown className={`h-4 w-4 transition-transform ${addOptionsOpen ? 'rotate-180' : ''}`} /></button>
       </header>
 
       {addOptionsOpen && <section id="add-organization-options" aria-label="Choose what to add" className="flex flex-col justify-between gap-4 rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-4 sm:flex-row sm:items-center"><div><h2 className="text-sm font-semibold text-slate-900">What would you like to add?</h2><p className="mt-1 text-xs text-slate-600">Choose the type of organization to create a listing.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => openAddForm('company')} className="ui-btn ui-btn-secondary"><Building2 className="h-4 w-4 text-brand-700" />Company</button><button type="button" onClick={() => openAddForm('business')} className="ui-btn ui-btn-secondary"><Store className="h-4 w-4 text-brand-700" />Business</button></div></section>}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import AddressMap from '../common/AddressMap';
+import PhilippineLocationInput from '../common/PhilippineLocationInput';
+import { geocodePhilippineLocation } from '../../utils/phGeocode';
 
 const newRequirement = (type = 'file') => ({
   type,
@@ -48,6 +50,33 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
   });
   const [error, setError] = useState('');
   const [logoLoading, setLogoLoading] = useState(false);
+  const [locatingPin, setLocatingPin] = useState(false);
+
+  // When a Philippine place is picked from the suggestions the map pin is moved
+  // to that city/municipality automatically.
+  const handleLocationSelect = async (entry) => {
+    if (!entry?.label) return;
+    setLocatingPin(true);
+    try {
+      const result = await geocodePhilippineLocation(entry.label);
+      if (!result) {
+        setError(`We could not place "${entry.label}" on the map. Drop the pin manually to fine-tune it.`);
+        return;
+      }
+      setError('');
+      setCompany((current) => ({
+        ...current,
+        location: entry.label,
+        formattedAddress: result.formattedAddress,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      }));
+    } catch {
+      setError(`We could not place "${entry.label}" on the map. Drop the pin manually to fine-tune it.`);
+    } finally {
+      setLocatingPin(false);
+    }
+  };
 
   const handleLogoUpload = (event) => {
     const file = event.target.files?.[0];
@@ -134,11 +163,21 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
         <label className="text-sm font-semibold text-slate-700">{company.organizationType === 'business' ? 'Industry' : 'Category'} *
           <input required maxLength={100} value={company.category} onChange={(event) => setCompany({ ...company, category: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
-        <label className="text-sm font-semibold text-slate-700">Location
-          <input maxLength={200} value={company.location} onChange={(event) => setCompany({ ...company, location: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
-        </label>
+        <div className="sm:col-span-2">
+          <span className="text-sm font-semibold text-slate-700">Location</span>
+          <div className="mt-1.5">
+            <PhilippineLocationInput
+              id="company-location"
+              value={company.location}
+              onChange={(value) => setCompany((current) => ({ ...current, location: value }))}
+              onSelect={handleLocationSelect}
+              placeholder="Search a Philippine city or municipality"
+            />
+          </div>
+          {locatingPin && <p className="mt-1 text-xs text-slate-500">Locating this place on the map...</p>}
+        </div>
         <label className="text-sm font-semibold text-slate-700">Company size
-          <input maxLength={40} value={company.size} onChange={(event) => setCompany({ ...company, size: event.target.value })} placeholder="e.g. 50–200 employees" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
+          <input maxLength={40} value={company.size} onChange={(event) => setCompany({ ...company, size: event.target.value })} placeholder="e.g. 50-200 employees" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500" />
         </label>
         <div className="sm:col-span-2"><h2 className="mb-2 text-sm font-semibold text-slate-700">Map location</h2><AddressMap location={company.location} formattedAddress={company.formattedAddress} latitude={company.latitude} longitude={company.longitude} onChange={(coordinates) => setCompany((current) => ({ ...current, ...coordinates }))} /></div>
         <label className="text-sm font-semibold text-slate-700">Website

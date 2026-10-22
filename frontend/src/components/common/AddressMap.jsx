@@ -6,6 +6,8 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Crosshair, Loader2, MapPin, Search } from 'lucide-react';
+import { PH_BOUNDS, PH_CENTER, PH_DEFAULT_ZOOM, isWithinPhilippines } from '../../utils/phLocations';
+import { geocodePhilippineLocation, reverseGeocodePhilippineLocation } from '../../utils/phGeocode';
 
 const defaultIcon = new L.Icon({
   iconUrl: markerIcon,
@@ -55,6 +57,13 @@ const useCurrentPosition = () => {
     setLocating(true);
     try {
       const position = await readCurrentPosition();
+      // The map only ever covers the Philippines, so a position from another
+      // country is discarded instead of dragging the map out of bounds.
+      if (!isWithinPhilippines(position.latitude, position.longitude)) {
+        setCurrentPosition(null);
+        if (!silent) setLocationError('Your current position is outside the Philippines. Pick a Philippine location on the map instead.');
+        return null;
+      }
       setCurrentPosition(position);
       setLocationError('');
       return position;
@@ -115,6 +124,43 @@ const MapPinEvents = ({ onPlace }) => {
   return null;
 };
 
+// Keeps every map inside the Philippine archipelago.
+// `maxBounds` stops the map from being panned to another country, and the
+// minimum zoom is derived from the container size so the viewport never spills
+// past the coastline either.
+const PhBoundsController = () => {
+  const map = useMap();
+  useEffect(() => {
+    const bounds = L.latLngBounds(PH_BOUNDS);
+    const apply = () => {
+      map.setMaxBounds(bounds);
+      const size = map.getSize();
+      if (!size || !size.x || !size.y) return;
+      // Zoom in until the Philippine bounding box covers the whole viewport.
+      // That keeps neighbouring countries out of sight even at the lowest
+      // allowed zoom level.
+      const zoom = map.getZoom() || PH_DEFAULT_ZOOM;
+      const nw = map.project(bounds.getNorthWest(), zoom);
+      const se = map.project(bounds.getSouthEast(), zoom);
+      const boundsWidth = Math.abs(se.x - nw.x) || 1;
+      const boundsHeight = Math.abs(se.y - nw.y) || 1;
+      const scale = Math.max(size.x / boundsWidth, size.y / boundsHeight);
+      const fitZoom = Math.ceil(zoom + Math.log(scale) / Math.LN2);
+      const minZoom = Math.min(Math.max(fitZoom, 4), 11);
+      map.setMinZoom(minZoom);
+      if (map.getZoom() < minZoom) map.setZoom(minZoom, { animate: false });
+    };
+    apply();
+    map.on('load', apply);
+    map.on('resize', apply);
+    return () => {
+      map.off('load', apply);
+      map.off('resize', apply);
+    };
+  }, [map]);
+  return null;
+};
+
 export const LocationMap = ({ address = '', latitude, longitude, className = 'h-64', compact = false }) => {
   const { currentPosition } = useCurrentPosition();
   const [mapOpen, setMapOpen] = useState(false);
@@ -139,11 +185,9 @@ export const LocationMap = ({ address = '', latitude, longitude, className = 'h-
     if (!address) return;
     setMapLoading(true);
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(address)}`);
-      if (!response.ok) throw new Error('The map could not look up this address.');
-      const results = await response.json();
-      if (!results.length) throw new Error('No map location was found for this address.');
-      setMapPoint([Number(results[0].lat), Number(results[0].lon)]);
+      const result = await geocodePhilippineLocation(address);
+      if (!result) throw new Error('No map location was found in the Philippines for this address.');
+      setMapPoint([result.latitude, result.longitude]);
     } catch (error) {
       setMapError(error.message || 'The map is temporarily unavailable.');
     } finally {
@@ -151,7 +195,7 @@ export const LocationMap = ({ address = '', latitude, longitude, className = 'h-
     }
   };
 
-  const mapCenter = mapPoint || [20, 0];
+  const mapCenter = mapPoint || [PH_CENTER.latitude, PH_CENTER.longitude];
   const userPoint = currentPosition ? [currentPosition.latitude, currentPosition.longitude] : null;
 
   if (!hasCoordinates(latitude, longitude)) {
@@ -160,13 +204,13 @@ export const LocationMap = ({ address = '', latitude, longitude, className = 'h-
 
   const center = [Number(latitude), Number(longitude)];
   const distance = userPoint ? distanceInMeters(userPoint, center) : null;
-  return <><div className={compact ? 'space-y-1' : 'space-y-2'}><div className={`${className} overflow-hidden border border-slate-200`}><MapContainer center={center} zoom={14} scrollWheelZoom={false} className="h-full w-full"><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />{userPoint && <CurrentPositionLayer position={currentPosition} />}<Marker position={center} icon={defaultIcon} /></MapContainer></div><div className="flex flex-wrap items-center justify-between gap-2 text-xs"><p className="min-w-0 truncate text-slate-600">{address || `${center[0].toFixed(5)}, ${center[1].toFixed(5)}`}</p><button type="button" onClick={openMap} className="shrink-0 font-semibold text-brand-700 hover:underline">View map</button></div>{distance != null && <p className="text-xs text-slate-500">{formatDistance(distance)} away from your current position</p>}</div>{mapOpen && <LocationMapDialog address={address} center={center} currentPosition={currentPosition} onClose={() => setMapOpen(false)} />}</>;
+  return <><div className={compact ? 'space-y-1' : 'space-y-2'}><div className={`${className} overflow-hidden border border-slate-200`}><MapContainer center={center} zoom={14} scrollWheelZoom={false} maxBounds={PH_BOUNDS} maxBoundsViscosity={1} className="h-full w-full"><PhBoundsController /><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />{userPoint && <CurrentPositionLayer position={currentPosition} />}<Marker position={center} icon={defaultIcon} /></MapContainer></div><div className="flex flex-wrap items-center justify-between gap-2 text-xs"><p className="min-w-0 truncate text-slate-600">{address || `${center[0].toFixed(5)}, ${center[1].toFixed(5)}`}</p><button type="button" onClick={openMap} className="shrink-0 font-semibold text-brand-700 hover:underline">View map</button></div>{distance != null && <p className="text-xs text-slate-500">{formatDistance(distance)} away from your current position</p>}</div>{mapOpen && <LocationMapDialog address={address} center={center} currentPosition={currentPosition} onClose={() => setMapOpen(false)} />}</>;
 };
 
 const LocationMapDialog = ({ address, center, loading = false, error = '', currentPosition = null, onClose }) => <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
   <section role="dialog" aria-modal="true" aria-labelledby="location-map-title" className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-popover">
     <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-3"><div className="min-w-0"><h2 id="location-map-title" className="text-base font-bold text-slate-900">Location map</h2><p className="mt-1 truncate text-xs text-slate-600">{address || 'Selected location'}</p></div><button type="button" autoFocus onClick={onClose} className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Close</button></header>
-    <div className="min-h-0 flex-1 p-3">{loading ? <div role="status" className="flex h-64 items-center justify-center text-sm text-slate-500">Finding this address on the map…</div> : error ? <p role="alert" className="border-y border-amber-200 py-4 text-sm text-amber-900">{error} Address: {address}</p> : <div className="h-[min(65vh,34rem)] overflow-hidden border border-slate-200"><MapContainer center={center} zoom={14} scrollWheelZoom className="h-full w-full"><MapViewport center={center} zoom={14} /><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />{currentPosition && <CurrentPositionLayer position={currentPosition} />}<Marker position={center} icon={defaultIcon} /></MapContainer></div>}</div>
+    <div className="min-h-0 flex-1 p-3">{loading ? <div role="status" className="flex h-64 items-center justify-center text-sm text-slate-500">Finding this address on the map…</div> : error ? <p role="alert" className="border-y border-amber-200 py-4 text-sm text-amber-900">{error} Address: {address}</p> : <div className="h-[min(65vh,34rem)] overflow-hidden border border-slate-200"><MapContainer center={center} zoom={14} scrollWheelZoom maxBounds={PH_BOUNDS} maxBoundsViscosity={1} className="h-full w-full"><PhBoundsController /><MapViewport center={center} zoom={14} /><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />{currentPosition && <CurrentPositionLayer position={currentPosition} />}<Marker position={center} icon={defaultIcon} /></MapContainer></div>}</div>
   </section>
 </div>;
 
@@ -177,22 +221,26 @@ const AddressMap = ({ location = '', formattedAddress = '', latitude, longitude,
   const [error, setError] = useState('');
   const coordsAvailable = hasCoordinates(latitude, longitude);
   const userPoint = currentPosition ? [currentPosition.latitude, currentPosition.longitude] : null;
-  const center = coordsAvailable ? [Number(latitude), Number(longitude)] : (userPoint || [20, 0]);
-  const zoom = coordsAvailable ? 14 : (userPoint ? 15 : 2);
+  const center = coordsAvailable ? [Number(latitude), Number(longitude)] : (userPoint || [PH_CENTER.latitude, PH_CENTER.longitude]);
+  const zoom = coordsAvailable ? 14 : (userPoint ? 15 : PH_DEFAULT_ZOOM);
 
   useEffect(() => { setSearch(formattedAddress || location); }, [formattedAddress, location]);
 
   const setPin = async (lat, lon) => {
+    if (!isWithinPhilippines(lat, lon)) {
+      setError('That point is outside the Philippines. Drop the pin somewhere inside the country.');
+      return;
+    }
+    setError('');
     onChange({ latitude: lat, longitude: lon });
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
-      if (!response.ok) return;
-      const result = await response.json();
-      const address = String(result.display_name || '').slice(0, 300);
-      if (address) {
-        setSearch(address);
-        onChange({ latitude: lat, longitude: lon, location: address.slice(0, 200), formattedAddress: address });
+      const result = await reverseGeocodePhilippineLocation(lat, lon);
+      if (!result) {
+        setError('Coordinates saved; the address lookup only covers the Philippines.');
+        return;
       }
+      setSearch(result.formattedAddress);
+      onChange({ latitude: lat, longitude: lon, location: result.location, formattedAddress: result.formattedAddress });
     } catch {
       setError('Coordinates saved; address lookup was unavailable.');
     }
@@ -205,15 +253,15 @@ const AddressMap = ({ location = '', formattedAddress = '', latitude, longitude,
     setSearching(true);
     setError('');
     try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`);
-      if (!response.ok) throw new Error('Address search is unavailable. Try again later.');
-      const results = await response.json();
-      if (!results.length) throw new Error('No matching address found. Try a more specific search.');
-      const result = results[0];
-      const address = String(result.display_name || '').slice(0, 300);
-      const next = { latitude: Number(result.lat), longitude: Number(result.lon), location: address.slice(0, 200), formattedAddress: address };
-      onChange(next);
-      setSearch(result.display_name);
+      const result = await geocodePhilippineLocation(query);
+      if (!result) throw new Error('No matching Philippine address found. Try a city or municipality in the Philippines.');
+      onChange({
+        latitude: result.latitude,
+        longitude: result.longitude,
+        location: result.location,
+        formattedAddress: result.formattedAddress,
+      });
+      setSearch(result.formattedAddress);
     } catch (searchError) {
       setError(searchError.message || 'Unable to search this address.');
     } finally {
@@ -240,8 +288,8 @@ const AddressMap = ({ location = '', formattedAddress = '', latitude, longitude,
   return <div className="space-y-2">
     <div className="flex flex-wrap gap-2"><label className="sr-only" htmlFor="address-map-search">Search address</label><input id="address-map-search" value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') searchAddress(event); }} maxLength={300} placeholder="Search an address" className="ui-input min-w-0 flex-1" /><button type="button" onClick={searchAddress} disabled={searching} className="ui-btn ui-btn-secondary ui-btn-sm shrink-0"><Search className="h-4 w-4" />{searching ? 'Searching' : 'Search'}</button><button type="button" onClick={applyCurrentLocation} disabled={locating} title="Use my current location" className="inline-flex shrink-0 items-center gap-2 rounded-md border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-100 disabled:opacity-50">{locating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4" />}{locating ? 'Locating…' : 'Use my location'}</button></div>
     {(error || locationError) && <p role="alert" className="text-xs text-rose-700">{error || locationError}</p>}
-    <div className="h-64 overflow-hidden border border-slate-200"><MapContainer center={center} zoom={zoom} scrollWheelZoom className="h-full w-full"><MapViewport center={center} zoom={zoom} /><MapPinEvents onPlace={setPin} /><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />{userPoint && <CurrentPositionLayer position={currentPosition} />}{coordsAvailable && <Marker position={[Number(latitude), Number(longitude)]} icon={defaultIcon} draggable eventHandlers={{ dragend: (event) => { const point = event.target.getLatLng(); setPin(point.lat, point.lng); } }} />}</MapContainer></div>
-    <p className="text-xs text-slate-500">{hint}</p>
+    <div className="h-64 overflow-hidden border border-slate-200"><MapContainer center={center} zoom={zoom} scrollWheelZoom maxBounds={PH_BOUNDS} maxBoundsViscosity={1} className="h-full w-full"><PhBoundsController /><MapViewport center={center} zoom={zoom} /><MapPinEvents onPlace={setPin} /><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />{userPoint && <CurrentPositionLayer position={currentPosition} />}{coordsAvailable && <Marker position={[Number(latitude), Number(longitude)]} icon={defaultIcon} draggable eventHandlers={{ dragend: (event) => { const point = event.target.getLatLng(); setPin(point.lat, point.lng); } }} />}</MapContainer></div>
+    <p className="text-xs text-slate-500">{hint} Map is limited to the Philippines.</p>
   </div>;
 };
 

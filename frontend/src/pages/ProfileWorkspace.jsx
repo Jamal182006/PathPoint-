@@ -226,7 +226,7 @@ const ProfileWorkspace = () => {
 
   // Load profile and customization data safely
   const loadProfileData = useCallback(async (isSilent = false) => {
-    if (!isSilent && !user) setProfileLoading(true);
+    if (!isSilent) setProfileLoading(true);
     if (isSilent) setRefreshing(true);
 
     try {
@@ -242,10 +242,16 @@ const ProfileWorkspace = () => {
         fullUser = user;
       }
 
-      if (fullUser) {
+      if (fullUser && !isSilent) {
         const normalized = normalizeProfile(fullUser);
         setProfile(normalized);
         setSavedProfile(normalized);
+      } else if (fullUser && isSilent) {
+        const normalized = normalizeProfile(fullUser);
+        setSavedProfile((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(normalized)) return prev;
+          return normalized;
+        });
       }
 
       let custData = null;
@@ -258,10 +264,16 @@ const ProfileWorkspace = () => {
         };
       }
 
-      if (custData) {
+      if (custData && !isSilent) {
         const normPriv = normalizePrivacySettings(custData.privacySettings);
         setPrivacySettings(normPriv);
         setSavedPrivacySettings(normPriv);
+      } else if (custData && isSilent) {
+        const normPriv = normalizePrivacySettings(custData.privacySettings);
+        setSavedPrivacySettings((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(normPriv)) return prev;
+          return normPriv;
+        });
       }
 
       if (isSilent) {
@@ -276,24 +288,23 @@ const ProfileWorkspace = () => {
       setProfileLoading(false);
       setRefreshing(false);
     }
-  }, [user, toast]);
+  }, [toast]);
 
   useEffect(() => {
-    let active = true;
     loadProfileData(false);
-    return () => {
-      active = false;
-    };
-  }, [loadProfileData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Synchronize with user context changes if available
+  // Initialize from user context only once
+  const initializedRef = useRef(false);
   useEffect(() => {
-    if (user && !savedProfile.name) {
+    if (user && !initializedRef.current) {
       const normalized = normalizeProfile(user);
       setProfile(normalized);
       setSavedProfile(normalized);
+      initializedRef.current = true;
     }
-  }, [user, savedProfile.name]);
+  }, [user]);
 
   // Completion calculation & interactive checklists
   const completionItems = useMemo(() => [
@@ -1894,18 +1905,23 @@ const ProfileWorkspace = () => {
                           Upload your resume in PDF, JPG, or PNG format (max 5 MB).
                         </p>
                         <div className="mt-4">
-                          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-700">
-                            {resumeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                            <span>{resumeBusy ? 'Uploading…' : 'Choose File to Upload'}</span>
-                            <input
-                              ref={resumeInputRef}
-                              type="file"
-                              accept="application/pdf,image/jpeg,image/png"
-                              disabled={resumeBusy}
-                              onChange={handleResumeUpload}
-                              className="sr-only"
-                            />
-                          </label>
+                          <div className="flex flex-col items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-700">
+                              {resumeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                              <span>{resumeBusy ? 'Uploading…' : 'Choose File to Upload'}</span>
+                              <input
+                                ref={resumeInputRef}
+                                type="file"
+                                accept="application/pdf,image/jpeg,image/png"
+                                disabled={resumeBusy}
+                                onChange={handleResumeUpload}
+                                className="sr-only"
+                              />
+                            </label>
+                            {resumeInputRef.current?.files?.[0] && (
+                              <span className="text-xs text-slate-600">{resumeInputRef.current.files[0].name} ({Math.round(resumeInputRef.current.files[0].size / 1024)} KB)</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}

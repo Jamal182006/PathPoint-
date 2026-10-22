@@ -251,6 +251,19 @@ router.patch('/providers/:id/verification', async (req, res) => {
     provider.businessVerification.reviewedAt = new Date();
     provider.businessVerification.reviewedBy = req.user._id;
     await provider.save();
+
+    if (status === 'approved') {
+      try {
+        const Company = (await import('../models/Company.js')).default;
+        await Company.updateMany(
+          { providerId: provider._id, status: { $in: ['pending'] } },
+          { $set: { status: 'approved', reviewedAt: new Date(), reviewedBy: req.user._id, rejectionReason: '' } }
+        );
+      } catch (companyUpdateError) {
+        console.error('[Admin Error - Auto-approve provider companies]:', companyUpdateError);
+      }
+    }
+
     await Promise.all([
       notifyUser(provider._id, `Your provider verification was ${status}${status === 'rejected' ? `: ${provider.businessVerification.rejectionReason}` : ''}.`, '/provider'),
       recordActivity(req.user._id, `${status} provider verification`, provider._id, 'provider'),
