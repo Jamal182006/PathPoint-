@@ -100,13 +100,20 @@ export const InterviewScheduler = () => {
         isPast: dateObj < now,
       });
     });
-
     return list.sort((a, b) => a.date - b.date);
   }, [applications, submissions, now, next7Days]);
 
-  const urgentInterviews = allInterviews.filter((i) => i.isUpcomingWithin7Days);
-  const futureInterviews = allInterviews.filter((i) => i.date >= now && !i.isUpcomingWithin7Days);
-  const pastInterviews = allInterviews.filter((i) => i.isPast);
+  const { urgentInterviews, futureInterviews, pastInterviews } = useMemo(() => {
+    const urgent = [];
+    const future = [];
+    const past = [];
+    for (const interview of allInterviews) {
+      if (interview.isUpcomingWithin7Days) urgent.push(interview);
+      else if (interview.date >= now) future.push(interview);
+      else if (interview.isPast) past.push(interview);
+    }
+    return { urgentInterviews: urgent, futureInterviews: future, pastInterviews: past };
+  }, [allInterviews, now]);
 
   return (
     <div className="ui-container py-6">

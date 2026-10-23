@@ -32,7 +32,12 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
 import Modal from '../components/common/Modal';
 import ForgotPasswordModal from '../components/common/ForgotPasswordModal';
+import PhilippineLocationInput from '../components/common/PhilippineLocationInput';
+import PhilippinePhoneInput from '../components/common/PhilippinePhoneInput';
+import EducationAutocompleteInput from '../components/common/EducationAutocompleteInput';
 import { apiAdapter } from '../services/apiAdapter';
+import { matchesPhilippineLocation } from '../utils/phLocations';
+import { isValidPhilippinePhone, normalizePhilippinePhone } from '../utils/phPhone';
 
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
@@ -88,11 +93,24 @@ const formatDateInput = (value) => {
   }
 };
 
+const getTodayDate = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const normalizeProfile = (source) => ({
   name: source?.name || '',
   username: source?.username || '',
-  phone: source?.phone || '',
+  // Philippine numbers are stored as national digits; the +63 country code is
+  // added by the input, never typed by the user.
+  phone: normalizePhilippinePhone(source?.phone),
   address: source?.address || '',
+  city: source?.city || '',
+  province: source?.province || '',
+  country: source?.country || '',
   bio: source?.bio || '',
   occupation: source?.occupation || '',
   employmentStatus: source?.employmentStatus || '',
@@ -149,6 +167,8 @@ const ProfileWorkspace = () => {
   const [editingSection, setEditingSection] = useState('');
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [removeResumeModalOpen, setRemoveResumeModalOpen] = useState(false);
+  const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(!user);
 
   // Profile data
@@ -331,6 +351,8 @@ const ProfileWorkspace = () => {
         profile.username !== savedProfile.username ||
         profile.phone !== savedProfile.phone ||
         profile.address !== savedProfile.address ||
+        profile.city !== savedProfile.city ||
+        profile.province !== savedProfile.province ||
         profile.bio !== savedProfile.bio ||
         profile.occupation !== savedProfile.occupation ||
         profile.employmentStatus !== savedProfile.employmentStatus ||
@@ -398,10 +420,28 @@ const ProfileWorkspace = () => {
               return;
             }
           }
+          // The account is Philippines-only: the phone number and the location
+          // must both resolve to a valid Philippine value before saving.
+          const phoneDigits = normalizePhilippinePhone(profile.phone);
+          if (phoneDigits && !isValidPhilippinePhone(phoneDigits)) {
+            toast('Enter a valid Philippine mobile (9XXXXXXXXX) or landline number.', 'error');
+            setSaving(false);
+            return;
+          }
+          const address = profile.address.trim();
+          if (address && !matchesPhilippineLocation(address)) {
+            toast('Choose a Philippine city, municipality, or Pangasinan barangay from the suggestions.', 'error');
+            setSaving(false);
+            return;
+          }
           payload = {
             name: profile.name.trim(),
-            phone: profile.phone.trim(),
-            address: profile.address.trim(),
+            phone: phoneDigits,
+            phoneCountryCode: '+63',
+            address,
+            city: profile.city.trim(),
+            province: profile.province.trim(),
+            country: address ? 'Philippines' : '',
             bio: profile.bio.trim(),
             occupation: profile.occupation.trim(),
             employmentStatus: profile.employmentStatus.trim(),
@@ -410,6 +450,38 @@ const ProfileWorkspace = () => {
           };
           if (usernameChanged) payload.username = normalizedUsername;
         } else if (activeSection === 'experience') {
+          const today = getTodayDate();
+          const currentYear = new Date().getFullYear();
+          for (let i = 0; i < profile.experience.length; i++) {
+            const entry = profile.experience[i];
+            const num = i + 1;
+            if (entry.location && entry.location.trim() && !matchesPhilippineLocation(entry.location)) {
+              toast(`Position #${num}: Choose a Philippine city, municipality, or Pangasinan barangay from the suggestions.`, 'error');
+              setSaving(false);
+              return;
+            }
+            if (entry.startDate) {
+              const startYear = parseInt(entry.startDate.split('-')[0], 10);
+              if (startYear > currentYear || entry.startDate > today) {
+                toast(`Position #${num}: Start date cannot be in the future.`, 'error');
+                setSaving(false);
+                return;
+              }
+            }
+            if (!entry.current && entry.endDate) {
+              const endYear = parseInt(entry.endDate.split('-')[0], 10);
+              if (endYear > currentYear || entry.endDate > today) {
+                toast(`Position #${num}: End date cannot be in the future (year ${endYear} not allowed). Check "I currently work here" if active.`, 'error');
+                setSaving(false);
+                return;
+              }
+              if (entry.startDate && entry.endDate < entry.startDate) {
+                toast(`Position #${num}: End date cannot be earlier than start date.`, 'error');
+                setSaving(false);
+                return;
+              }
+            }
+          }
           const cleanedExperience = profile.experience.map((entry) => ({
             ...entry,
             title: entry.title.trim(),
@@ -421,6 +493,30 @@ const ProfileWorkspace = () => {
           }));
           payload = { experience: cleanedExperience };
         } else if (activeSection === 'education') {
+          const today = getTodayDate();
+          const maxGradYear = new Date().getFullYear() + 6;
+          for (let i = 0; i < profile.educationHistory.length; i++) {
+            const entry = profile.educationHistory[i];
+            const num = i + 1;
+            if (entry.startDate && entry.startDate > today) {
+              toast(`Degree #${num}: Start date cannot be in the future.`, 'error');
+              setSaving(false);
+              return;
+            }
+            if (entry.endDate) {
+              const gradYear = new Date(entry.endDate).getFullYear();
+              if (gradYear > maxGradYear) {
+                toast(`Degree #${num}: Graduation year cannot exceed ${maxGradYear}.`, 'error');
+                setSaving(false);
+                return;
+              }
+              if (entry.startDate && entry.endDate < entry.startDate) {
+                toast(`Degree #${num}: Graduation date cannot be earlier than start date.`, 'error');
+                setSaving(false);
+                return;
+              }
+            }
+          }
           const cleanedEducation = profile.educationHistory.map((entry) => ({
             ...entry,
             school: entry.school.trim(),
@@ -525,14 +621,18 @@ const ProfileWorkspace = () => {
     }
   };
 
-  const handleRemoveResume = async () => {
-    if (!window.confirm('Are you sure you want to remove your resume?')) return;
+  const handleRemoveResume = () => {
+    setRemoveResumeModalOpen(true);
+  };
+
+  const confirmRemoveResume = async () => {
     setResumeBusy(true);
     try {
       await apiAdapter.deleteMyResume();
       setProfile((prev) => ({ ...prev, resume: null }));
       setSavedProfile((prev) => ({ ...prev, resume: null }));
       toast('Resume removed from your profile.', 'success');
+      setRemoveResumeModalOpen(false);
     } catch (err) {
       toast(err.message || 'Unable to remove resume.', 'error');
     } finally {
@@ -1104,9 +1204,7 @@ const ProfileWorkspace = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (window.confirm('Sign out of your account now?')) logout();
-                    }}
+                    onClick={() => setSignOutModalOpen(true)}
                     className="rounded-xl border border-rose-200 bg-white px-3.5 py-2 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-50"
                   >
                     Sign Out
@@ -1224,35 +1322,52 @@ const ProfileWorkspace = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700">
+                      <label htmlFor="profile-phone" className="block text-xs font-semibold text-slate-700">
                         Phone Number
                       </label>
-                      <input
-                        maxLength={40}
+                      <PhilippinePhoneInput
+                        id="profile-phone"
                         value={profile.phone}
-                        onChange={(e) => {
-                          setProfile({ ...profile, phone: e.target.value });
+                        onChange={(value) => {
+                          setProfile({ ...profile, phone: value });
                           setEditingSection('basic');
                         }}
-                        placeholder="+1 (555) 012-3456"
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700">
-                        Location / Address
+                      <label htmlFor="profile-location" className="block text-xs font-semibold text-slate-700">
+                        Location
                       </label>
-                      <input
-                        maxLength={300}
-                        value={profile.address}
-                        onChange={(e) => {
-                          setProfile({ ...profile, address: e.target.value });
-                          setEditingSection('basic');
-                        }}
-                        placeholder="San Francisco, CA or Singapore"
-                        className="mt-1 block w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 transition focus:border-brand-600 focus:outline-hidden focus:ring-1 focus:ring-brand-600"
-                      />
+                      <div className="mt-1">
+                        <PhilippineLocationInput
+                          id="profile-location"
+                          value={profile.address}
+                          onChange={(value) => {
+                            setProfile({ ...profile, address: value });
+                            setEditingSection('basic');
+                          }}
+                          onSelect={(entry) => {
+                            setProfile((current) => ({
+                              ...current,
+                              address: entry.label,
+                              city: entry.city || '',
+                              province: entry.province || '',
+                              country: 'Philippines',
+                            }));
+                            setEditingSection('basic');
+                          }}
+                          placeholder="Search a Philippine city or municipality"
+                          className="rounded-xl"
+                        />
+                      </div>
+                      {profile.address.trim()
+                        && profile.address === savedProfile.address
+                        && !matchesPhilippineLocation(profile.address) && (
+                        <p role="alert" className="mt-1 text-xs font-medium text-rose-700">
+                          This location is outside the Philippines. Pick a Philippine place from the suggestions.
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -1524,14 +1639,18 @@ const ProfileWorkspace = () => {
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700">Location</label>
-                            <input
-                              maxLength={120}
-                              value={entry.location}
-                              onChange={(e) => updateExperienceEntry(index, { location: e.target.value })}
-                              placeholder="New York, NY or Remote"
-                              className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                            />
+                            <label htmlFor={`exp-location-${index}`} className="block text-xs font-semibold text-slate-700">
+                              Location (Philippines)
+                            </label>
+                            <div className="mt-1">
+                              <PhilippineLocationInput
+                                id={`exp-location-${index}`}
+                                value={entry.location || ''}
+                                onChange={(val) => updateExperienceEntry(index, { location: val })}
+                                placeholder="Search city or municipality (e.g. Makati, Cebu City)"
+                                className="!rounded-xl"
+                              />
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2">
@@ -1539,9 +1658,33 @@ const ProfileWorkspace = () => {
                               <label className="block text-xs font-semibold text-slate-700">Start Date</label>
                               <input
                                 type="date"
+                                min="1960-01-01"
+                                max={getTodayDate()}
                                 value={entry.startDate || ''}
-                                onChange={(e) => updateExperienceEntry(index, { startDate: e.target.value })}
-                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900"
+                                onClick={(e) => {
+                                  try { e.target.showPicker?.(); } catch {}
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const today = getTodayDate();
+                                  const currentYear = new Date().getFullYear();
+                                  if (val) {
+                                    const year = parseInt(val.split('-')[0], 10);
+                                    if (year > currentYear || val > today) {
+                                      toast(`Start date cannot be in the future (today is ${today}).`, 'error');
+                                      e.target.value = '';
+                                      updateExperienceEntry(index, { startDate: '' });
+                                      return;
+                                    }
+                                    if (!entry.current && entry.endDate && val > entry.endDate) {
+                                      toast('Start date was set after end date. Please update end date.', 'warning');
+                                      updateExperienceEntry(index, { startDate: val, endDate: '' });
+                                      return;
+                                    }
+                                  }
+                                  updateExperienceEntry(index, { startDate: val });
+                                }}
+                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 cursor-pointer"
                               />
                             </div>
                             <div>
@@ -1549,9 +1692,36 @@ const ProfileWorkspace = () => {
                               <input
                                 type="date"
                                 disabled={entry.current}
-                                value={entry.endDate || ''}
-                                onChange={(e) => updateExperienceEntry(index, { endDate: e.target.value })}
-                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
+                                min={entry.startDate || '1960-01-01'}
+                                max={getTodayDate()}
+                                value={entry.current ? '' : (entry.endDate || '')}
+                                onClick={(e) => {
+                                  if (!entry.current) {
+                                    try { e.target.showPicker?.(); } catch {}
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const today = getTodayDate();
+                                  const currentYear = new Date().getFullYear();
+                                  if (val) {
+                                    const year = parseInt(val.split('-')[0], 10);
+                                    if (year > currentYear || val > today) {
+                                      toast('End date cannot be in the future (year 2200 not allowed). Check "I currently work here" if this is your active role.', 'error');
+                                      e.target.value = '';
+                                      updateExperienceEntry(index, { endDate: '' });
+                                      return;
+                                    }
+                                    if (entry.startDate && val < entry.startDate) {
+                                      toast('End date cannot be earlier than start date.', 'error');
+                                      e.target.value = '';
+                                      updateExperienceEntry(index, { endDate: '' });
+                                      return;
+                                    }
+                                  }
+                                  updateExperienceEntry(index, { endDate: val });
+                                }}
+                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
                               />
                             </div>
                           </div>
@@ -1607,7 +1777,7 @@ const ProfileWorkspace = () => {
                         setProfile({ ...profile, education: e.target.value });
                         setEditingSection('education');
                       }}
-                      placeholder="e.g. B.S. in Computer Science — Stanford University"
+                      placeholder="e.g. B.S. in Computer Science — University of the Philippines Diliman"
                       className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900"
                     />
                   </div>
@@ -1665,54 +1835,102 @@ const ProfileWorkspace = () => {
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div>
                             <label className="block text-xs font-semibold text-slate-700">Institution / School</label>
-                            <input
-                              maxLength={160}
+                            <EducationAutocompleteInput
+                              id={`edu-school-${index}`}
+                              type="school"
                               value={entry.school}
-                              onChange={(e) => updateEducationEntry(index, { school: e.target.value })}
-                              placeholder="University of California, Berkeley"
-                              className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                              onChange={(val) => updateEducationEntry(index, { school: val })}
+                              placeholder="e.g. University of the Philippines Diliman, UST, DLSU"
                             />
                           </div>
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-700">Degree / Certificate</label>
-                            <input
-                              maxLength={120}
+                            <EducationAutocompleteInput
+                              id={`edu-degree-${index}`}
+                              type="degree"
                               value={entry.degree}
-                              onChange={(e) => updateEducationEntry(index, { degree: e.target.value })}
-                              placeholder="Bachelor of Science"
-                              className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                              onChange={(val) => updateEducationEntry(index, { degree: val })}
+                              placeholder="e.g. Bachelor of Science, Senior High School, TESDA"
                             />
                           </div>
 
-                          <div>
+                          <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold text-slate-700">Field of Study</label>
-                            <input
-                              maxLength={120}
+                            <EducationAutocompleteInput
+                              id={`edu-field-${index}`}
+                              type="field"
                               value={entry.fieldOfStudy}
-                              onChange={(e) => updateEducationEntry(index, { fieldOfStudy: e.target.value })}
-                              placeholder="Computer Science & Engineering"
-                              className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                              onChange={(val) => updateEducationEntry(index, { fieldOfStudy: val })}
+                              placeholder="e.g. Computer Science, Nursing, Accountancy"
                             />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                             <div>
                               <label className="block text-xs font-semibold text-slate-700">Start Date</label>
                               <input
                                 type="date"
+                                min="1960-01-01"
+                                max={getTodayDate()}
                                 value={entry.startDate || ''}
-                                onChange={(e) => updateEducationEntry(index, { startDate: e.target.value })}
-                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900"
+                                onClick={(e) => {
+                                  try { e.target.showPicker?.(); } catch {}
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const today = getTodayDate();
+                                  const currentYear = new Date().getFullYear();
+                                  if (val) {
+                                    const year = parseInt(val.split('-')[0], 10);
+                                    if (year > currentYear || val > today) {
+                                      toast(`Education start date cannot be in the future (today is ${today}).`, 'error');
+                                      e.target.value = '';
+                                      updateEducationEntry(index, { startDate: '' });
+                                      return;
+                                    }
+                                    if (val && entry.endDate && val > entry.endDate) {
+                                      toast('Start date was set after graduation date. Please select new graduation date.', 'warning');
+                                      updateEducationEntry(index, { startDate: val, endDate: '' });
+                                      return;
+                                    }
+                                  }
+                                  updateEducationEntry(index, { startDate: val });
+                                }}
+                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 cursor-pointer"
                               />
                             </div>
                             <div>
-                              <label className="block text-xs font-semibold text-slate-700">End Date</label>
+                              <label className="block text-xs font-semibold text-slate-700">Graduation / End Date</label>
                               <input
                                 type="date"
+                                min={entry.startDate || '1960-01-01'}
+                                max={`${new Date().getFullYear() + 7}-12-31`}
                                 value={entry.endDate || ''}
-                                onChange={(e) => updateEducationEntry(index, { endDate: e.target.value })}
-                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900"
+                                onClick={(e) => {
+                                  try { e.target.showPicker?.(); } catch {}
+                                }}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const maxYear = new Date().getFullYear() + 7;
+                                  if (val) {
+                                    const year = parseInt(val.split('-')[0], 10);
+                                    if (year > maxYear) {
+                                      toast(`Graduation year cannot exceed ${maxYear} (year 2200 not allowed).`, 'error');
+                                      e.target.value = '';
+                                      updateEducationEntry(index, { endDate: '' });
+                                      return;
+                                    }
+                                    if (val && entry.startDate && val < entry.startDate) {
+                                      toast('Graduation date cannot be earlier than start date.', 'error');
+                                      e.target.value = '';
+                                      updateEducationEntry(index, { endDate: '' });
+                                      return;
+                                    }
+                                  }
+                                  updateEducationEntry(index, { endDate: val });
+                                }}
+                                className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 cursor-pointer"
                               />
                             </div>
                           </div>
@@ -2024,6 +2242,66 @@ const ProfileWorkspace = () => {
             </>
           );
         })()}
+      </Modal>
+
+      {/* Remove Resume Confirmation Modal */}
+      <Modal
+        isOpen={removeResumeModalOpen}
+        onClose={() => setRemoveResumeModalOpen(false)}
+        title="Remove resume"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to remove your profile resume? Job applications requiring a resume will prompt you to upload an updated document.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setRemoveResumeModalOpen(false)}
+              className="ui-btn ui-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmRemoveResume}
+              disabled={resumeBusy}
+              className="ui-btn ui-btn-danger"
+            >
+              {resumeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Remove resume
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Sign Out Confirmation Modal */}
+      <Modal
+        isOpen={signOutModalOpen}
+        onClose={() => setSignOutModalOpen(false)}
+        title="Sign out of PathPoint"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to sign out of your account on this device?
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setSignOutModalOpen(false)}
+              className="ui-btn ui-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSignOutModalOpen(false); logout(); }}
+              className="ui-btn ui-btn-primary"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

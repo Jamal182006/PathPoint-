@@ -18,7 +18,16 @@ const PH_REGIONS = {
     'Ilocos Norte': ['Laoag', 'Batac', 'Burgos', 'Currimao', 'Dingras', 'Marcos', 'Paoay', 'Pasuquin', 'Piddig', 'Sarrat', 'Vintar'],
     'Ilocos Sur': ['Vigan', 'Candon', 'Bantay', 'Baternion', 'Cabugao', 'Carmona', 'Casigan', 'Cervantes', 'Galiano', 'Gregorio Ordinales', 'Magsasaka', 'Nabuat', 'Narvacan', 'Salcedo', 'San Agustin', 'San Ildefonso', 'Santa Catalina', 'Santa Maria', 'Tayug', 'Villa Vista'],
     'La Union': ['San Fernando', 'Agoo', 'Bacnotan', 'Bagulin', 'Balaoan', 'Bangar', 'Bauang', 'Burgos', 'Caba', 'Luna', 'Pugo', 'Rosario', 'San Gabriel', 'Santol', 'Sudipen', 'Tubao'],
-    'Pangasinan': ['Urdaneta', 'Dagupan', 'Alaminos', 'San Carlos', 'Mabalacat', 'Asingan', 'Bambang', 'Bayombong', 'Binalonan', 'Boac', 'Bolinuen', 'Bual', 'Calasiao', 'Carmona', 'Castillejos', 'Cebuana', 'Dasol', 'Infanta', 'Labrador', 'Mabini', 'Manaoag', 'Mangaldan', 'Natividad', 'Salas', 'San Manuel', 'San Nicolas', 'Santa Maria', 'Sual', 'Tavira', 'Umingan', 'Uyugan', 'Villares'],
+    'Pangasinan': [
+      'Alaminos City', 'Dagupan City', 'San Carlos City', 'Urdaneta City',
+      'Agno', 'Aguilar', 'Alcala', 'Anda', 'Asingan', 'Balungao', 'Bani', 'Basista',
+      'Bautista', 'Bayambang', 'Binalonan', 'Binmaley', 'Bolinao', 'Bugallon', 'Burgos',
+      'Calasiao', 'Dasol', 'Infanta', 'Laoac', 'Labrador', 'Lingayen', 'Mabini',
+      'Malasiqui', 'Manaoag', 'Mangaldan', 'Mangatarem', 'Mapandan', 'Natividad',
+      'Pozorrubio', 'Rosales', 'San Fabian', 'San Jacinto', 'San Manuel', 'San Nicolas',
+      'San Quintin', 'Santa Barbara', 'Santa Maria', 'Santo Tomas', 'Sison', 'Sual',
+      'Tayug', 'Umingan', 'Urbiztondo', 'Villasis',
+    ],
   },
   'Cagayan Valley': {
     Batanes: ['Basco', 'Ivana', 'Itbayat', 'Mahfid', 'Sapi', 'Tayug'],
@@ -126,6 +135,19 @@ const PH_LOCATION_ENTRIES = (() => {
   return entries;
 })();
 
+// Pangasinan's barangays are included with their municipality/city so repeated
+// barangay names stay distinguishable in the shared location picker.
+import pangasinanBarangays from './pangasinanBarangays.js';
+const PH_PANGASINAN_BARANGAY_ENTRIES = pangasinanBarangays.map(({ name, municipality }) => ({
+  kind: 'barangay',
+  barangay: name,
+  city: municipality,
+  municipality,
+  province: 'Pangasinan',
+  region: 'Ilocos Region',
+  label: `${name}, ${municipality}, Pangasinan`,
+}));
+
 export const PH_PROVINCES = [...new Set(PH_LOCATION_ENTRIES.map((entry) => entry.province))].sort((a, b) => a.localeCompare(b));
 
 export const PH_CITIES = [...new Set(PH_LOCATION_ENTRIES.map((entry) => entry.city))].sort((a, b) => a.localeCompare(b));
@@ -141,6 +163,77 @@ export const isPhilippineLocation = (value) => {
     entry.city.toLowerCase() === normalized
     || entry.province.toLowerCase() === normalized
     || entry.label.toLowerCase() === normalized
+  )) || PH_PANGASINAN_BARANGAY_ENTRIES.some((entry) => (
+    entry.label.toLowerCase() === normalized
+  ));
+};
+
+const PH_ALIASES = {
+  qc: 'Quezon City',
+  'q.c.': 'Quezon City',
+  bgc: 'Taguig',
+  'bonifacio global city': 'Taguig',
+  cdo: 'Cagayan de Oro',
+  csfp: 'San Fernando',
+  sjdm: 'San Jose del Monte',
+  ncr: 'Manila',
+  'metro manila': 'Manila',
+  makaty: 'Makati',
+  tagig: 'Taguig',
+  pasigg: 'Pasig',
+  munti: 'Muntinlupa',
+  cebuu: 'Cebu City',
+  'davao cty': 'Davao City',
+};
+
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+};
+
+// True when the text points at a Philippine place. A bare city or province is
+// enough, but a "City, Province" pair is only accepted when the second part is
+// a Philippine province or region, so "Quezon City, Metro Manila" passes while
+// "San Francisco, CA" does not.
+export const matchesPhilippineLocation = (value) => {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return false;
+  if (normalized === 'philippines' || normalized === 'remote (philippines)' || normalized === 'remote') return true;
+  if (PH_ALIASES[normalized]) return true;
+  if (isPhilippineLocation(normalized)) return true;
+  if (PH_PANGASINAN_BARANGAY_ENTRIES.filter((entry) => entry.barangay.toLowerCase() === normalized).length === 1) return true;
+  if (findPhilippineLocation(normalized)) return true;
+  const parts = normalized.split(',').map((part) => part.trim()).filter(Boolean);
+  if (!parts.length) return false;
+  const city = parts[0];
+  const candidates = PH_LOCATION_ENTRIES.filter((entry) => entry.city.toLowerCase() === city);
+  if (!candidates.length) {
+    return PH_LOCATION_ENTRIES.some((entry) => (
+      entry.province.toLowerCase() === city || entry.region.toLowerCase() === city
+    ));
+  }
+  if (parts.length === 1) return true;
+  const province = parts[1];
+  return candidates.some((entry) => (
+    entry.province.toLowerCase() === province || entry.region.toLowerCase() === province
   ));
 };
 
@@ -149,6 +242,18 @@ export const isPhilippineLocation = (value) => {
 export const findPhilippineLocation = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
   if (!normalized) return null;
+
+  // Check aliases first (e.g. QC -> Quezon City)
+  if (PH_ALIASES[normalized]) {
+    const aliasTarget = PH_ALIASES[normalized].toLowerCase();
+    const aliasMatch = PH_LOCATION_ENTRIES.find((entry) => entry.city.toLowerCase() === aliasTarget);
+    if (aliasMatch) return aliasMatch;
+  }
+
+  const exactBarangay = PH_PANGASINAN_BARANGAY_ENTRIES.find((entry) => entry.label.toLowerCase() === normalized);
+  if (exactBarangay) return exactBarangay;
+  const sameNameBarangays = PH_PANGASINAN_BARANGAY_ENTRIES.filter((entry) => entry.barangay.toLowerCase() === normalized);
+  if (sameNameBarangays.length === 1) return sameNameBarangays[0];
 
   const exact = PH_LOCATION_ENTRIES.find((entry) => (
     entry.city.toLowerCase() === normalized
@@ -167,7 +272,26 @@ export const findPhilippineLocation = (value) => {
     entry.city.toLowerCase().includes(normalized)
     || entry.label.toLowerCase().includes(normalized)
   ));
-  return includes || null;
+  if (includes) return includes;
+
+  // Fuzzy match for typos (length >= 4 and edit distance <= 2)
+  if (normalized.length >= 4) {
+    let closest = null;
+    let minDistance = 3;
+    for (const entry of PH_LOCATION_ENTRIES) {
+      const city = entry.city.toLowerCase();
+      if (Math.abs(city.length - normalized.length) <= 2) {
+        const dist = levenshtein(normalized, city);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closest = entry;
+        }
+      }
+    }
+    if (closest) return closest;
+  }
+
+  return null;
 };
 
 // Type-ahead suggestions for a partially typed Philippine location.
@@ -181,7 +305,20 @@ export const suggestPhilippineLocations = (value, limit = 8) => {
   }
 
   const scored = [];
+  const seen = new Set();
+
+  // Alias lookup (e.g. QC -> Quezon City)
+  if (PH_ALIASES[normalized]) {
+    const aliasTarget = PH_ALIASES[normalized].toLowerCase();
+    const aliasMatches = PH_LOCATION_ENTRIES.filter((entry) => entry.city.toLowerCase() === aliasTarget);
+    aliasMatches.forEach((entry) => {
+      scored.push({ ...entry, score: -1, isAutocorrect: true });
+      seen.add(entry.label);
+    });
+  }
+
   PH_LOCATION_ENTRIES.forEach((entry) => {
+    if (seen.has(entry.label)) return;
     const city = entry.city.toLowerCase();
     const label = entry.label.toLowerCase();
     let score = -1;
@@ -192,8 +329,54 @@ export const suggestPhilippineLocations = (value, limit = 8) => {
     else if (city.includes(normalized)) score = 4;
     else if (label.includes(normalized)) score = 5;
     else if (entry.province.toLowerCase().includes(normalized)) score = 6;
-    if (score >= 0) scored.push({ ...entry, score });
+    if (score >= 0) {
+      scored.push({ ...entry, score, isAutocorrect: false });
+      seen.add(entry.label);
+    }
   });
+
+  PH_PANGASINAN_BARANGAY_ENTRIES.forEach((entry) => {
+    if (seen.has(entry.label)) return;
+    const name = entry.barangay.toLowerCase();
+    const label = entry.label.toLowerCase();
+    let score = -1;
+    if (name === normalized) score = 0;
+    else if (label === normalized) score = 1;
+    else if (name.startsWith(normalized)) score = 2;
+    else if (label.startsWith(normalized)) score = 3;
+    else if (name.includes(normalized)) score = 4;
+    else if (label.includes(normalized)) score = 5;
+    if (score >= 0) {
+      scored.push({ ...entry, score, isAutocorrect: false });
+      seen.add(entry.label);
+    }
+  });
+
+  // If few suggestions found, check fuzzy match for typos
+  if (scored.length < limit && normalized.length >= 4) {
+    PH_LOCATION_ENTRIES.forEach((entry) => {
+      if (seen.has(entry.label)) return;
+      const city = entry.city.toLowerCase();
+      if (Math.abs(city.length - normalized.length) <= 2) {
+        const dist = levenshtein(normalized, city);
+        if (dist <= 2) {
+          scored.push({ ...entry, score: 10 + dist, isAutocorrect: true });
+          seen.add(entry.label);
+        }
+      }
+    });
+    PH_PANGASINAN_BARANGAY_ENTRIES.forEach((entry) => {
+      if (seen.has(entry.label)) return;
+      const name = entry.barangay.toLowerCase();
+      if (Math.abs(name.length - normalized.length) <= 2) {
+        const dist = levenshtein(normalized, name);
+        if (dist <= 2) {
+          scored.push({ ...entry, score: 10 + dist, isAutocorrect: true });
+          seen.add(entry.label);
+        }
+      }
+    });
+  }
 
   return scored
     .sort((a, b) => a.score - b.score || a.label.localeCompare(b.label))

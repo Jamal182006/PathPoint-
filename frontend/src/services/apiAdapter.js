@@ -74,6 +74,23 @@ const persistTrustedDevice = (token) => {
   if (token) localStorage.setItem('pathpoint_trusted_device', token);
 };
 
+const inFlightRequests = new Map();
+
+const deduplicateRequest = (key, fetcher) => {
+  if (inFlightRequests.has(key)) {
+    return inFlightRequests.get(key);
+  }
+  const promise = (async () => {
+    try {
+      return await fetcher();
+    } finally {
+      inFlightRequests.delete(key);
+    }
+  })();
+  inFlightRequests.set(key, promise);
+  return promise;
+};
+
 const withApiErrorMessage = async (request) => {
   try {
     return await request;
@@ -309,9 +326,12 @@ export const apiAdapter = {
   // APPLICATIONS
   // ==========================================
   getApplicationSubmissions: async (params = {}) => {
-    const res = await withApiErrorMessage(applicationsApi.getSubmissions(params));
-    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load applications');
-    return res.data;
+    const key = `app-submissions:${JSON.stringify(params)}`;
+    return deduplicateRequest(key, async () => {
+      const res = await withApiErrorMessage(applicationsApi.getSubmissions(params));
+      if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load applications');
+      return res.data;
+    });
   },
 
   updateApplicationSubmission: async (kind, id, payload) => {
@@ -333,9 +353,11 @@ export const apiAdapter = {
   },
 
   getPinnedItems: async () => {
-    const res = await withApiErrorMessage(pinsApi.getAll());
-    if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load tracked items');
-    return res.data.data || [];
+    return deduplicateRequest('pins:all', async () => {
+      const res = await withApiErrorMessage(pinsApi.getAll());
+      if (!res.data?.success) throw new Error(res.data?.message || 'Failed to load tracked items');
+      return res.data.data || [];
+    });
   },
 
   pinItem: async (payload) => {
@@ -351,15 +373,18 @@ export const apiAdapter = {
   },
 
   getApplications: async (userId, filters = {}) => {
-    try {
-      const res = await applicationsApi.getAll(filters);
-      if (res.data?.success) {
-        return res.data.data.map(normalizeApplication);
+    const key = `applications:${userId || 'current'}:${JSON.stringify(filters)}`;
+    return deduplicateRequest(key, async () => {
+      try {
+        const res = await applicationsApi.getAll(filters);
+        if (res.data?.success) {
+          return res.data.data.map(normalizeApplication);
+        }
+        throw new Error(res.data?.message || 'Failed to load applications');
+      } catch (err) {
+        throw new Error(err.response?.data?.message || err.message || 'Failed to load applications');
       }
-      throw new Error(res.data?.message || 'Failed to load applications');
-    } catch (err) {
-      throw new Error(err.response?.data?.message || err.message || 'Failed to load applications');
-    }
+    });
   },
 
   getApplicationById: async (id) => {

@@ -16,6 +16,8 @@ import workLogRoutes from './routes/workLogRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import pinRoutes from './routes/pinRoutes.js';
+import workLogReminderRoutes from './routes/workLogReminderRoutes.js';
+import cronRoutes from './routes/cronRoutes.js';
 
 if (!process.env.VERCEL) {
   dotenv.config({
@@ -116,6 +118,8 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/work-logs', workLogRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/work-log-reminders', workLogReminderRoutes);
+app.use('/api/cron', cronRoutes);
 app.use('/api/v1', profileRoutes);
 app.use('/api/pins', pinRoutes);
 app.use('/api/admin', adminRoutes);

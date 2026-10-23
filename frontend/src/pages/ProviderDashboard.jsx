@@ -5,6 +5,7 @@ import { useToast } from '../components/common/Toast';
 import { apiAdapter } from '../services/apiAdapter';
 import { BriefcaseBusiness, Building2, Check, CircleAlert, FileText, Loader2, RefreshCw, Save, Upload, Users } from 'lucide-react';
 import PhilippineLocationInput from '../components/common/PhilippineLocationInput';
+import { matchesPhilippineLocation } from '../utils/phLocations';
 
 const emptyProfile = {
   companyName: '',
@@ -71,6 +72,8 @@ export const ProviderDashboard = () => {
         + jobs.reduce((total, job) => total + (job.pendingApplicationCount || 0), 0),
       jobReviews: jobs.filter((job) => job.reviewStatus === 'pending').length,
       organizationReviews: companies.filter((company) => company.status === 'pending').length,
+      rejectedOrganizations: companies.filter((company) => company.status === 'rejected'),
+      rejectedJobs: jobs.filter((job) => job.reviewStatus === 'rejected'),
     };
   }, [overview]);
 
@@ -96,6 +99,10 @@ export const ProviderDashboard = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (businessProfile.location?.trim() && !matchesPhilippineLocation(businessProfile.location)) {
+      toast('Choose a Philippine city, municipality, or Pangasinan barangay from the location suggestions.', 'error');
+      return;
+    }
     setSaving(true);
     try {
       const updatedProfile = await apiAdapter.updateBusinessProfile(businessProfile);
@@ -288,6 +295,64 @@ export const ProviderDashboard = () => {
 
         {overview.error && <p role="alert" className="ui-alert ui-alert-danger"><CircleAlert className="h-4 w-4 shrink-0" />{overview.error}</p>}
 
+        {(overviewStats.rejectedOrganizations.length > 0 || overviewStats.rejectedJobs.length > 0) && (
+          <div role="alert" className="ui-alert ui-alert-danger flex flex-col gap-3">
+            <div className="flex items-start gap-2.5">
+              <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger-600" />
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  Updates requested by administrator
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-600">
+                  The following organization or listing submissions require updates before they can be published.
+                </p>
+              </div>
+            </div>
+            <div className="mt-1 divide-y divide-danger-200/60 rounded-lg border border-danger-200 bg-white/90">
+              {overviewStats.rejectedOrganizations.map((company) => (
+                <div key={company._id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <span className="font-semibold text-slate-900">{company.name}</span>
+                    <span className="ml-2 text-xs text-slate-500">(Organization)</span>
+                    {company.rejectionReason && (
+                      <p className="mt-1 text-xs text-danger-700">
+                        <strong className="font-semibold">Review note:</strong> {company.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                  <Link
+                    to={`/provider/companies/${company._id}/edit`}
+                    className="ui-btn ui-btn-primary ui-btn-sm"
+                  >
+                    Edit & Resubmit
+                  </Link>
+                </div>
+              ))}
+              {overviewStats.rejectedJobs.map((job) => (
+                <div key={job._id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                  <div className="min-w-0">
+                    <span className="font-semibold text-slate-900">{job.title}</span>
+                    <span className="ml-2 text-xs text-slate-500">
+                      ({job.companyId?.name || 'Job listing'})
+                    </span>
+                    {job.rejectionReason && (
+                      <p className="mt-1 text-xs text-danger-700">
+                        <strong className="font-semibold">Review note:</strong> {job.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                  <Link
+                    to={`/provider/jobs/${job._id}/edit`}
+                    className="ui-btn ui-btn-primary ui-btn-sm"
+                  >
+                    Edit listing
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!hasOrganizations && (
           <section aria-labelledby="setup-title" className="ui-panel p-6 sm:p-8">
             <h2 id="setup-title" className="ui-section-title">Get your workspace running</h2>
@@ -384,6 +449,9 @@ export const ProviderDashboard = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
+                    <span className={`ui-badge text-xs ${job.reviewStatus === 'approved' ? 'ui-badge-success' : job.reviewStatus === 'rejected' ? 'ui-badge-danger' : 'ui-badge-warning'}`}>
+                      {job.reviewStatus === 'approved' ? 'Active' : job.reviewStatus === 'rejected' ? 'Needs revision' : 'Pending review'}
+                    </span>
                     <span className="text-xs font-semibold text-slate-500">{job.applicantCount || 0} {job.applicantCount === 1 ? 'applicant' : 'applicants'}</span>
                     <Link to={`/provider/jobs/${job._id}/applicants`} className="ui-btn ui-btn-secondary ui-btn-sm">Applicants</Link>
                   </div>

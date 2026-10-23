@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import AddressMap from '../common/AddressMap';
+import PhilippineLocationInput from '../common/PhilippineLocationInput';
+import { matchesPhilippineLocation } from '../../utils/phLocations';
 import { validateJob } from './jobValidation';
 import { readJobDraft, removeJobDraft, writeJobDraft } from './jobDraftStorage';
 import { phDocumentGroups, phDocumentPresets, standardPhDocumentTitles } from './phDocumentPresets';
@@ -176,6 +178,7 @@ const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel,
       if (job.salaryMin !== '' && job.salaryMax !== '' && Number(job.salaryMin) > Number(job.salaryMax)) return 'Minimum salary cannot exceed maximum salary.';
       if (!/^[A-Z]{3}$/.test(String(job.currency || '').trim().toUpperCase())) return 'Currency must be a three-letter code.';
       if (job.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(job.contactEmail.trim())) return 'Enter a valid contact email before continuing.';
+      if (job.interviewLocation.trim() && !matchesPhilippineLocation(job.interviewLocation)) return 'Choose a Philippine city, municipality, or Pangasinan barangay for the interview location.';
     }
     return '';
   };
@@ -317,7 +320,7 @@ const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel,
           <label className="flex items-center gap-2 self-end pb-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={job.salaryNegotiable} onChange={(event) => setJob({ ...job, salaryNegotiable: event.target.checked })} />Negotiable</label>
           <label className="text-sm font-semibold text-slate-700">Pay period<select value={job.salaryPayPeriod} onChange={(event) => setJob({ ...job, salaryPayPeriod: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal">{['hour', 'day', 'week', 'month', 'year', 'project'].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
           <label className="text-sm font-semibold text-slate-700">Open slots *<input type="number" required min="1" max="10000" value={job.slots} onChange={(event) => setJob({ ...job, slots: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
-          <label className="text-sm font-semibold text-slate-700">Application deadline<input type="date" value={job.applicationDeadline} onChange={(event) => setJob({ ...job, applicationDeadline: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+          <label className="text-sm font-semibold text-slate-700">Application deadline<input type="date" min={new Date().toISOString().split('T')[0]} max={`${new Date().getFullYear() + 2}-12-31`} value={job.applicationDeadline} onChange={(event) => setJob({ ...job, applicationDeadline: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
           <label className="text-sm font-semibold text-slate-700">Benefits<textarea rows={2} value={Array.isArray(job.benefits) ? job.benefits.join('\n') : job.benefits} onChange={(event) => setJob({ ...job, benefits: event.target.value })} placeholder="One benefit per line" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
         </div>
 
@@ -331,7 +334,7 @@ const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel,
             <label className="text-sm font-semibold text-slate-700">Qualifications<textarea rows={3} value={Array.isArray(job.qualifications) ? job.qualifications.join('\n') : job.qualifications} onChange={(event) => setJob({ ...job, qualifications: event.target.value })} placeholder="One qualification per line" className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
             <label className="text-sm font-semibold text-slate-700">Dress code<textarea rows={2} maxLength={500} value={job.dressCode} onChange={(event) => setJob({ ...job, dressCode: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
             <label className="text-sm font-semibold text-slate-700">Schedule / shifts<textarea rows={2} maxLength={500} value={job.workSchedule} onChange={(event) => setJob({ ...job, workSchedule: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
-            <label className="text-sm font-semibold text-slate-700">Start date<input type="date" value={job.startDate} onChange={(event) => setJob({ ...job, startDate: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+            <label className="text-sm font-semibold text-slate-700">Start date<input type="date" min={new Date().toISOString().split('T')[0]} max={`${new Date().getFullYear() + 2}-12-31`} value={job.startDate} onChange={(event) => setJob({ ...job, startDate: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
             <label className="text-sm font-semibold text-slate-700">Contact person<input maxLength={120} value={job.contactName} onChange={(event) => setJob({ ...job, contactName: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
             <label className="text-sm font-semibold text-slate-700">Contact email<input type="email" maxLength={254} value={job.contactEmail} onChange={(event) => setJob({ ...job, contactEmail: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
           </div>
@@ -344,7 +347,7 @@ const JobEditor = ({ initialJob, company, companyName, saving, onSave, onCancel,
             <label className="text-sm font-semibold text-slate-700">Position<input maxLength={120} value={job.interviewerPosition} onChange={(event) => setJob({ ...job, interviewerPosition: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
             <label className="text-sm font-semibold text-slate-700">Contact<input maxLength={200} value={job.interviewerContact} onChange={(event) => setJob({ ...job, interviewerContact: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
             <label className="text-sm font-semibold text-slate-700">Interview date/time<input type="datetime-local" value={job.interviewDate} onChange={(event) => setJob({ ...job, interviewDate: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
-            <label className="text-sm font-semibold text-slate-700">Interview location<input maxLength={300} value={job.interviewLocation} onChange={(event) => setJob({ ...job, interviewLocation: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
+            <label className="text-sm font-semibold text-slate-700">Interview location<PhilippineLocationInput id="job-interview-location" value={job.interviewLocation} onChange={(value) => setJob((current) => ({ ...current, interviewLocation: value }))} placeholder="Search a Philippine city or municipality" maxLength={300} className="mt-1.5" /></label>
             <label className="text-sm font-semibold text-slate-700">Interview link<input type="url" maxLength={500} value={job.interviewLink} onChange={(event) => setJob({ ...job, interviewLink: event.target.value })} className="mt-1.5 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" /></label>
           </div>
         </details>

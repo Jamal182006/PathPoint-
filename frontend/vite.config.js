@@ -18,6 +18,7 @@ export default defineConfig({
           if (path.includes('leaflet')) return 'vendor-maps';
           if (path.includes('/react-dom/') || path.includes('/react/') || path.includes('/scheduler/')) return 'vendor-react';
           if (path.includes('react-router') || path.includes('@remix-run')) return 'vendor-router';
+          if (path.includes('@hello-pangea/dnd')) return 'vendor-dnd';
           if (path.includes('axios')) return 'vendor-axios';
           return undefined;
         },

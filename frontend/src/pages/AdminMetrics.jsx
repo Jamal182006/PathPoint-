@@ -140,13 +140,33 @@ export const AdminMetrics = () => {
             <p className="mt-1 flex items-center gap-2 text-2xl font-semibold text-slate-900"><Building2 className="h-5 w-5 text-brand-700" />{totalCompanies}</p>
             <span className="text-xs font-medium text-brand-700 underline decoration-transparent group-hover:decoration-current">Review companies</span>
           </Link>
-          <div><p className="ui-eyebrow">Company applications</p><p className="mt-1 text-2xl font-semibold text-slate-900">{totalCompanyApplications}</p></div>
+          <Link to="/admin/applications?type=company" className="group -m-2 rounded-xl p-2 transition hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+            <p className="ui-eyebrow group-hover:text-brand-700">Company applications</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{totalCompanyApplications}</p>
+            <span className="text-xs font-medium text-brand-700 underline decoration-transparent group-hover:decoration-current">View company queue</span>
+          </Link>
         </section>
         <section aria-label="Job and local work metrics" className="grid gap-4 border-b border-slate-200 pb-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div><p className="ui-eyebrow">Active listings</p><p className="mt-1 text-2xl font-semibold text-slate-900">{activeJobListings}</p><p className="text-xs text-slate-500">{totalJobListings} total listings</p></div>
-          <div><p className="ui-eyebrow">Pending job review</p><p className="mt-1 text-2xl font-semibold text-warning-700">{pendingJobReviews}</p></div>
-          <div><p className="ui-eyebrow">Job applications</p><p className="mt-1 text-2xl font-semibold text-slate-900">{totalJobApplications}</p></div>
-          <div><p className="ui-eyebrow">Local work logs / paid earnings</p><p className="mt-1 text-2xl font-semibold text-slate-900">{totalWorkLogs} / {totalWorkLogEarnings.toLocaleString()}</p></div>
+          <Link to="/admin/jobs?reviewStatus=approved" className="group -m-2 rounded-xl p-2 transition hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+            <p className="ui-eyebrow group-hover:text-brand-700">Active listings</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{activeJobListings}</p>
+            <p className="text-xs text-slate-500">{totalJobListings} total listings</p>
+          </Link>
+          <Link to="/admin/jobs?reviewStatus=pending" className="group -m-2 rounded-xl p-2 transition hover:bg-warning-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-warning-600">
+            <p className="ui-eyebrow group-hover:text-warning-700">Pending job review</p>
+            <p className="mt-1 text-2xl font-semibold text-warning-700">{pendingJobReviews}</p>
+            <span className="text-xs font-medium text-warning-700 underline decoration-transparent group-hover:decoration-current">Review job listings</span>
+          </Link>
+          <Link to="/admin/applications?type=job" className="group -m-2 rounded-xl p-2 transition hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600">
+            <p className="ui-eyebrow group-hover:text-brand-700">Job applications</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{totalJobApplications}</p>
+            <span className="text-xs font-medium text-brand-700 underline decoration-transparent group-hover:decoration-current">View job submissions</span>
+          </Link>
+          <div className="p-2">
+            <p className="ui-eyebrow">Local work logs / paid earnings</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-900">{totalWorkLogs} / {totalWorkLogEarnings.toLocaleString()}</p>
+            <p className="text-xs text-slate-500">Applicant verified hours</p>
+          </div>
         </section>
 
         <section className="ui-card p-5" aria-labelledby="recent-activity-title">

@@ -9,11 +9,12 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import ActivityLog from '../models/ActivityLog.js';
 import PinnedItem from '../models/PinnedItem.js';
+import WorkLogReminder from '../models/WorkLogReminder.js';
 
 let memoryServer = null;
 
 const ensureCollections = async () => {
-  const models = [User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog, Notification, ActivityLog, PinnedItem];
+  const models = [User, Application, Company, CompanyApplication, JobListing, JobApplication, WorkLog, Notification, ActivityLog, PinnedItem, WorkLogReminder];
   const existingCollections = new Set(
     (await mongoose.connection.db.listCollections({}, { nameOnly: true }).toArray())
       .map(({ name }) => name)

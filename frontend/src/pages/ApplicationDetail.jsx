@@ -24,6 +24,7 @@ import {
   History,
   Eye,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 
 const STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
@@ -38,6 +39,7 @@ export const ApplicationDetail = () => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'prep'
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newInterviewDate, setNewInterviewDate] = useState('');
 
   const loadApplication = useCallback(async () => {
@@ -91,10 +93,7 @@ export const ApplicationDetail = () => {
     } catch (error) { toast(error.message || 'Unable to remove interview date.', 'error'); }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Delete application for ${application?.role} at ${application?.company}?`)) {
-      return;
-    }
+  const confirmDelete = async () => {
     try {
       await apiAdapter.deleteApplication(id);
       toast('Application deleted', 'success');
@@ -128,7 +127,7 @@ export const ApplicationDetail = () => {
             <span>Edit Details</span>
           </button>
           <button
-            onClick={handleDelete}
+            onClick={() => setIsDeleteModalOpen(true)}
             className="ui-btn ui-btn-danger ui-btn-sm"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -362,6 +361,13 @@ export const ApplicationDetail = () => {
                   <p className="text-xs text-slate-500">No interviews scheduled yet.</p>
                 </div>
               )}
+
+              <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500">Need full calendar?</span>
+                <Link to="/interviews" className="font-semibold text-brand-700 hover:underline">
+                  Open scheduler &rarr;
+                </Link>
+              </div>
             </div>
 
             {/* Resume & Documents Card */}
@@ -438,6 +444,39 @@ export const ApplicationDetail = () => {
         application={application}
         user={user}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete application"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-danger-200 bg-danger-50 p-3.5 text-xs text-danger-900">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-danger-600" />
+            <p>
+              Are you sure you want to delete your application for <strong className="font-semibold">{application?.role}</strong> at <strong className="font-semibold">{application?.company}</strong>? All notes, interview records, and logs will be permanently deleted.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="ui-btn ui-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="ui-btn ui-btn-danger"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete application
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

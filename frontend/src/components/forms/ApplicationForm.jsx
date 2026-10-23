@@ -5,6 +5,7 @@ import { useToast } from '../common/Toast';
 import { Plus, Trash2, Calendar, FileText, DollarSign, Building, Briefcase, User, Loader2, MapPin } from 'lucide-react';
 import { safeDateString } from '../../utils/dateUtils';
 import PhilippineLocationInput from '../common/PhilippineLocationInput';
+import { matchesPhilippineLocation } from '../../utils/phLocations';
 
 const STATUS_OPTIONS = ['Saved', 'Applied', 'Interviewing', 'Offered', 'Rejected'];
 
@@ -58,6 +59,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
     const errs = {};
     if (!formData.company.trim()) errs.company = 'Company name is required';
     if (!formData.role.trim()) errs.role = 'Job role is required';
+    if (formData.location.trim() && !matchesPhilippineLocation(formData.location)) errs.location = 'Choose a Philippine city, municipality, or Pangasinan barangay from the suggestions.';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -169,11 +171,13 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
             Location (Philippines)
           </label>
           <PhilippineLocationInput
+            id="application-location"
             name="location"
             value={formData.location}
             onChange={(value) => setFormData((current) => ({ ...current, location: value }))}
             placeholder="Search a Philippine city or municipality"
           />
+          {errors.location && <p role="alert" className="mt-1 text-xs font-medium text-rose-700">{errors.location}</p>}
         </div>
 
         {/* Salary Range */}
@@ -223,6 +227,7 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
             <input
               type="date"
               name="dateApplied"
+              max={new Date().toISOString().split('T')[0]}
               value={formData.dateApplied}
               onChange={handleChange}
               className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
@@ -277,6 +282,8 @@ export const ApplicationForm = ({ initialData, defaultCompany = '', defaultRole 
         <div className="flex gap-2 mb-2">
           <input
             type="date"
+            min={new Date().toISOString().split('T')[0]}
+            max={`${new Date().getFullYear() + 2}-12-31`}
             value={newInterviewDate}
             onChange={(e) => setNewInterviewDate(e.target.value)}
             className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"

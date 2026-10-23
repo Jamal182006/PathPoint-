@@ -10,6 +10,11 @@ import {
   recordFailedLogin,
   resetLoginAttempts,
 } from '../utils/loginLockout.js';
+import {
+  PH_PHONE_COUNTRY_CODE,
+  isValidPhilippinePhone,
+  normalizePhilippinePhone,
+} from '../utils/phPhone.js';
 
 const MAX_PASSWORD_LENGTH = 72;
 const MAX_EMAIL_LENGTH = 254;
@@ -983,12 +988,14 @@ export const updateProfileCustomization = async (req, res) => {
 
 export const updateMyProfile = async (req, res) => {
   try {
-    const { name, username, phone, address, avatar, bio, education, occupation, employmentStatus, skills, experience, educationHistory, profileInfo } = req.body;
-    const normalizedName = String(name ?? req.user.name).trim();
-    if (normalizedName.length < 2 || normalizedName.length > 100 || !namePattern.test(normalizedName)) {
-      return res.status(400).json({ success: false, message: 'Enter a valid full name' });
+    const { name, username, phone, phoneCountryCode, address, city, province, country, avatar, bio, education, occupation, employmentStatus, skills, experience, educationHistory, profileInfo } = req.body;
+    if (name !== undefined) {
+      const normalizedName = String(name).trim();
+      if (normalizedName.length < 2 || normalizedName.length > 100) {
+        return res.status(400).json({ success: false, message: 'Enter a valid full name (2–100 characters)' });
+      }
+      req.user.name = normalizedName;
     }
-    req.user.name = normalizedName;
     if (username !== undefined) {
       const normalizedUsername = normalizeIdentifier(username);
       if (!normalizedUsername) {
@@ -1005,8 +1012,30 @@ export const updateMyProfile = async (req, res) => {
         req.user.username = normalizedUsername;
       }
     }
-    if (phone !== undefined) req.user.phone = String(phone).trim().slice(0, 40);
+    if (phone !== undefined) {
+      const normalizedPhone = normalizePhilippinePhone(phone);
+      // The platform is Philippines-only, so an international number is refused
+      // instead of silently stored.
+      if (normalizedPhone && !isValidPhilippinePhone(normalizedPhone)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Enter a valid Philippine mobile (9XXXXXXXXX) or landline number.',
+        });
+      }
+      req.user.phone = normalizedPhone;
+      req.user.phoneCountryCode = PH_PHONE_COUNTRY_CODE;
+    }
+    if (phoneCountryCode !== undefined) req.user.phoneCountryCode = PH_PHONE_COUNTRY_CODE;
     if (address !== undefined) req.user.address = String(address).trim().slice(0, 300);
+    if (city !== undefined) req.user.city = String(city).trim().slice(0, 100);
+    if (province !== undefined) req.user.province = String(province).trim().slice(0, 100);
+    if (country !== undefined) {
+      const normalizedCountry = String(country).trim().slice(0, 100);
+      if (normalizedCountry && normalizedCountry.toLowerCase() !== 'philippines' && normalizedCountry.toLowerCase() !== 'ph') {
+        return res.status(400).json({ success: false, message: 'Only Philippine addresses are supported.' });
+      }
+      req.user.country = normalizedCountry ? 'Philippines' : '';
+    }
     if (avatar !== undefined) {
       if (avatar) {
         const match = /^data:image\/(png|jpeg);base64,([a-z\d+/]+=*)$/i.exec(String(avatar));

@@ -1,9 +1,18 @@
 import Notification from '../models/Notification.js';
+import { dispatchDueWorkLogReminders } from '../utils/workLogReminders.js';
 
 const validId = (value) => /^[a-f\d]{24}$/i.test(String(value));
 
 export const listMyNotifications = async (req, res) => {
   try {
+    // Vercel cron remains the primary scheduler. This opportunistic sweep also
+    // catches due reminders when an authenticated user opens the app after a
+    // scheduled invocation was delayed or missed.
+    try {
+      await dispatchDueWorkLogReminders();
+    } catch (reminderError) {
+      console.error('[Work Log Reminder] Notification refresh sweep failed:', reminderError.message);
+    }
     const [notifications, unreadCount] = await Promise.all([
       Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(50).lean(),
       Notification.countDocuments({ userId: req.user._id, read: false }),

@@ -73,8 +73,11 @@ export const listWorkLogs = async (req, res) => {
         { location: { $regex: escaped, $options: 'i' } },
       ];
     }
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const recordsQuery = WorkLog.find(query).sort({ startedAt: -1, createdAt: -1 });
+    if (Number.isInteger(requestedLimit) && requestedLimit > 0) recordsQuery.limit(Math.min(requestedLimit, 100));
     const [records, totals] = await Promise.all([
-      WorkLog.find(query).sort({ startedAt: -1, createdAt: -1 }).lean(),
+      recordsQuery.lean(),
       WorkLog.aggregate([
         { $match: { userId: req.user._id } },
         { $group: {

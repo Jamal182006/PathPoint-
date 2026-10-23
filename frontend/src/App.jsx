@@ -44,6 +44,7 @@ const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
   const { isAuthenticated, isAdmin, settings, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isLandingPage = location.pathname === '/';
   const isAuthPage = !isAuthenticated && ['/login', '/register'].includes(location.pathname);
   const isProvider = isAuthenticated && user?.role === 'provider';
 
@@ -105,7 +106,7 @@ const AppLayout = React.memo(({ children, onOpenShortcutsModal }) => {
         {isProvider && <ProviderSidebar />}
         <main
           key={location.pathname}
-          className={`app-main animate-fade-in min-w-0 flex-1 ${isAuthPage ? 'pb-0' : 'pb-12'}`}
+          className={`app-main animate-fade-in min-w-0 flex-1 ${isAuthPage || isLandingPage ? 'pb-0' : 'pb-12'}`}
         >
           {children}
         </main>

@@ -21,7 +21,7 @@ const statusStyles = {
 export const AdminProviders = () => {
   const { toast } = useToast();
   const [providers, setProviders] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [busyProvider, setBusyProvider] = useState('');
   const [documentPreview, setDocumentPreview] = useState(null);
@@ -61,19 +61,42 @@ export const AdminProviders = () => {
     }
   };
 
-  const reviewProvider = async (provider, status) => {
-    const rejectionReason = status === 'rejected'
-      ? window.prompt(`Why is ${provider.businessProfile?.companyName || provider.name} being rejected?`)
-      : '';
-    if (status === 'rejected' && !rejectionReason?.trim()) return;
+  // Dialog modal
+  const [rejectDialog, setRejectDialog] = useState({ open: false, provider: null, reason: '' });
 
+  const approveProvider = async (provider) => {
     setBusyProvider(provider.id);
     try {
-      await apiAdapter.reviewProviderVerification(provider.id, status, rejectionReason);
-      toast(`Verification ${status}.`, 'success');
+      await apiAdapter.reviewProviderVerification(provider.id, 'approved', '');
+      toast(`Provider "${provider.businessProfile?.companyName || provider.name}" verified.`, 'success');
       await loadProviders();
     } catch (error) {
-      toast(error.message || `Unable to ${status} this provider.`, 'error');
+      toast(error.message || 'Unable to approve this provider.', 'error');
+    } finally {
+      setBusyProvider('');
+    }
+  };
+
+  const confirmRejection = async () => {
+    const { provider, reason } = rejectDialog;
+    if (!provider) return;
+    if (provider.businessVerification?.status === 'approved') {
+      toast('An approved business verification cannot be rejected.', 'error');
+      setRejectDialog({ open: false, provider: null, reason: '' });
+      return;
+    }
+    if (!reason.trim()) {
+      toast('Please enter a rejection reason for the provider.', 'error');
+      return;
+    }
+    setBusyProvider(provider.id);
+    try {
+      await apiAdapter.reviewProviderVerification(provider.id, 'rejected', reason.trim());
+      toast(`Verification for "${provider.businessProfile?.companyName || provider.name}" rejected.`, 'success');
+      setRejectDialog({ open: false, provider: null, reason: '' });
+      await loadProviders();
+    } catch (error) {
+      toast(error.message || 'Unable to reject this provider.', 'error');
     } finally {
       setBusyProvider('');
     }
@@ -103,10 +126,10 @@ export const AdminProviders = () => {
             onChange={(event) => setStatusFilter(event.target.value)}
             className="ui-input w-auto text-xs font-medium"
           >
+            <option value="all">All providers</option>
             <option value="pending">Pending review</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
-            <option value="all">All providers</option>
           </select>
         </label>
         <button
@@ -170,17 +193,21 @@ export const AdminProviders = () => {
                         <div className="inline-flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => reviewProvider(provider, 'approved')}
+                            onClick={() => approveProvider(provider)}
                             disabled={!hasDocument || busyProvider === provider.id}
                             title={!hasDocument ? 'Provider must submit a document before approval' : 'Approve provider'}
                             className="ui-btn ui-btn-primary ui-btn-sm"
-                          ><Check className="h-3.5 w-3.5" /> Approve</button>
+                          >
+                            <Check className="h-3.5 w-3.5" /> Approve
+                          </button>
                           <button
                             type="button"
-                            onClick={() => reviewProvider(provider, 'rejected')}
                             disabled={busyProvider === provider.id}
+                            onClick={() => setRejectDialog({ open: true, provider, reason: '' })}
                             className="ui-btn ui-btn-danger ui-btn-sm"
-                          ><X className="h-3.5 w-3.5" /> Reject</button>
+                          >
+                            <X className="h-3.5 w-3.5" /> Reject
+                          </button>
                         </div>
                       ) : <span className="text-slate-500">Reviewed</span>}
                     </td>
@@ -194,6 +221,7 @@ export const AdminProviders = () => {
         </div>
       </div>
 
+      {/* Document Preview Modal */}
       <Modal
         isOpen={Boolean(documentPreview)}
         onClose={closePreview}
@@ -206,6 +234,49 @@ export const AdminProviders = () => {
             <iframe title="Business verification document preview" src={documentPreview.url} className="h-[70vh] w-full rounded-xl bg-slate-100" />
           </div>
         )}
+      </Modal>
+
+      {/* Rejection Modal */}
+      <Modal
+        isOpen={rejectDialog.open && rejectDialog.provider?.businessVerification?.status !== 'approved'}
+        onClose={() => setRejectDialog({ open: false, provider: null, reason: '' })}
+        title={`Reject Verification: ${rejectDialog.provider?.businessProfile?.companyName || rejectDialog.provider?.name || ''}`}
+        maxWidth="max-w-lg"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-600">
+            Please provide a specific reason for rejecting this business verification document. The provider will see this feedback in their dashboard and can re-upload their credentials.
+          </p>
+          <label className="block">
+            <span className="text-xs font-semibold text-slate-700">Reason for rejection *</span>
+            <textarea
+              rows={4}
+              maxLength={500}
+              value={rejectDialog.reason}
+              onChange={(e) => setRejectDialog((prev) => ({ ...prev, reason: e.target.value }))}
+              placeholder="e.g. The uploaded DTI certificate is blurry or expired. Please upload a clear copy of your current permit..."
+              className="ui-input mt-1 w-full text-xs"
+              autoFocus
+            />
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setRejectDialog({ open: false, provider: null, reason: '' })}
+              className="ui-btn ui-btn-secondary ui-btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!rejectDialog.reason.trim() || rejectDialog.provider?.businessVerification?.status === 'approved' || busyProvider === rejectDialog.provider?.id}
+              onClick={confirmRejection}
+              className="ui-btn ui-btn-danger ui-btn-sm"
+            >
+              Confirm Rejection
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

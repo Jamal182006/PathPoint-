@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import AddressMap from '../common/AddressMap';
 import PhilippineLocationInput from '../common/PhilippineLocationInput';
 import { geocodePhilippineLocation } from '../../utils/phGeocode';
+import { matchesPhilippineLocation } from '../../utils/phLocations';
 
 const newRequirement = (type = 'file') => ({
   type,
@@ -130,6 +131,15 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    if (company.location.trim() && !matchesPhilippineLocation(company.location)) {
+      setError('Choose a Philippine city, municipality, or Pangasinan barangay for the company location.');
+      return;
+    }
+    const invalidInterviewLocation = company.requirements.some((requirement) => requirement.interviewLocation?.trim() && !matchesPhilippineLocation(requirement.interviewLocation));
+    if (invalidInterviewLocation) {
+      setError('Choose a Philippine city, municipality, or Pangasinan barangay for each interview location.');
+      return;
+    }
     if (company.requirements.some((requirement) => !requirement.title.trim())) {
       setError('Add a title to each requirement or remove the empty item.');
       return;
@@ -272,7 +282,7 @@ const CompanyEditor = ({ initialCompany, organizationType = 'company', onSave, o
                     <input type="datetime-local" value={requirement.interviewDate} onChange={(event) => updateRequirement(index, { interviewDate: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
                   </label>
                   <label className="text-xs font-semibold text-slate-700">Location
-                    <input maxLength={300} value={requirement.interviewLocation} onChange={(event) => updateRequirement(index, { interviewLocation: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />
+                    <PhilippineLocationInput id={`company-interview-location-${index}`} value={requirement.interviewLocation} onChange={(value) => updateRequirement(index, { interviewLocation: value })} placeholder="Search a Philippine city or municipality" maxLength={300} className="mt-1" />
                   </label>
                   <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Meeting link
                     <input type="url" maxLength={500} value={requirement.interviewLink} onChange={(event) => updateRequirement(index, { interviewLink: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal" />

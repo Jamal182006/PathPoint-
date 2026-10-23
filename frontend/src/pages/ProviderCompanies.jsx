@@ -179,6 +179,9 @@ const ProviderCompanies = () => {
                     <p className="mt-0.5 truncate text-xs text-slate-500">
                       {company.category}{company.location ? ` · ${company.location}` : ''} · added {new Date(company.createdAt).toLocaleDateString()}
                     </p>
+                    {company.status === 'rejected' && company.rejectionReason && (
+                      <p className="mt-1 text-xs font-medium text-danger-700">Review note: {company.rejectionReason}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 pl-12 text-xs text-slate-600 sm:justify-end sm:pl-0">

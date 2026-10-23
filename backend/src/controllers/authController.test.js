@@ -448,3 +448,57 @@ test('profile updates can add or change a username and reject duplicates', async
   assert.equal(unchanged.statusCode, 200);
   assert.equal(unchanged.body.user.username, 'fresh_handle');
 });
+
+test('profile updates keep the phone and location Philippines-only', async () => {
+  const user = await User.create({
+    name: 'Philippine Applicant',
+    email: 'ph.applicant@example.com',
+    password: 'StrongPass8',
+    role: 'user',
+  });
+
+  // A Philippine mobile number is stored as national digits with the +63 code.
+  const mobile = response();
+  await updateMyProfile({
+    user,
+    body: {
+      name: 'Philippine Applicant',
+      phone: '+63 917 123 4567',
+      address: 'Quezon City, NCR',
+      city: 'Quezon City',
+      province: 'NCR',
+      country: 'Philippines',
+    },
+  }, mobile);
+  assert.equal(mobile.statusCode, 200);
+  assert.equal(mobile.body.user.phone, '9171234567');
+  assert.equal(mobile.body.user.phoneCountryCode, '+63');
+  assert.equal(mobile.body.user.city, 'Quezon City');
+  assert.equal(mobile.body.user.province, 'NCR');
+  assert.equal(mobile.body.user.country, 'Philippines');
+
+  // A provincial landline is accepted as well.
+  const landline = response();
+  await updateMyProfile({ user, body: { phone: '322551234' } }, landline);
+  assert.equal(landline.statusCode, 200);
+  assert.equal(landline.body.user.phone, '322551234');
+
+  // An international number is refused instead of being stored.
+  const foreign = response();
+  await updateMyProfile({ user, body: { phone: '+1 555 010 0999' } }, foreign);
+  assert.equal(foreign.statusCode, 400);
+  assert.match(foreign.body.message, /Philippine/i);
+  assert.equal((await User.findById(user._id)).phone, '322551234');
+
+  // So is a country outside the Philippines.
+  const foreignCountry = response();
+  await updateMyProfile({ user, body: { country: 'Singapore' } }, foreignCountry);
+  assert.equal(foreignCountry.statusCode, 400);
+  assert.match(foreignCountry.body.message, /Philippine/i);
+
+  // An empty phone clears the field without failing the request.
+  const cleared = response();
+  await updateMyProfile({ user, body: { phone: '' } }, cleared);
+  assert.equal(cleared.statusCode, 200);
+  assert.equal(cleared.body.user.phone, '');
+});

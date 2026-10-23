@@ -173,6 +173,9 @@ router.patch('/companies/:id/review', async (req, res) => {
 
     const company = await Company.findById(req.params.id).populate('providerId', 'businessVerification.status');
     if (!company || company.isArchived) return res.status(404).json({ success: false, message: 'Company not found' });
+    if (status === 'rejected' && company.status === 'approved') {
+      return res.status(400).json({ success: false, message: 'An approved company cannot be rejected' });
+    }
     if (status === 'approved' && company.providerId?.businessVerification?.status !== 'approved') {
       return res.status(400).json({ success: false, message: 'Verify the provider before approving this company' });
     }
@@ -241,6 +244,9 @@ router.patch('/providers/:id/verification', async (req, res) => {
       .select('+businessVerification.documentData');
     if (!provider) {
       return res.status(404).json({ success: false, message: 'Provider not found' });
+    }
+    if (status === 'rejected' && provider.businessVerification?.status === 'approved') {
+      return res.status(400).json({ success: false, message: 'An approved business verification cannot be rejected' });
     }
     if (!provider.businessVerification?.documentData) {
       return res.status(400).json({ success: false, message: 'Provider has not submitted a verification document' });

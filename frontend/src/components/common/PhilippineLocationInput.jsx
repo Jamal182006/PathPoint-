@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
-import { findPhilippineLocation, suggestPhilippineLocations } from '../../utils/phLocations';
+import { findPhilippineLocation, matchesPhilippineLocation, suggestPhilippineLocations } from '../../utils/phLocations';
 
 // Text input with Philippine type-ahead suggestions.
 // Only places from the Philippine city/province dataset can be suggested, so a
@@ -52,6 +52,23 @@ const PhilippineLocationInput = ({
     const option = listRef.current.children[activeIndex];
     if (option?.scrollIntoView) option.scrollIntoView({ block: 'nearest' });
   }, [activeIndex, open]);
+
+  const [isTouched, setIsTouched] = useState(false);
+
+  const isValidPh = useMemo(() => {
+    if (!value || !value.trim()) return true;
+    return matchesPhilippineLocation(value);
+  }, [value]);
+
+  const handleBlur = () => {
+    setIsTouched(true);
+    if (value && value.trim()) {
+      const match = findPhilippineLocation(value);
+      if (match && match.label && match.label.toLowerCase() !== value.trim().toLowerCase()) {
+        commit(match);
+      }
+    }
+  };
 
   const commit = (entry) => {
     const label = entry?.label || entry?.city || '';
@@ -106,7 +123,7 @@ const PhilippineLocationInput = ({
   return (
     <div className="relative" ref={wrapperRef}>
       <div className="relative">
-        <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <MapPin className={`pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 ${!isValidPh && value ? 'text-amber-500' : 'text-slate-400'}`} />
         <input
           id={inputId}
           name={name}
@@ -124,9 +141,12 @@ const PhilippineLocationInput = ({
           value={value}
           onChange={handleChange}
           onFocus={() => setOpen(true)}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`w-full rounded-md border border-slate-300 py-2 pl-9 pr-3 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-slate-100 ${className}`}
+          className={`w-full rounded-md border py-2 pl-9 pr-3 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-brand-500 disabled:bg-slate-100 ${
+            !isValidPh && value ? 'border-amber-400 bg-amber-50/20' : 'border-slate-300 bg-white'
+          } ${className}`}
         />
       </div>
       {showSuggestions && (
@@ -135,7 +155,7 @@ const PhilippineLocationInput = ({
           role="listbox"
           aria-label="Philippine location suggestions"
           ref={listRef}
-          className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white py-1 shadow-popover"
+          className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
         >
           {suggestions.map((entry, index) => (
             <li
@@ -145,15 +165,28 @@ const PhilippineLocationInput = ({
               aria-selected={index === activeIndex}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => commit(entry)}
-              className={`cursor-pointer px-3 py-2 text-sm text-slate-700 ${highlighted[index] || ''}`}
+              className={`flex items-center justify-between cursor-pointer px-3.5 py-2.5 text-sm text-slate-700 hover:bg-brand-50 ${highlighted[index] || ''}`}
             >
-              <span className="font-semibold text-slate-900">{entry.city}</span>
-              <span className="text-slate-500">, {entry.province}</span>
+              <div>
+                <span className="font-semibold text-slate-900">{entry.kind === 'barangay' ? entry.barangay : entry.city}</span>
+                <span className="text-slate-500">, {entry.kind === 'barangay' ? `${entry.municipality}, ${entry.province}` : entry.province}</span>
+              </div>
+              {entry.isAutocorrect && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                  Autocorrect
+                </span>
+              )}
             </li>
           ))}
         </ul>
       )}
-      <p className="mt-1 text-xs text-slate-500">Philippines only. Type to search cities and municipalities.</p>
+      {!isValidPh && value ? (
+        <p className="mt-1 text-xs font-medium text-amber-600 flex items-center gap-1">
+          <span>⚠️ Philippines only. Choose a city, municipality, or Pangasinan barangay from the suggestions.</span>
+        </p>
+      ) : (
+        <p className="mt-1 text-xs text-slate-500">Philippines only. Search cities, municipalities, or Pangasinan barangays.</p>
+      )}
     </div>
   );
 };

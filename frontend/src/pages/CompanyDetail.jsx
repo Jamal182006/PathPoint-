@@ -5,7 +5,7 @@ import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
 import { LocationMap } from '../components/common/AddressMap';
 import PinButton from '../components/common/PinButton';
-import { ArrowLeft, BadgeCheck, Building2, CalendarClock, CircleAlert, FileText, Loader2, MapPin, Upload } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarClock, CircleAlert, FileText, Loader2, MapPin, Upload } from 'lucide-react';
 
 const CompanyDetail = () => {
   const { companyId } = useParams();
@@ -22,14 +22,16 @@ const CompanyDetail = () => {
   const [validation, setValidation] = useState({});
   const [answers, setAnswers] = useState({});
   const [previousApplication, setPreviousApplication] = useState(null);
+  const [companyJobs, setCompanyJobs] = useState([]);
 
   useEffect(() => {
     let active = true;
     Promise.all([
       apiAdapter.getCompany(companyId),
       resubmitId ? apiAdapter.getMyCompanyApplication(resubmitId) : Promise.resolve(null),
+      apiAdapter.getJobs().catch(() => []),
     ])
-      .then(([record, application]) => {
+      .then(([record, application, allJobs]) => {
         if (!active) return;
         if (application && application.companyId !== companyId) throw new Error('This application does not belong to this company.');
         setCompany(record);
@@ -37,6 +39,10 @@ const CompanyDetail = () => {
           setPreviousApplication(application);
           setAnswers(application.formData || {});
         }
+        const openJobs = (Array.isArray(allJobs) ? allJobs : []).filter(
+          (j) => String(j.companyId?._id || j.companyId) === String(companyId) && j.status === 'open'
+        );
+        setCompanyJobs(openJobs);
       })
       .catch((loadError) => { if (active) setError(loadError.message || 'Unable to load this company.'); })
       .finally(() => { if (active) setLoading(false); });
@@ -134,8 +140,40 @@ const CompanyDetail = () => {
 
       <section className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
         <div className="space-y-6">
+          {companyJobs.length > 0 && (
+            <div className="ui-card p-5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-brand-700" />
+                  <h2 className="text-base font-bold text-slate-900">
+                    Open Job Positions ({companyJobs.length})
+                  </h2>
+                </div>
+                <span className="text-xs text-slate-500">Direct applications</span>
+              </div>
+              <ul className="mt-2 divide-y divide-slate-100">
+                {companyJobs.map((job) => (
+                  <li key={job._id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <Link to={`/jobs/${job._id}`} className="font-semibold text-slate-900 hover:text-brand-700 hover:underline">
+                        {job.title}
+                      </Link>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {job.location || 'Location not specified'} · {String(job.employmentType || '').replaceAll('_', ' ')}
+                        {job.salaryMin ? ` · ${job.currency || 'USD'} ${job.salaryMin.toLocaleString()}${job.salaryMax ? ` – ${job.salaryMax.toLocaleString()}` : ''}` : ''}
+                      </p>
+                    </div>
+                    <Link to={`/jobs/${job._id}`} className="ui-btn ui-btn-primary ui-btn-sm">
+                      Apply for Job
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div>
-            <h2 className="text-base font-bold text-slate-900">Application requirements</h2>
+            <h2 className="text-base font-bold text-slate-900">Company general application requirements</h2>
             <div className="mt-3 divide-y divide-slate-200 border-y border-slate-200">
               {informationRequirements.map((requirement) => (
                 <div key={requirement._id} className="py-4">

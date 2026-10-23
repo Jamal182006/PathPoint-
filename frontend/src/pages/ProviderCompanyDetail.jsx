@@ -200,7 +200,7 @@ const ProviderCompanyDetail = () => {
         </div>
         <div className="flex gap-2">
           <Link to={`/provider/companies/${companyId}/edit`} className="ui-btn ui-btn-secondary ui-btn-sm">Edit listing</Link>
-          {company.status === 'approved' ? <Link to={`/provider/jobs/new?companyId=${companyId}`} className="ui-btn ui-btn-primary ui-btn-sm"><FilePlus2 className="h-4 w-4" />Add job</Link> : <span className="self-center text-xs text-slate-500">Company approval is required to post jobs</span>}
+          {company.status === 'approved' ? <Link to={`/provider/jobs/new?companyId=${companyId}&from=company`} className="ui-btn ui-btn-primary ui-btn-sm"><FilePlus2 className="h-4 w-4" />Add job</Link> : <span className="self-center text-xs text-slate-500">Company approval is required to post jobs</span>}
           <button type="button" onClick={archiveCompany} className="ui-btn ui-btn-danger ui-btn-sm"><Archive className="h-4 w-4" />Archive</button>
         </div>
       </header>

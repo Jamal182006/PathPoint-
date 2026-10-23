@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { apiAdapter } from '../services/apiAdapter';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/common/Toast';
-import KanbanBoard from '../components/kanban/KanbanBoard';
 import ApplicationTable from '../components/list/ApplicationTable';
 import Modal from '../components/common/Modal';
-import ApplicationForm from '../components/forms/ApplicationForm';
-import ExportImportModal from '../components/common/ExportImportModal';
-import ShortcutsModal from '../components/common/ShortcutsModal';
 import TrackedItemsWidget from '../components/dashboard/TrackedItemsWidget';
 import { formatDateTimeDisplay } from '../utils/dateUtils';
+
+const KanbanBoard = lazy(() => import('../components/kanban/KanbanBoard'));
+const ApplicationForm = lazy(() => import('../components/forms/ApplicationForm'));
+const ExportImportModal = lazy(() => import('../components/common/ExportImportModal'));
+const ShortcutsModal = lazy(() => import('../components/common/ShortcutsModal'));
 import {
   LayoutGrid,
   List,
@@ -24,7 +25,11 @@ import {
   HelpCircle,
   Sparkles,
   Clock,
+  Clock3,
+  Building2,
   ArrowRight,
+  AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 
 const STAGES = [
@@ -56,6 +61,8 @@ export const Dashboard = ({
   // Applications submitted through /jobs and company listings (separate store)
   const [submissionCount, setSubmissionCount] = useState(0);
   const [platformInterviews, setPlatformInterviews] = useState([]);
+  const [recentSubmissions, setRecentSubmissions] = useState([]);
+  const [recentWorkLogs, setRecentWorkLogs] = useState([]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,6 +72,7 @@ export const Dashboard = ({
   const [localModalOpen, setLocalModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, appId: null, title: '' });
 
   const modalOpen = isAddModalOpen !== undefined ? isAddModalOpen : localModalOpen;
   const setModalOpen = setIsAddModalOpen !== undefined ? setIsAddModalOpen : setLocalModalOpen;
@@ -86,19 +94,27 @@ export const Dashboard = ({
     if (user.role !== 'user') {
       setSubmissionCount(0);
       setPlatformInterviews([]);
+      setRecentSubmissions([]);
+      setRecentWorkLogs([]);
       return;
     }
     try {
-      const [totals, scheduled] = await Promise.all([
+      const [totals, scheduled, submissions, workLogs] = await Promise.all([
         apiAdapter.getApplicationSubmissions({ limit: 1 }),
         apiAdapter.getApplicationSubmissions({ status: 'interview', limit: 50 }),
+        apiAdapter.getApplicationSubmissions({ limit: 5, sort: 'updated_desc' }),
+        apiAdapter.getWorkLogs({ limit: 5 }),
       ]);
       setSubmissionCount(Number(totals?.count) || 0);
       setPlatformInterviews((scheduled?.data || []).filter((sub) => sub?.interviewDate));
+      setRecentSubmissions(submissions?.data || []);
+      setRecentWorkLogs((workLogs?.data || []).slice(0, 5));
     } catch (err) {
       if (!silent) console.error('Failed to load platform applications:', err);
       setSubmissionCount(0);
       setPlatformInterviews([]);
+      setRecentSubmissions([]);
+      setRecentWorkLogs([]);
     }
   }, [user?.id, user?.role, toast]);
 
@@ -149,12 +165,22 @@ export const Dashboard = ({
     }
   };
 
-  const handleDelete = async (appId) => {
-    if (!window.confirm('Are you sure you want to delete this application?')) return;
+  const handleDelete = (appId) => {
+    const target = applications.find((app) => app._id === appId);
+    setDeleteDialog({
+      open: true,
+      appId,
+      title: target ? `${target.role} at ${target.company}` : 'this application',
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.appId) return;
     try {
-      await apiAdapter.deleteApplication(appId);
-      setApplications((prev) => prev.filter((app) => app._id !== appId));
+      await apiAdapter.deleteApplication(deleteDialog.appId);
+      setApplications((prev) => prev.filter((app) => app._id !== deleteDialog.appId));
       toast('Application deleted', 'success');
+      setDeleteDialog({ open: false, appId: null, title: '' });
     } catch (error) {
       toast(error.message || 'Unable to delete application.', 'error');
     }
@@ -216,6 +242,27 @@ export const Dashboard = ({
 
     return entries.sort((a, b) => a.at - b.at).slice(0, 5);
   }, [applications, platformInterviews]);
+
+  const recentActivity = useMemo(() => [
+    ...recentSubmissions.map((item) => ({
+      key: `application-${item.kind}-${item.id}`,
+      type: 'application',
+      title: item.title || 'Application',
+      organization: item.organization || 'Company',
+      status: item.displayStatus || item.status || 'Submitted',
+      date: item.updatedAt || item.dateApplied || item.createdAt,
+      href: '/my-applications',
+    })),
+    ...recentWorkLogs.map((item) => ({
+      key: `work-${item._id}`,
+      type: 'work',
+      title: item.title || 'Work log',
+      organization: item.clientName || item.category || 'Independent work',
+      status: item.status || 'Logged',
+      date: item.createdAt || item.startedAt,
+      href: '/work-log',
+    })),
+  ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 6), [recentSubmissions, recentWorkLogs]);
 
   // Quick summary counts — manual tracker plus applications submitted through the platform
   const counts = useMemo(() => {
@@ -432,8 +479,31 @@ export const Dashboard = ({
 
       <TrackedItemsWidget />
 
-      {/* Action and Filter Controls Bar */}
-      <div className="ui-card mb-5 flex flex-col items-stretch justify-between gap-3 p-3 sm:flex-row sm:items-center">
+      {user?.role === 'user' && <section aria-labelledby="recent-activity-heading" className="mb-5 border-y border-slate-200 py-3">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <div>
+            <h2 id="recent-activity-heading" className="text-sm font-semibold text-slate-900">Recent activity</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Company applications and logged work, together.</p>
+          </div>
+          <Link to="/my-applications" className="text-xs font-semibold text-brand-700 hover:text-brand-900">Applications <ArrowRight className="inline h-3 w-3" /></Link>
+        </div>
+        {recentActivity.length ? <div className="divide-y divide-slate-100">
+          {recentActivity.map((item) => {
+            const Icon = item.type === 'work' ? Clock3 : Building2;
+            return <Link key={item.key} to={item.href} className="flex items-center gap-3 py-2 hover:bg-slate-50/70">
+              <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-slate-900">{item.title}</span>
+                <span className="block truncate text-xs text-slate-500">{item.organization} · {item.type === 'work' ? 'Work log' : 'Application'} · {item.status}</span>
+              </span>
+              <time className="shrink-0 text-xs text-slate-500">{item.date ? formatDateTimeDisplay(item.date, { month: 'short', day: 'numeric' }) : ''}</time>
+            </Link>;
+          })}
+        </div> : <p className="py-3 text-xs text-slate-500">Your company applications and work logs will appear here.</p>}
+      </section>}
+
+      {/* Tracker controls only help when there are personal targets to filter or export. */}
+      {applications.length > 0 && <div className="ui-card mb-5 flex flex-col items-stretch justify-between gap-3 p-3 sm:flex-row sm:items-center">
         <div className="flex flex-1 items-center gap-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -519,10 +589,10 @@ export const Dashboard = ({
           </div>
 
         </div>
-      </div>
+      </div>}
 
       {/* Main View Area */}
-      {applications.length === 0 ? (
+      {applications.length === 0 && submissionCount === 0 ? (
         <div className="ui-empty mx-auto mt-8 max-w-lg">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">
             <Briefcase className="h-7 w-7" />
@@ -549,46 +619,105 @@ export const Dashboard = ({
             </Link>
           </div>
         </div>
-      ) : currentView === 'board' ? (
-        <KanbanBoard
-          applications={filteredApps}
-          onStatusChange={handleStatusChange}
-          onAddClick={() => setModalOpen(true)}
-        />
-      ) : (
+      ) : applications.length > 0 && currentView === 'board' ? (
+        <Suspense
+          fallback={
+            <div className="flex h-64 items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-3 border-brand-600 border-t-transparent" />
+            </div>
+          }
+        >
+          <KanbanBoard
+            applications={filteredApps}
+            onStatusChange={handleStatusChange}
+            onAddClick={() => setModalOpen(true)}
+          />
+        </Suspense>
+      ) : applications.length > 0 ? (
         <ApplicationTable
           applications={filteredApps}
           onStatusChange={handleStatusChange}
           onDelete={handleDelete}
         />
-      )}
+      ) : null}
 
       {/* Add Application Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Log Personal Job Target"
-      >
-        <ApplicationForm
-          onSuccess={handleFormSuccess}
-          onCancel={() => setModalOpen(false)}
-        />
-      </Modal>
+      {modalOpen && (
+        <Modal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title="Log Personal Job Target"
+        >
+          <Suspense
+            fallback={
+              <div className="flex h-48 items-center justify-center p-8">
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+              </div>
+            }
+          >
+            <ApplicationForm
+              onSuccess={handleFormSuccess}
+              onCancel={() => setModalOpen(false)}
+            />
+          </Suspense>
+        </Modal>
+      )}
 
       {/* Export & Import Modal */}
-      <ExportImportModal
-        isOpen={exportModalOpen}
-        onClose={() => setExportModalOpen(false)}
-        applications={applications}
-        user={user}
-        onDataImported={loadApplications}
-      />
+      {exportModalOpen && (
+        <Suspense fallback={null}>
+          <ExportImportModal
+            isOpen={exportModalOpen}
+            onClose={() => setExportModalOpen(false)}
+            applications={applications}
+            user={user}
+            onDataImported={loadApplications}
+          />
+        </Suspense>
+      )}
 
       {/* Shortcuts Modal */}
-      <ShortcutsModal
-        isOpen={shortcutsModalOpen}
-        onClose={() => setShortcutsModalOpen(false)}
-      />
+      {shortcutsModalOpen && (
+        <Suspense fallback={null}>
+          <ShortcutsModal
+            isOpen={shortcutsModalOpen}
+            onClose={() => setShortcutsModalOpen(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, appId: null, title: '' })}
+        title="Delete application"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-danger-200 bg-danger-50 p-3.5 text-xs text-danger-900">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-danger-600" />
+            <p>
+              Are you sure you want to delete <strong className="font-semibold">{deleteDialog.title}</strong>? Any notes, logs, and interview rounds for this tracked target will be removed.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteDialog({ open: false, appId: null, title: '' })}
+              className="ui-btn ui-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="ui-btn ui-btn-danger"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete application
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

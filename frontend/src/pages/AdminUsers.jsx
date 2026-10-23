@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiAdapter } from '../services/apiAdapter';
 import { useToast } from '../components/common/Toast';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { Modal } from '../components/common/Modal';
 import { StatusBadge } from '../components/common/StatusBadge';
 import {
@@ -22,8 +23,9 @@ export const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
   const [statusFilter, setStatusFilter] = useState('All');
-  const [roleFilter, setRoleFilter] = useState('user'); // Default to job seekers
+  const [roleFilter, setRoleFilter] = useState('All');
   const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -37,7 +39,7 @@ export const AdminUsers = () => {
     setLoading(true);
     try {
       const result = await apiAdapter.getAdminUsersPage({
-        search: searchTerm,
+        search: debouncedSearch,
         status: statusFilter === 'All' ? undefined : statusFilter,
         role: roleFilter === 'All' ? undefined : roleFilter,
         archived: showArchived ? 'true' : 'false',
@@ -55,7 +57,7 @@ export const AdminUsers = () => {
 
   useEffect(() => {
     loadUsers();
-  }, [searchTerm, statusFilter, roleFilter, showArchived, page]);
+  }, [debouncedSearch, statusFilter, roleFilter, showArchived, page]);
 
   const handleToggleStatus = async (user) => {
     const nextStatus = user.status === 'suspended' ? 'active' : 'suspended';
@@ -175,10 +177,10 @@ export const AdminUsers = () => {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="ui-input w-auto cursor-pointer text-xs"
           >
+            <option value="All">All Roles</option>
             <option value="user">Job Seekers Only</option>
             <option value="provider">Providers Only</option>
             <option value="admin">Administrators / Counselors</option>
-            <option value="All">All Roles</option>
           </select>
 
           <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">

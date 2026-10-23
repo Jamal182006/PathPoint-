@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/common/BrandLogo';
 import {
-  LogIn,
   UserPlus,
   Briefcase,
   Building2,
@@ -12,6 +11,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Clock,
+  ExternalLink,
 } from 'lucide-react';
 
 // Two role viewpoints of the same workspace, shown in the hero. The applicant
@@ -192,13 +192,9 @@ const PublicDashboard = () => {
             <span className="text-lg font-bold tracking-tight text-slate-900">PathPoint</span>
           </Link>
           <nav className="flex items-center gap-2">
-            <Link to="/login" className="ui-btn ui-btn-ghost ui-btn-sm sm:px-4 sm:py-2.5 sm:text-sm">
-              <LogIn className="h-4 w-4" />
-              Sign in
-            </Link>
-            <Link to="/register" className="ui-btn ui-btn-primary ui-btn-sm sm:px-4 sm:py-2.5 sm:text-sm">
-              <UserPlus className="h-4 w-4" />
-              Create account
+            <Link to="/jobs" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900 px-3.5 py-2 rounded-lg hover:bg-slate-100 transition">
+              <Briefcase className="h-4 w-4 text-slate-500" />
+              Explore Jobs
             </Link>
           </nav>
         </div>
@@ -410,19 +406,110 @@ const PublicDashboard = () => {
         </section>
       </div>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="ui-container flex flex-col items-center justify-between gap-4 py-8 sm:flex-row">
-          <div className="flex items-center gap-2.5 text-slate-700">
-            <BrandLogo role="brand" size={24} />
-            <span className="text-sm font-semibold">PathPoint</span>
+      {/* Comprehensive Platform Footer */}
+      <footer className="border-t border-slate-200 bg-white text-slate-600">
+        <div className="ui-container py-12 lg:py-16">
+          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
+            {/* Brand column */}
+            <div className="lg:col-span-2 space-y-4">
+              <Link to="/" className="inline-flex items-center gap-2.5">
+                <BrandLogo role="brand" size={32} />
+                <span className="text-xl font-bold tracking-tight text-slate-900">PathPoint</span>
+              </Link>
+              <p className="max-w-sm text-sm leading-6 text-slate-500">
+                A verified career and interview lifecycle management system. PathPoint ensures authentic employment opportunities through mandatory administrative vetting of organizations and job listings.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-medium text-slate-500">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                  <ShieldCheck className="h-3.5 w-3.5 text-brand-600" /> Two-Tier Verification
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
+                  <BadgeCheck className="h-3.5 w-3.5 text-teal-600" /> Role-Based Access
+                </span>
+              </div>
+            </div>
+
+            {/* Column 1: For Candidates */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">For Candidates</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li>
+                  <Link to="/jobs" className="text-slate-600 transition hover:text-brand-700">Explore Open Jobs</Link>
+                </li>
+                <li>
+                  <Link to="/dashboard" className="text-slate-600 transition hover:text-brand-700">Application Tracker</Link>
+                </li>
+                <li>
+                  <Link to="/interviews" className="text-slate-600 transition hover:text-brand-700">Interview Calendar</Link>
+                </li>
+                <li>
+                  <Link to="/work-log" className="text-slate-600 transition hover:text-brand-700">Work Log Diary</Link>
+                </li>
+                <li>
+                  <Link to="/profile" className="text-slate-600 transition hover:text-brand-700">Candidate Profile</Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 2: For Employers */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">For Employers</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li>
+                  <Link to="/provider" className="text-slate-600 transition hover:text-brand-700">Provider Console</Link>
+                </li>
+                <li>
+                  <Link to="/register?role=provider" className="text-slate-600 transition hover:text-brand-700">Register Organization</Link>
+                </li>
+                <li>
+                  <Link to="/provider/jobs/new" className="text-slate-600 transition hover:text-brand-700">Post a Job Opening</Link>
+                </li>
+                <li>
+                  <Link to="/provider/jobs" className="text-slate-600 transition hover:text-brand-700">Manage Listings</Link>
+                </li>
+                <li>
+                  <Link to="/login" className="text-slate-600 transition hover:text-brand-700">Employer Sign In</Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Governance & Administration */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-900">Governance & Trust</p>
+              <ul className="mt-4 space-y-2.5 text-sm">
+                <li>
+                  <Link to="/admin" className="text-slate-600 transition hover:text-brand-700">Admin Control Center</Link>
+                </li>
+                <li>
+                  <Link to="/admin/providers" className="text-slate-600 transition hover:text-brand-700">Provider Vetting Queue</Link>
+                </li>
+                <li>
+                  <Link to="/admin/companies" className="text-slate-600 transition hover:text-brand-700">Company Moderation</Link>
+                </li>
+                <li>
+                  <Link to="/admin/jobs" className="text-slate-600 transition hover:text-brand-700">Job Review Queue</Link>
+                </li>
+                <li>
+                  <a href="http://localhost:5000/api/health" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-slate-600 transition hover:text-brand-700">
+                    System Health API <ExternalLink className="h-3 w-3" />
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
-          <nav className="flex items-center gap-5 text-xs font-medium text-slate-600">
-            <Link to="/login" className="underline-offset-4 transition hover:text-brand-700 hover:underline">Sign in</Link>
-            <Link to="/register" className="underline-offset-4 transition hover:text-brand-700 hover:underline">Create account</Link>
-          </nav>
-          <p className="text-xs text-slate-500">
-            A verified workflow for applicants, providers, and administrators.
-          </p>
+
+          {/* Bottom row */}
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-100 pt-8 text-xs text-slate-500 sm:flex-row">
+            <p>© {new Date().getFullYear()} PathPoint Platform. Capstone Project. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5 font-medium text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                All Systems Operational
+              </span>
+              <span className="text-slate-300">|</span>
+              <span className="text-slate-500">MongoDB Atlas Connected</span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

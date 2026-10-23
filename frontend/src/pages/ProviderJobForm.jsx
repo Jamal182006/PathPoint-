@@ -107,7 +107,8 @@ const ProviderJobForm = () => {
       if (jobId) await apiAdapter.updateProviderJob(jobId, payload);
       else await apiAdapter.createJob(companyId || company?._id, payload);
       toast(payload.workflowAction === 'draft' ? 'Job saved as a draft.' : 'Job submitted for admin review.', 'success');
-      navigate(`/provider/companies/${companyId || company?._id}`);
+      const returnToCompany = searchParams.get('from') === 'company';
+      navigate(returnToCompany && (companyId || company?._id) ? `/provider/companies/${companyId || company?._id}` : '/provider/jobs');
     } catch (saveError) {
       toast(saveError.message || 'Unable to save this job.', 'error');
       throw saveError;

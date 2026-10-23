@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -10,90 +10,102 @@ import {
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export const MonthCalendar = ({ interviews = [], onDateClick }) => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export const MonthCalendar = React.memo(({ interviews = [], onDateClick }) => {
+  const [currentDate, setCurrentDate] = useState(() => new Date());
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  const MAX_CALENDAR_YEAR = new Date().getFullYear() + 5;
+  const MIN_CALENDAR_YEAR = 2020;
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonth = useCallback(() => {
+    setCurrentDate((prev) => {
+      if (prev.getFullYear() <= MIN_CALENDAR_YEAR && prev.getMonth() <= 0) return prev;
+      return new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
+    });
+  }, []);
 
-  const prevMonthDays = new Date(year, month, 0).getDate();
+  const nextMonth = useCallback(() => {
+    setCurrentDate((prev) => {
+      if (prev.getFullYear() >= MAX_CALENDAR_YEAR && prev.getMonth() >= 11) return prev;
+      return new Date(prev.getFullYear(), prev.getMonth() + 1, 1);
+    });
+  }, []);
 
-  const now = new Date();
-  const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-  const prevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-  };
-
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     setCurrentDate(new Date());
-  };
+  }, []);
 
-  const monthName = currentDate.toLocaleString('default', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const monthName = useMemo(() => {
+    return currentDate.toLocaleString('default', {
+      month: 'long',
+      year: 'numeric',
+    });
+  }, [currentDate]);
 
-  // Map interviews to date keys e.g. "YYYY-MM-DD"
-  const interviewMap = {};
-  interviews.forEach((item) => {
-    if (!item?.date) return;
-    const d = item.date instanceof Date ? item.date : new Date(item.date);
-    if (Number.isNaN(d.getTime())) return;
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    if (!interviewMap[key]) {
-      interviewMap[key] = [];
+  const { cells } = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    const now = new Date();
+
+    // Map interviews to date keys e.g. "YYYY-MM-DD"
+    const interviewMap = {};
+    interviews.forEach((item) => {
+      if (!item?.date) return;
+      const d = item.date instanceof Date ? item.date : new Date(item.date);
+      if (Number.isNaN(d.getTime())) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      if (!interviewMap[key]) {
+        interviewMap[key] = [];
+      }
+      interviewMap[key].push(item);
+    });
+
+    // Build grid calendar cells (42 cells: 6 rows of 7)
+    const gridCells = [];
+
+    // 1. Previous month trailing days
+    for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+      const dayNum = prevMonthDays - i;
+      gridCells.push({
+        day: dayNum,
+        isCurrentMonth: false,
+        dateString: `${month === 0 ? year - 1 : year}-${String(month === 0 ? 12 : month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`,
+      });
     }
-    interviewMap[key].push(item);
-  });
 
-  // Build grid calendar cells (42 cells: 6 rows of 7)
-  const cells = [];
+    // 2. Current month days
+    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const cellDate = new Date(year, month, dayNum);
+      const isToday =
+        cellDate.getDate() === now.getDate() &&
+        cellDate.getMonth() === now.getMonth() &&
+        cellDate.getFullYear() === now.getFullYear();
 
-  // 1. Previous month trailing days
-  for (let i = firstDayOfMonth - 1; i >= 0; i--) {
-    const dayNum = prevMonthDays - i;
-    cells.push({
-      day: dayNum,
-      isCurrentMonth: false,
-      dateString: `${month === 0 ? year - 1 : year}-${String(month === 0 ? 12 : month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`,
-    });
-  }
+      gridCells.push({
+        day: dayNum,
+        isCurrentMonth: true,
+        isToday,
+        dateString: dateStr,
+        interviews: interviewMap[dateStr] || [],
+      });
+    }
 
-  // 2. Current month days
-  for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
-    const cellDate = new Date(year, month, dayNum);
-    const isToday =
-      cellDate.getDate() === now.getDate() &&
-      cellDate.getMonth() === now.getMonth() &&
-      cellDate.getFullYear() === now.getFullYear();
+    // 3. Next month leading days
+    const remaining = 42 - gridCells.length;
+    for (let dayNum = 1; dayNum <= remaining; dayNum++) {
+      gridCells.push({
+        day: dayNum,
+        isCurrentMonth: false,
+        dateString: `${month === 11 ? year + 1 : year}-${String(month === 11 ? 1 : month + 2).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`,
+      });
+    }
 
-    cells.push({
-      day: dayNum,
-      isCurrentMonth: true,
-      isToday,
-      dateString: dateStr,
-      interviews: interviewMap[dateStr] || [],
-    });
-  }
-
-  // 3. Next month leading days
-  const remaining = 42 - cells.length;
-  for (let dayNum = 1; dayNum <= remaining; dayNum++) {
-    cells.push({
-      day: dayNum,
-      isCurrentMonth: false,
-      dateString: `${month === 11 ? year + 1 : year}-${String(month === 11 ? 1 : month + 2).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`,
-    });
-  }
+    return { interviewMap, cells: gridCells };
+  }, [currentDate, interviews]);
 
   return (
     <div className="ui-card overflow-hidden">
@@ -209,6 +221,6 @@ export const MonthCalendar = ({ interviews = [], onDateClick }) => {
       </div>
     </div>
   );
-};
+});
 
 export default MonthCalendar;
